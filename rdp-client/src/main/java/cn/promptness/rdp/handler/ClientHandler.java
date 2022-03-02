@@ -26,7 +26,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientHandler.class);
 
-    private static final EventLoopGroup LOCAL_GROUP = new NioEventLoopGroup();
+    private final EventLoopGroup localGroup = new NioEventLoopGroup();
 
     private final Map<Integer, Channel> channelMap = Maps.newConcurrentMap();
 
@@ -105,7 +105,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         }
         RemoteConfig remoteConfig = remoteConfigList.get(0);
         Bootstrap localBootstrap = new Bootstrap();
-        localBootstrap.group(LOCAL_GROUP).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
+        localBootstrap.group(localGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel channel) throws Exception {
                 channel.pipeline().addLast(new ByteArrayDecoder());
@@ -121,16 +121,12 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        Message message = new Message();
-        message.setType(MessageType.TYPE_DISCONNECTED);
-        message.setClientConfig(Config.getClientConfig());
-        ctx.writeAndFlush(message);
-        //连接中断
+        logger.info("客户端-服务端连接中断{}:{}", Config.getClientConfig().getServerIp(), Config.getClientConfig().getServerPort());
         for (Channel channel : channelMap.values()) {
             channel.close();
         }
         channelMap.clear();
-        LOCAL_GROUP.shutdownGracefully();
+        localGroup.shutdownGracefully();
     }
 
     @Override

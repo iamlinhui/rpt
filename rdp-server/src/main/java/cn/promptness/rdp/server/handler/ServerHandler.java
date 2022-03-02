@@ -25,17 +25,14 @@ import java.util.concurrent.ExecutionException;
 public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     private static final Logger logger = LoggerFactory.getLogger(ServerHandler.class);
-
-    private static final EventLoopGroup BOSS_GROUP = new NioEventLoopGroup();
-    private static final EventLoopGroup WORKER_GROUP = new NioEventLoopGroup();
-
-    private final Map<Integer, Channel> channelMap = Maps.newConcurrentMap();
+    private static final Map<Integer, Channel> CHANNEL_MAP = Maps.newConcurrentMap();
+    private final EventLoopGroup bossGroup = new NioEventLoopGroup();
+    private final EventLoopGroup workerGroup = new NioEventLoopGroup();
+    private ClientConfig clientConfig;
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         ctx.channel().close();
-        BOSS_GROUP.shutdownGracefully();
-        WORKER_GROUP.shutdownGracefully();
     }
 
     /**
@@ -43,14 +40,18 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        ctx.channel().close();
-        for (Channel channel : channelMap.values()) {
-            channel.close();
+        if (clientConfig != null) {
+            logger.info("服务端-客户端连接中断{}", clientConfig.getClientKey());
+            for (RemoteConfig remoteConfig : clientConfig.getConfig()) {
+                Channel remove = CHANNEL_MAP.remove(remoteConfig.getRemotePort());
+                if (remove != null) {
+                    remove.close();
+                }
+            }
         }
-        channelMap.clear();
         // 取消监听的端口 否则第二次连接时无法再次绑定端口
-        BOSS_GROUP.shutdownGracefully();
-        WORKER_GROUP.shutdownGracefully();
+        bossGroup.shutdownGracefully();
+        workerGroup.shutdownGracefully();
     }
 
     @Override
@@ -79,7 +80,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         if (clientConfig.getConfig().isEmpty()) {
             return;
         }
-        Channel channel = channelMap.get(clientConfig.getConfig().get(0).getRemotePort());
+        Channel channel = CHANNEL_MAP.get(clientConfig.getConfig().get(0).getRemotePort());
         if (channel == null) {
             return;
         }
@@ -95,7 +96,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         if (clientConfig.getConfig().isEmpty()) {
             return;
         }
-        Channel channel = channelMap.get(clientConfig.getConfig().get(0).getRemotePort());
+        Channel channel = CHANNEL_MAP.get(clientConfig.getConfig().get(0).getRemotePort());
         if (channel == null) {
             return;
         }
@@ -115,20 +116,21 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         }
         for (RemoteConfig remoteConfig : clientConfig.getConfig()) {
             ServerBootstrap remoteBootstrap = new ServerBootstrap();
-            remoteBootstrap.group(BOSS_GROUP, WORKER_GROUP).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true)
+            remoteBootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         public void initChannel(SocketChannel channel) throws Exception {
                             channel.pipeline().addLast(new ByteArrayDecoder());
                             channel.pipeline().addLast(new ByteArrayEncoder());
                             channel.pipeline().addLast(new RemoteHandler(context.channel(), remoteConfig, clientKey));
-                            channelMap.put(remoteConfig.getRemotePort(), channel);
+                            CHANNEL_MAP.put(remoteConfig.getRemotePort(), channel);
                         }
                     });
             logger.info("服务端开始建立本地端口绑定[{}]", remoteConfig.getRemotePort());
             remoteBootstrap.bind(Config.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).get();
         }
         clientConfig.setConnection(true);
+        this.clientConfig = clientConfig;
         Message res = new Message();
         res.setType(MessageType.TYPE_AUTH);
         res.setClientConfig(clientConfig);
