@@ -33,7 +33,7 @@ public class ServerApplication {
         bootstrap.group(serverBossGroup, serverWorkerGroup).channel(NioServerSocketChannel.class).childHandler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
-                ch.pipeline().addLast(new IdleStateHandler(60, 40, 0, TimeUnit.SECONDS));
+                ch.pipeline().addLast(new IdleCheckHandler());
                 //固定帧长解码器
                 ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4));
                 //自定义协议解码器
@@ -42,7 +42,6 @@ public class ServerApplication {
                 ch.pipeline().addLast(new MessageEncoder());
                 //代理客户端连接代理服务器处理器
                 ch.pipeline().addLast(new ServerHandler());
-                ch.pipeline().addLast(new IdleCheckHandler());
             }
         });
         bootstrap.bind(serverConfig.getServerIp(), serverConfig.getServerPort()).sync();

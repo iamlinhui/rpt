@@ -7,12 +7,14 @@ import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.TimeUnit;
+
 public class IdleCheckHandler extends IdleStateHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(IdleCheckHandler.class);
 
     public IdleCheckHandler() {
-        super(60, 40, 1200);
+        super(60, 40, 120, TimeUnit.SECONDS);
     }
 
     @Override
