@@ -12,6 +12,8 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -22,12 +24,11 @@ import java.util.concurrent.ExecutionException;
  */
 public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
+    private static final Logger logger = LoggerFactory.getLogger(ClientHandler.class);
 
     private static final EventLoopGroup LOCAL_GROUP = new NioEventLoopGroup();
 
     private final Map<Integer, Channel> channelMap = Maps.newConcurrentMap();
-
-    private boolean connection;
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -43,7 +44,12 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
     protected void channelRead0(ChannelHandlerContext context, Message message) throws Exception {
         switch (message.getType()) {
             case TYPE_AUTH:
-                connection = message.getClientConfig().isConnection();
+                boolean connection = message.getClientConfig().isConnection();
+                if (connection) {
+                    logger.info("授权连接成功,clientKey:{}", message.getClientConfig().getClientKey());
+                } else {
+                    logger.info("授权连接失败,clientKey:{}", message.getClientConfig().getClientKey());
+                }
                 break;
             case TYPE_CONNECTED:
                 // 外部请求进入，开始与内网建立连接
@@ -108,6 +114,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
                 channelMap.put(remoteConfig.getRemotePort(), channel);
             }
         });
+        logger.info("客户端开始建立本地连接,本地绑定IP:{},本地绑定端口:{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort());
         localBootstrap.connect(remoteConfig.getLocalIp(), remoteConfig.getLocalPort()).get();
     }
 

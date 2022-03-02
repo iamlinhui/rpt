@@ -9,9 +9,9 @@
     <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
     <modules>
+        <module>rdp-common</module>
         <module>rdp-server</module>
         <module>rdp-client</module>
-        <module>rdp-common</module>
     </modules>
 
     <properties>

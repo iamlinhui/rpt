@@ -4,6 +4,7 @@ import cn.promptness.rdp.common.coder.MessageDecoder;
 import cn.promptness.rdp.common.coder.MessageEncoder;
 import cn.promptness.rdp.common.config.ClientConfig;
 import cn.promptness.rdp.common.config.Config;
+import cn.promptness.rdp.common.handler.IdleCheckHandler;
 import cn.promptness.rdp.handler.ClientHandler;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelInitializer;
@@ -13,10 +14,14 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
 
 public class ClientApplication {
+
+    private static final Logger logger = LoggerFactory.getLogger(ClientApplication.class);
 
     public static void main(String[] args) throws InterruptedException {
 
@@ -37,8 +42,10 @@ public class ClientApplication {
                 ch.pipeline().addLast(new MessageEncoder());
                 //服务器连接处理器
                 ch.pipeline().addLast(new ClientHandler());
+                ch.pipeline().addLast(new IdleCheckHandler());
             }
         });
+        logger.info("客户端开始连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
         bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).sync();
     }
 }
