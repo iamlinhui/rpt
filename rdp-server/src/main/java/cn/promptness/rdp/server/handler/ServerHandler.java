@@ -65,11 +65,25 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                 transfer(message);
                 break;
             case TYPE_DISCONNECTED:
+                disconnected(message);
                 break;
             case TYPE_KEEPALIVE:
             default:
         }
 
+    }
+
+    private void disconnected(Message message) {
+        ClientConfig clientConfig = message.getClientConfig();
+        String clientKey = clientConfig.getClientKey();
+        if (clientConfig.getConfig().isEmpty()) {
+            return;
+        }
+        Channel channel = channelTable.get(clientKey, clientConfig.getConfig().get(0).getRemotePort());
+        if (channel == null) {
+            return;
+        }
+        channel.close();
     }
 
     private void transfer(Message message) {
