@@ -1,0 +1,15 @@
+# 服务器配置
+serverIp: 127.0.0.1
+serverPort: 4399
+clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
+
+# server-port与local-port映射配置
+config:
+  - remotePort: 4389
+    localPort: 3389
+    localIp: 127.0.0.1
+    description: rdp
+  - remotePort: 7379
+    localPort: 6379
+    localIp: 127.0.0.1
+    description: redis
