@@ -121,6 +121,10 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        Message message = new Message();
+        message.setType(MessageType.TYPE_DISCONNECTED);
+        message.setClientConfig(Config.getClientConfig());
+        ctx.writeAndFlush(message);
         //连接中断
         for (Channel channel : channelMap.values()) {
             channel.close();

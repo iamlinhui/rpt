@@ -36,7 +36,7 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
      */
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        logger.info("服务端建立本地连接成功,绑定端口[{}]", remoteConfig.getRemotePort());
+        logger.info("服务端本地端口[{}]连接成功", remoteConfig.getRemotePort());
         send(MessageType.TYPE_CONNECTED, new byte[]{});
     }
 

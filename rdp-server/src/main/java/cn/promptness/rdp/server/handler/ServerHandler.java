@@ -125,7 +125,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                             channelMap.put(remoteConfig.getRemotePort(), channel);
                         }
                     });
-            logger.info("服务端开始建立本地连接,绑定端口[{}]", remoteConfig.getRemotePort());
+            logger.info("服务端开始建立本地端口绑定[{}]", remoteConfig.getRemotePort());
             remoteBootstrap.bind(Config.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).get();
         }
         clientConfig.setConnection(true);
