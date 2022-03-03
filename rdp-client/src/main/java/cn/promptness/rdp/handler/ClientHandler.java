@@ -57,12 +57,10 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
             case TYPE_DISCONNECTED:
                 disconnected(message);
                 break;
-            case TYPE_KEEPALIVE:
-                //心跳，不做处理
-                break;
             case TYPE_DATA:
                 transfer(message);
                 break;
+            case TYPE_KEEPALIVE:
             default:
         }
     }

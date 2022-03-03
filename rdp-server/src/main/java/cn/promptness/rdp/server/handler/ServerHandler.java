@@ -43,16 +43,13 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         if (clientConfig != null) {
             logger.info("服务端-客户端连接中断{}", clientConfig.getClientKey());
-            for (RemoteConfig remoteConfig : clientConfig.getConfig()) {
-                Map<String, Channel> channelMap = remoteChannelMap.remove(remoteConfig.getRemotePort());
-                if (channelMap == null || channelMap.isEmpty()) {
-                    continue;
-                }
-                for (Channel channel : channelMap.values()) {
-                    channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
-                }
+        }
+        for (Map<String, Channel> channelMap : remoteChannelMap.values()) {
+            for (Channel channel : channelMap.values()) {
+                channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
             }
         }
+        remoteChannelMap.clear();
         // 取消监听的端口 否则第二次连接时无法再次绑定端口
         bossGroup.shutdownGracefully();
         workerGroup.shutdownGracefully();
@@ -84,7 +81,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         if (channel == null) {
             return;
         }
-        remoteChannelMap.get(clientConfig.getConfig().get(0).getRemotePort()).remove(message.getClientConfig().getChannelId());
+        remoteChannelMap.get(message.getClientConfig().getConfig().get(0).getRemotePort()).remove(message.getClientConfig().getChannelId());
         // 数据发送完成后再关闭连 解决http1.0数据传输问题
         channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
     }
@@ -109,7 +106,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         channel.writeAndFlush(message.getData());
     }
 
-    private void register(ChannelHandlerContext context, Message message) throws InterruptedException, ExecutionException {
+    private void register(ChannelHandlerContext context, Message message) {
         ClientConfig clientConfig = message.getClientConfig();
         String clientKey = clientConfig.getClientKey();
         if (!Config.getServerConfig().getClientKey().contains(clientKey)) {
