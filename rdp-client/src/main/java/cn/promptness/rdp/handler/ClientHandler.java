@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 
 /**
  * 服务器连接处理器
@@ -98,7 +97,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         }
     }
 
-    private void connected(ChannelHandlerContext context, Message message) throws InterruptedException, ExecutionException {
+    private void connected(ChannelHandlerContext context, Message message) {
         List<RemoteConfig> remoteConfigList = message.getClientConfig().getConfig();
         if (remoteConfigList == null || remoteConfigList.isEmpty()) {
             return;
@@ -114,10 +113,18 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
                 channelMap.put(remoteConfig.getRemotePort(), channel);
             }
         });
-        logger.info("客户端开始建立本地连接,本地绑定IP:{},本地绑定端口:{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort());
-        localBootstrap.connect(remoteConfig.getLocalIp(), remoteConfig.getLocalPort()).get();
+        try {
+            logger.info("客户端开始建立本地连接,本地绑定IP:{},本地绑定端口:{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort());
+            localBootstrap.connect(remoteConfig.getLocalIp(), remoteConfig.getLocalPort()).sync();
+        } catch (InterruptedException exception) {
+            logger.error("客户端建立本地连接失败,本地绑定IP:{},本地绑定端口:{},{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort(), exception.getMessage());
+            Channel channel = channelMap.remove(remoteConfig.getRemotePort());
+            if (channel != null) {
+                channel.close();
+            }
+            Thread.currentThread().interrupt();
+        }
     }
-
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
@@ -131,8 +138,6 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        //传递异常
-        ctx.fireExceptionCaught(cause);
         ctx.channel().close();
     }
 

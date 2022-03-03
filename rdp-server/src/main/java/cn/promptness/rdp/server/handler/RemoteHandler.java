@@ -57,6 +57,15 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
     }
 
     /**
+     * 连接异常
+     */
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        logger.info("服务端端口[{}]连接中断", remoteConfig.getRemotePort());
+        ctx.channel().close();
+    }
+
+    /**
      * 发送数据到内网客户端流程封装
      **/
     public void send(MessageType type, byte[] data) {
