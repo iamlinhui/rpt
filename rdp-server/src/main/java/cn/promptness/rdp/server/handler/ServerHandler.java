@@ -135,7 +135,6 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                 if (channel != null) {
                     channel.close();
                 }
-                Thread.currentThread().interrupt();
             }
         }
         clientConfig.setConnection(true);

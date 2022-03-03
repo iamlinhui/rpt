@@ -122,7 +122,6 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
             if (channel != null) {
                 channel.close();
             }
-            Thread.currentThread().interrupt();
         }
     }
 
