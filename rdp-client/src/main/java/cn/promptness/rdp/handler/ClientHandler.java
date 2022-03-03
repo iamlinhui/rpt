@@ -1,5 +1,6 @@
 package cn.promptness.rdp.handler;
 
+import cn.promptness.rdp.common.config.ClientConfig;
 import cn.promptness.rdp.common.config.Config;
 import cn.promptness.rdp.common.config.RemoteConfig;
 import cn.promptness.rdp.common.protocol.Message;
@@ -27,7 +28,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientHandler.class);
     private final EventLoopGroup localGroup = new NioEventLoopGroup();
-    private final Map<Integer, Map<String, Channel>> localChannelMap = Maps.newConcurrentMap();
+    private final Map<String, Channel> localChannelMap = Maps.newConcurrentMap();
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -69,12 +70,8 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         if (message.getData() == null || message.getData().length <= 0) {
             return;
         }
-        List<RemoteConfig> remoteConfigList = message.getClientConfig().getConfig();
-        if (remoteConfigList == null || remoteConfigList.isEmpty()) {
-            return;
-        }
-        RemoteConfig remoteConfig = remoteConfigList.get(0);
-        Channel channel = localChannelMap.get(remoteConfig.getLocalPort()).get(message.getClientConfig().getChannelId());
+        ClientConfig clientConfig = message.getClientConfig();
+        Channel channel = localChannelMap.get(clientConfig.getChannelId());
         if (channel != null) {
             //将数据转发到对应内网服务器
             channel.writeAndFlush(message.getData());
@@ -82,12 +79,8 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
     }
 
     private void disconnected(Message message) {
-        List<RemoteConfig> remoteConfigList = message.getClientConfig().getConfig();
-        if (remoteConfigList == null || remoteConfigList.isEmpty()) {
-            return;
-        }
-        RemoteConfig remoteConfig = remoteConfigList.get(0);
-        Channel channel = localChannelMap.get(remoteConfig.getLocalPort()).remove(message.getClientConfig().getChannelId());
+        ClientConfig clientConfig = message.getClientConfig();
+        Channel channel = localChannelMap.remove(clientConfig.getChannelId());
         if (channel != null) {
             channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         }
@@ -106,13 +99,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
                 channel.pipeline().addLast(new ByteArrayDecoder());
                 channel.pipeline().addLast(new ByteArrayEncoder());
                 channel.pipeline().addLast(new LocalHandler(context.channel(), message.getClientConfig()));
-                localChannelMap.compute(remoteConfig.getLocalPort(), (localPort, channelMap) -> {
-                    if (channelMap == null) {
-                        channelMap = Maps.newConcurrentMap();
-                    }
-                    channelMap.put(message.getClientConfig().getChannelId(), channel);
-                    return channelMap;
-                });
+                localChannelMap.put(message.getClientConfig().getChannelId(), channel);
             }
         });
         try {
@@ -126,10 +113,8 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         logger.info("客户端-服务端连接中断{}:{}", Config.getClientConfig().getServerIp(), Config.getClientConfig().getServerPort());
-        for (Map<String, Channel> channelMap : localChannelMap.values()) {
-            for (Channel channel : channelMap.values()) {
-                channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
-            }
+        for (Channel channel : localChannelMap.values()) {
+            channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         }
         localChannelMap.clear();
         localGroup.shutdownGracefully();

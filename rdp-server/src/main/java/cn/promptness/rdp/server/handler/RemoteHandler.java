@@ -22,12 +22,10 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
 
     private final Channel channel;
     private final RemoteConfig remoteConfig;
-    private final String clientKey;
 
-    public RemoteHandler(Channel channel, RemoteConfig remoteConfig, String clientKey) {
+    public RemoteHandler(Channel channel, RemoteConfig remoteConfig) {
         this.channel = channel;
         this.remoteConfig = remoteConfig;
-        this.clientKey = clientKey;
     }
 
 
@@ -74,7 +72,6 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
         ClientConfig clientConfig = new ClientConfig();
         clientConfig.setServerIp(serverConfig.getServerIp());
         clientConfig.setServerPort(serverConfig.getServerPort());
-        clientConfig.setClientKey(clientKey);
         clientConfig.setConfig(Lists.newArrayList(remoteConfig));
         clientConfig.setConnection(true);
         clientConfig.setChannelId(ctx.channel().id().asLongText());

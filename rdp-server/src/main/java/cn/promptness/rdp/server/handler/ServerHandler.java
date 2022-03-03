@@ -26,10 +26,10 @@ import java.util.concurrent.ExecutionException;
 public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     private static final Logger logger = LoggerFactory.getLogger(ServerHandler.class);
-    private final Map<Integer, Map<String, Channel>> remoteChannelMap = Maps.newConcurrentMap();
+    private final Map<String, Channel> remoteChannelMap = Maps.newConcurrentMap();
     private final EventLoopGroup bossGroup = new NioEventLoopGroup();
     private final EventLoopGroup workerGroup = new NioEventLoopGroup();
-    private ClientConfig clientConfig;
+    private String clientKey;
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
@@ -41,13 +41,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        if (clientConfig != null) {
-            logger.info("服务端-客户端连接中断{}", clientConfig.getClientKey());
-        }
-        for (Map<String, Channel> channelMap : remoteChannelMap.values()) {
-            for (Channel channel : channelMap.values()) {
-                channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
-            }
+        logger.info("服务端-客户端连接中断{}", clientKey);
+        for (Channel channel : remoteChannelMap.values()) {
+            channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         }
         remoteChannelMap.clear();
         // 取消监听的端口 否则第二次连接时无法再次绑定端口
@@ -57,9 +53,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext context, Message message) throws Exception {
-
         MessageType type = message.getType();
-
         switch (type) {
             case TYPE_REGISTER:
                 register(context, message);
@@ -77,29 +71,19 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     }
 
     private void disconnected(Message message) {
-        Channel channel = getChannel(message);
+        ClientConfig clientConfig = message.getClientConfig();
+        Channel channel = remoteChannelMap.remove(clientConfig.getChannelId());
         if (channel == null) {
             return;
         }
-        remoteChannelMap.get(message.getClientConfig().getConfig().get(0).getRemotePort()).remove(message.getClientConfig().getChannelId());
         // 数据发送完成后再关闭连 解决http1.0数据传输问题
         channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
     }
 
-    private Channel getChannel(Message message) {
-        ClientConfig clientConfig = message.getClientConfig();
-        if (clientConfig.getConfig().isEmpty()) {
-            return null;
-        }
-        Map<String, Channel> channelMap = remoteChannelMap.get(clientConfig.getConfig().get(0).getRemotePort());
-        if (channelMap == null || channelMap.isEmpty()) {
-            return null;
-        }
-        return channelMap.get(clientConfig.getChannelId());
-    }
 
     private void transfer(Message message) {
-        Channel channel = getChannel(message);
+        ClientConfig clientConfig = message.getClientConfig();
+        Channel channel = remoteChannelMap.get(clientConfig.getChannelId());
         if (channel == null) {
             return;
         }
@@ -108,7 +92,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     private void register(ChannelHandlerContext context, Message message) {
         ClientConfig clientConfig = message.getClientConfig();
-        String clientKey = clientConfig.getClientKey();
+        clientKey = clientConfig.getClientKey();
         if (!Config.getServerConfig().getClientKey().contains(clientKey)) {
             clientConfig.setConnection(false);
             Message res = new Message();
@@ -125,14 +109,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                         public void initChannel(SocketChannel channel) throws Exception {
                             channel.pipeline().addLast(new ByteArrayDecoder());
                             channel.pipeline().addLast(new ByteArrayEncoder());
-                            channel.pipeline().addLast(new RemoteHandler(context.channel(), remoteConfig, clientKey));
-                            remoteChannelMap.compute(remoteConfig.getRemotePort(), (remotePort, channelMap) -> {
-                                if (channelMap == null) {
-                                    channelMap = Maps.newConcurrentMap();
-                                }
-                                channelMap.put(channel.id().asLongText(), channel);
-                                return channelMap;
-                            });
+                            channel.pipeline().addLast(new RemoteHandler(context.channel(), remoteConfig));
+                            remoteChannelMap.put(channel.id().asLongText(), channel);
                         }
                     });
             try {
@@ -143,7 +121,6 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             }
         }
         clientConfig.setConnection(true);
-        this.clientConfig = clientConfig;
         Message res = new Message();
         res.setType(MessageType.TYPE_AUTH);
         res.setClientConfig(clientConfig);
