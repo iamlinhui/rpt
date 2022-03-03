@@ -37,14 +37,14 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         logger.info("服务端本地端口[{}]连接成功", remoteConfig.getRemotePort());
-        send(MessageType.TYPE_CONNECTED, new byte[]{});
+        send(MessageType.TYPE_CONNECTED, new byte[]{}, ctx);
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext channelHandlerContext, byte[] bytes) throws Exception {
+    protected void channelRead0(ChannelHandlerContext ctx, byte[] bytes) throws Exception {
         logger.info("收到来自端口[{}]的数据,大小为:{}字节", remoteConfig.getRemotePort(), bytes.length);
         // 从外部连接接收到的数据 转发到客户端
-        send(MessageType.TYPE_DATA, bytes);
+        send(MessageType.TYPE_DATA, bytes, ctx);
     }
 
     /**
@@ -53,7 +53,7 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         logger.info("服务端端口[{}]连接断开", remoteConfig.getRemotePort());
-        send(MessageType.TYPE_DISCONNECTED, new byte[]{});
+        send(MessageType.TYPE_DISCONNECTED, new byte[]{}, ctx);
     }
 
     /**
@@ -68,7 +68,7 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
     /**
      * 发送数据到内网客户端流程封装
      **/
-    public void send(MessageType type, byte[] data) {
+    public void send(MessageType type, byte[] data, ChannelHandlerContext ctx) {
 
         ServerConfig serverConfig = Config.getServerConfig();
         ClientConfig clientConfig = new ClientConfig();
@@ -77,6 +77,7 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
         clientConfig.setClientKey(clientKey);
         clientConfig.setConfig(Lists.newArrayList(remoteConfig));
         clientConfig.setConnection(true);
+        clientConfig.setChannelId(ctx.channel().id().asLongText());
 
         Message message = new Message();
         message.setType(type);

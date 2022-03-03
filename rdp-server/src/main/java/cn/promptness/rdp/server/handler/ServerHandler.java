@@ -7,6 +7,7 @@ import cn.promptness.rdp.common.protocol.Message;
 import cn.promptness.rdp.common.protocol.MessageType;
 import com.google.common.collect.Maps;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -25,7 +26,7 @@ import java.util.concurrent.ExecutionException;
 public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     private static final Logger logger = LoggerFactory.getLogger(ServerHandler.class);
-    private static final Map<Integer, Channel> CHANNEL_MAP = Maps.newConcurrentMap();
+    private final Map<Integer, Map<String, Channel>> remoteChannelMap = Maps.newConcurrentMap();
     private final EventLoopGroup bossGroup = new NioEventLoopGroup();
     private final EventLoopGroup workerGroup = new NioEventLoopGroup();
     private ClientConfig clientConfig;
@@ -43,9 +44,12 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         if (clientConfig != null) {
             logger.info("服务端-客户端连接中断{}", clientConfig.getClientKey());
             for (RemoteConfig remoteConfig : clientConfig.getConfig()) {
-                Channel remove = CHANNEL_MAP.remove(remoteConfig.getRemotePort());
-                if (remove != null) {
-                    remove.close();
+                Map<String, Channel> channelMap = remoteChannelMap.remove(remoteConfig.getRemotePort());
+                if (channelMap == null || channelMap.isEmpty()) {
+                    continue;
+                }
+                for (Channel channel : channelMap.values()) {
+                    channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
                 }
             }
         }
@@ -76,27 +80,29 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     }
 
     private void disconnected(Message message) {
-        ClientConfig clientConfig = message.getClientConfig();
-        if (clientConfig.getConfig().isEmpty()) {
-            return;
-        }
-        Channel channel = CHANNEL_MAP.get(clientConfig.getConfig().get(0).getRemotePort());
+        Channel channel = getChannel(message);
         if (channel == null) {
             return;
         }
-        channel.close();
+        remoteChannelMap.get(clientConfig.getConfig().get(0).getRemotePort()).remove(message.getClientConfig().getChannelId());
+        // 数据发送完成后再关闭连 解决http1.0数据传输问题
+        channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
+    }
+
+    private Channel getChannel(Message message) {
+        ClientConfig clientConfig = message.getClientConfig();
+        if (clientConfig.getConfig().isEmpty()) {
+            return null;
+        }
+        Map<String, Channel> channelMap = remoteChannelMap.get(clientConfig.getConfig().get(0).getRemotePort());
+        if (channelMap == null || channelMap.isEmpty()) {
+            return null;
+        }
+        return channelMap.get(clientConfig.getChannelId());
     }
 
     private void transfer(Message message) {
-        ClientConfig clientConfig = message.getClientConfig();
-        String clientKey = clientConfig.getClientKey();
-        if (message.getData() == null || message.getData().length == 0 || !Config.getServerConfig().getClientKey().contains(clientKey)) {
-            return;
-        }
-        if (clientConfig.getConfig().isEmpty()) {
-            return;
-        }
-        Channel channel = CHANNEL_MAP.get(clientConfig.getConfig().get(0).getRemotePort());
+        Channel channel = getChannel(message);
         if (channel == null) {
             return;
         }
@@ -123,7 +129,13 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                             channel.pipeline().addLast(new ByteArrayDecoder());
                             channel.pipeline().addLast(new ByteArrayEncoder());
                             channel.pipeline().addLast(new RemoteHandler(context.channel(), remoteConfig, clientKey));
-                            CHANNEL_MAP.put(remoteConfig.getRemotePort(), channel);
+                            remoteChannelMap.compute(remoteConfig.getRemotePort(), (remotePort, channelMap) -> {
+                                if (channelMap == null) {
+                                    channelMap = Maps.newConcurrentMap();
+                                }
+                                channelMap.put(channel.id().asLongText(), channel);
+                                return channelMap;
+                            });
                         }
                     });
             try {
@@ -131,10 +143,6 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                 remoteBootstrap.bind(Config.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).get();
             } catch (InterruptedException | ExecutionException exception) {
                 logger.info("服务端失败建立本地端口绑定[{}], {}", remoteConfig.getRemotePort(), exception.getCause().getMessage());
-                Channel channel = CHANNEL_MAP.remove(remoteConfig.getRemotePort());
-                if (channel != null) {
-                    channel.close();
-                }
             }
         }
         clientConfig.setConnection(true);

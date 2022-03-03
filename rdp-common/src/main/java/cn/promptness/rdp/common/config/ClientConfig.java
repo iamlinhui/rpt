@@ -8,6 +8,7 @@ public class ClientConfig {
     private Integer serverPort;
     private String clientKey;
     private boolean connection;
+    private String channelId;
 
     private List<RemoteConfig> config;
 
@@ -49,5 +50,13 @@ public class ClientConfig {
 
     public void setConnection(boolean connection) {
         this.connection = connection;
+    }
+
+    public String getChannelId() {
+        return channelId;
+    }
+
+    public void setChannelId(String channelId) {
+        this.channelId = channelId;
     }
 }

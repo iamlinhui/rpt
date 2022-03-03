@@ -6,6 +6,7 @@ import cn.promptness.rdp.common.protocol.Message;
 import cn.promptness.rdp.common.protocol.MessageType;
 import com.google.common.collect.Maps;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -25,10 +26,8 @@ import java.util.concurrent.ExecutionException;
 public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientHandler.class);
-
     private final EventLoopGroup localGroup = new NioEventLoopGroup();
-
-    private final Map<Integer, Channel> channelMap = Maps.newConcurrentMap();
+    private final Map<Integer, Map<String, Channel>> localChannelMap = Maps.newConcurrentMap();
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -72,13 +71,12 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         if (message.getData() == null || message.getData().length <= 0) {
             return;
         }
-
         List<RemoteConfig> remoteConfigList = message.getClientConfig().getConfig();
         if (remoteConfigList == null || remoteConfigList.isEmpty()) {
             return;
         }
         RemoteConfig remoteConfig = remoteConfigList.get(0);
-        Channel channel = channelMap.get(remoteConfig.getLocalPort());
+        Channel channel = localChannelMap.get(remoteConfig.getLocalPort()).get(message.getClientConfig().getChannelId());
         if (channel != null) {
             //将数据转发到对应内网服务器
             channel.writeAndFlush(message.getData());
@@ -91,10 +89,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
             return;
         }
         RemoteConfig remoteConfig = remoteConfigList.get(0);
-        Channel channel = channelMap.get(remoteConfig.getLocalPort());
+        Channel channel = localChannelMap.get(remoteConfig.getLocalPort()).remove(message.getClientConfig().getChannelId());
         if (channel != null) {
-            channel.close();
-            channelMap.remove(remoteConfig.getLocalPort());
+            channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         }
     }
 
@@ -110,8 +107,14 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
             public void initChannel(SocketChannel channel) throws Exception {
                 channel.pipeline().addLast(new ByteArrayDecoder());
                 channel.pipeline().addLast(new ByteArrayEncoder());
-                channel.pipeline().addLast(new LocalHandler(context.channel(), remoteConfig));
-                channelMap.put(remoteConfig.getLocalPort(), channel);
+                channel.pipeline().addLast(new LocalHandler(context.channel(), message.getClientConfig()));
+                localChannelMap.compute(remoteConfig.getLocalPort(), (localPort, channelMap) -> {
+                    if (channelMap == null) {
+                        channelMap = Maps.newConcurrentMap();
+                    }
+                    channelMap.put(message.getClientConfig().getChannelId(), channel);
+                    return channelMap;
+                });
             }
         });
         try {
@@ -119,20 +122,18 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
             localBootstrap.connect(remoteConfig.getLocalIp(), remoteConfig.getLocalPort()).get();
         } catch (InterruptedException | ExecutionException exception) {
             logger.error("客户端建立本地连接失败,本地绑定IP:{},本地绑定端口:{},{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort(), exception.getCause().getMessage());
-            Channel channel = channelMap.remove(remoteConfig.getLocalPort());
-            if (channel != null) {
-                channel.close();
-            }
         }
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         logger.info("客户端-服务端连接中断{}:{}", Config.getClientConfig().getServerIp(), Config.getClientConfig().getServerPort());
-        for (Channel channel : channelMap.values()) {
-            channel.close();
+        for (Map<String, Channel> channelMap : localChannelMap.values()) {
+            for (Channel channel : channelMap.values()) {
+                channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
+            }
         }
-        channelMap.clear();
+        localChannelMap.clear();
         localGroup.shutdownGracefully();
     }
 
