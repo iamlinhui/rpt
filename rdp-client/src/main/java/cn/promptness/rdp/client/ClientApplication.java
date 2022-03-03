@@ -30,7 +30,6 @@ public class ClientApplication {
         bootstrap.group(workerGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
-                ch.pipeline().addLast(new IdleCheckHandler());
                 //固定帧长解码器
                 ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4));
                 //自定义协议解码器
@@ -39,6 +38,7 @@ public class ClientApplication {
                 ch.pipeline().addLast(new MessageEncoder());
                 //服务器连接处理器
                 ch.pipeline().addLast(new ClientHandler());
+                ch.pipeline().addLast(new IdleCheckHandler());
             }
         });
         logger.info("客户端开始连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
