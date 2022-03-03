@@ -118,7 +118,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
             logger.info("客户端开始建立本地连接,本地绑定IP:{},本地绑定端口:{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort());
             localBootstrap.connect(remoteConfig.getLocalIp(), remoteConfig.getLocalPort()).get();
         } catch (InterruptedException | ExecutionException exception) {
-            logger.error("客户端建立本地连接失败,本地绑定IP:{},本地绑定端口:{},{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort(), exception.getMessage());
+            logger.error("客户端建立本地连接失败,本地绑定IP:{},本地绑定端口:{},{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort(), exception.getCause().getMessage());
             Channel channel = channelMap.remove(remoteConfig.getLocalPort());
             if (channel != null) {
                 channel.close();

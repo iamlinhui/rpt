@@ -130,7 +130,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                 logger.info("服务端开始建立本地端口绑定[{}]", remoteConfig.getRemotePort());
                 remoteBootstrap.bind(Config.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).get();
             } catch (InterruptedException | ExecutionException exception) {
-                logger.info("服务端失败建立本地端口绑定[{}]", remoteConfig.getRemotePort());
+                logger.info("服务端失败建立本地端口绑定[{}], {}", remoteConfig.getRemotePort(), exception.getCause().getMessage());
                 Channel channel = CHANNEL_MAP.remove(remoteConfig.getRemotePort());
                 if (channel != null) {
                     channel.close();
