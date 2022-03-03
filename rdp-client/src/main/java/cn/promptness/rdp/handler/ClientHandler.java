@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 /**
  * 服务器连接处理器
@@ -77,7 +78,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
             return;
         }
         RemoteConfig remoteConfig = remoteConfigList.get(0);
-        Channel channel = channelMap.get(remoteConfig.getRemotePort());
+        Channel channel = channelMap.get(remoteConfig.getLocalPort());
         if (channel != null) {
             //将数据转发到对应内网服务器
             channel.writeAndFlush(message.getData());
@@ -90,10 +91,10 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
             return;
         }
         RemoteConfig remoteConfig = remoteConfigList.get(0);
-        Channel channel = channelMap.get(remoteConfig.getRemotePort());
+        Channel channel = channelMap.get(remoteConfig.getLocalPort());
         if (channel != null) {
             channel.close();
-            channelMap.remove(remoteConfig.getRemotePort());
+            channelMap.remove(remoteConfig.getLocalPort());
         }
     }
 
@@ -110,15 +111,15 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
                 channel.pipeline().addLast(new ByteArrayDecoder());
                 channel.pipeline().addLast(new ByteArrayEncoder());
                 channel.pipeline().addLast(new LocalHandler(context.channel(), remoteConfig));
-                channelMap.put(remoteConfig.getRemotePort(), channel);
+                channelMap.put(remoteConfig.getLocalPort(), channel);
             }
         });
         try {
             logger.info("客户端开始建立本地连接,本地绑定IP:{},本地绑定端口:{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort());
-            localBootstrap.connect(remoteConfig.getLocalIp(), remoteConfig.getLocalPort()).sync();
-        } catch (InterruptedException exception) {
+            localBootstrap.connect(remoteConfig.getLocalIp(), remoteConfig.getLocalPort()).get();
+        } catch (InterruptedException | ExecutionException exception) {
             logger.error("客户端建立本地连接失败,本地绑定IP:{},本地绑定端口:{},{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort(), exception.getMessage());
-            Channel channel = channelMap.remove(remoteConfig.getRemotePort());
+            Channel channel = channelMap.remove(remoteConfig.getLocalPort());
             if (channel != null) {
                 channel.close();
             }
