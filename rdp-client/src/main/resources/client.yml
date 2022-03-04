@@ -4,15 +4,15 @@ clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
 
 # remotePort与localPort映射配置
 config:
-  - remotePort: 3389
+  - remotePort: 4389
     localPort: 3389
     localIp: 127.0.0.1
     description: rdp
-  - remotePort: 6379
+  - remotePort: 7379
     localPort: 6379
     localIp: 127.0.0.1
     description: redis
-  - remotePort: 8080
+  - remotePort: 9080
     localPort: 8080
     localIp: 127.0.0.1
     description: tomcat
