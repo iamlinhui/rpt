@@ -17,19 +17,20 @@ import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public class ClientApplication {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientApplication.class);
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) {
 
         ClientConfig clientConfig = Config.getClientConfig();
-        NioEventLoopGroup workerGroup = new NioEventLoopGroup();
+        NioEventLoopGroup clientWorkerGroup = new NioEventLoopGroup();
 
         Bootstrap bootstrap = new Bootstrap();
-        bootstrap.group(workerGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
+        bootstrap.group(clientWorkerGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
                 ch.pipeline().addLast(new IdleStateHandler(60, 40, 120, TimeUnit.SECONDS));
@@ -40,11 +41,16 @@ public class ClientApplication {
                 //自定义协议编码器
                 ch.pipeline().addLast(new MessageEncoder());
                 //服务器连接处理器
-                ch.pipeline().addLast(new ClientHandler());
+                ch.pipeline().addLast(new ClientHandler(bootstrap, clientWorkerGroup));
                 ch.pipeline().addLast(new IdleCheckHandler());
             }
         });
-        logger.info("客户端开始连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
-        bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).sync();
+        try {
+            logger.info("客户端开始连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
+            bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).get();
+        } catch (InterruptedException | ExecutionException exception) {
+            logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), exception.getCause().getMessage());
+            clientWorkerGroup.shutdownGracefully();
+        }
     }
 }

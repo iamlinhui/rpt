@@ -16,10 +16,14 @@ import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.retry.backoff.FixedBackOffPolicy;
+import org.springframework.retry.policy.AlwaysRetryPolicy;
+import org.springframework.retry.support.RetryTemplate;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 服务器连接处理器
@@ -29,6 +33,14 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
     private static final Logger logger = LoggerFactory.getLogger(ClientHandler.class);
     private final EventLoopGroup localGroup = new NioEventLoopGroup();
     private final Map<String, Channel> localChannelMap = Maps.newConcurrentMap();
+    private final Bootstrap clientBootstrap;
+    private final NioEventLoopGroup clientWorkerGroup;
+    private final AtomicBoolean connected = new AtomicBoolean(false);
+
+    public ClientHandler(Bootstrap clientBootstrap, NioEventLoopGroup clientWorkerGroup) {
+        this.clientBootstrap = clientBootstrap;
+        this.clientWorkerGroup = clientWorkerGroup;
+    }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -44,11 +56,12 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
     protected void channelRead0(ChannelHandlerContext context, Message message) throws Exception {
         switch (message.getType()) {
             case TYPE_AUTH:
-                boolean connection = message.getClientConfig().isConnection();
-                if (connection) {
+                connected.set(message.getClientConfig().isConnection());
+                if (connected.get()) {
                     logger.info("授权连接成功,clientKey:{}", message.getClientConfig().getClientKey());
                 } else {
                     logger.info("授权连接失败,clientKey:{}", message.getClientConfig().getClientKey());
+                    clientWorkerGroup.shutdownGracefully();
                 }
                 break;
             case TYPE_CONNECTED:
@@ -118,6 +131,19 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         }
         localChannelMap.clear();
         localGroup.shutdownGracefully();
+        if (connected.get()) {
+            ClientConfig clientConfig = Config.getClientConfig();
+            getRetryTemplate().execute(retryContext -> {
+                try {
+                    logger.info("客户端重试开始连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
+                    clientBootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).get();
+                    return true;
+                } catch (InterruptedException | ExecutionException exception) {
+                    logger.info("客户端重试失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), exception.getCause().getMessage());
+                    throw exception;
+                }
+            });
+        }
     }
 
     @Override
@@ -125,5 +151,16 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         ctx.channel().close();
     }
 
+    private RetryTemplate getRetryTemplate() {
+        RetryTemplate retryTemplate = new RetryTemplate();
+        // 设置重试策略
+        AlwaysRetryPolicy policy = new AlwaysRetryPolicy();
+        // 设置重试回退操作策略，主要设置重试间隔时间
+        FixedBackOffPolicy fixedBackOffPolicy = new FixedBackOffPolicy();
+        fixedBackOffPolicy.setBackOffPeriod(3000L);
+        retryTemplate.setRetryPolicy(policy);
+        retryTemplate.setBackOffPolicy(fixedBackOffPolicy);
+        return retryTemplate;
+    }
 
 }
