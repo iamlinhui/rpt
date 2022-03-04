@@ -43,7 +43,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        logger.info("服务端-客户端连接中断{}", clientKey);
+        logger.info("服务端-客户端连接中断|{}", clientKey == null ? "未知连接" : clientKey);
         for (Channel channel : remoteChannelMap.values()) {
             channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         }
