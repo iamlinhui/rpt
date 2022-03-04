@@ -16,13 +16,14 @@ import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public class ServerApplication {
 
     private static final Logger logger = LoggerFactory.getLogger(ServerApplication.class);
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) {
 
         ServerConfig serverConfig = Config.getServerConfig();
 
@@ -45,7 +46,14 @@ public class ServerApplication {
                 ch.pipeline().addLast(new IdleCheckHandler());
             }
         });
-        bootstrap.bind(serverConfig.getServerIp(), serverConfig.getServerPort()).sync();
-        logger.info("服务端启动成功本机绑定IP:{},服务端口:{}", serverConfig.getServerIp(), serverConfig.getServerPort());
+
+        try {
+            bootstrap.bind(serverConfig.getServerIp(), serverConfig.getServerPort()).get();
+            logger.info("服务端启动成功,本机绑定IP:{},服务端口:{}", serverConfig.getServerIp(), serverConfig.getServerPort());
+        } catch (InterruptedException | ExecutionException exception) {
+            logger.info("服务端启动失败,本机绑定IP:{},服务端口:{},原因:{}", serverConfig.getServerIp(), serverConfig.getServerPort(), exception.getCause().getMessage());
+            serverBossGroup.shutdownGracefully();
+            serverWorkerGroup.shutdownGracefully();
+        }
     }
 }

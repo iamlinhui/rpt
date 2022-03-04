@@ -46,8 +46,8 @@ public class ClientApplication {
             }
         });
         try {
-            logger.info("客户端开始连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
             bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).get();
+            logger.info("客户端成功连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
         } catch (InterruptedException | ExecutionException exception) {
             logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), exception.getCause().getMessage());
             clientWorkerGroup.shutdownGracefully();
