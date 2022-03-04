@@ -18,7 +18,7 @@
 #服务端绑定IP
 serverIp: 0.0.0.0
 #服务端与客户端通讯端口
-serverPort: 4399
+serverPort: 6167
 #授权给客户端的秘钥
 clientKey:
   - b0cc39c7-1b78-4ff6-9486-020399f569e9
@@ -31,7 +31,7 @@ clientKey:
 #服务端IP
 serverIp: 127.0.0.1
 #服务端与客户端通讯端口
-serverPort: 4399
+serverPort: 6167
 #授权给客户端的秘钥
 clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
 
