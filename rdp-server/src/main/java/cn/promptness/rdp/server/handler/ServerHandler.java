@@ -20,7 +20,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 
 /**
  * 处理服务器接收到的客户端连接
@@ -120,7 +119,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                 logger.info("服务端开始建立本地端口绑定[{}]", remoteConfig.getRemotePort());
                 remoteBootstrap.bind(Config.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).get();
                 remoteResult.add(String.format("服务端绑定端口[%s]成功", remoteConfig.getRemotePort()));
-            } catch (InterruptedException | ExecutionException exception) {
+            } catch (Exception exception) {
                 logger.info("服务端失败建立本地端口绑定[{}], {}", remoteConfig.getRemotePort(), exception.getCause().getMessage());
                 remoteResult.add(String.format("服务端绑定端口[%s]失败,原因:%s", remoteConfig.getRemotePort(), exception.getCause().getMessage()));
             }

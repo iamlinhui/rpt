@@ -15,15 +15,17 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.retry.backoff.FixedBackOffPolicy;
+import org.springframework.retry.policy.AlwaysRetryPolicy;
+import org.springframework.retry.support.RetryTemplate;
 
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 public class ClientApplication {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientApplication.class);
 
     public static void main(String[] args) {
-
         ClientConfig clientConfig = Config.getClientConfig();
         NioEventLoopGroup clientWorkerGroup = new NioEventLoopGroup();
 
@@ -45,7 +47,7 @@ public class ClientApplication {
         try {
             bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).get();
             logger.info("客户端成功连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
-        } catch (InterruptedException | ExecutionException exception) {
+        } catch (Exception exception) {
             logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), exception.getCause().getMessage());
             clientWorkerGroup.shutdownGracefully();
         }

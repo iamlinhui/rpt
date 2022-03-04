@@ -22,7 +22,7 @@ import org.springframework.retry.support.RetryTemplate;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -121,7 +121,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         try {
             logger.info("客户端开始建立本地连接,本地绑定IP:{},本地绑定端口:{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort());
             localBootstrap.connect(remoteConfig.getLocalIp(), remoteConfig.getLocalPort()).get();
-        } catch (InterruptedException | ExecutionException exception) {
+        } catch (Exception exception) {
             logger.error("客户端建立本地连接失败,本地绑定IP:{},本地绑定端口:{},{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort(), exception.getCause().getMessage());
         }
     }
@@ -134,24 +134,29 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         }
         localChannelMap.clear();
         localGroup.shutdownGracefully();
-        if (connected.get()) {
-            ClientConfig clientConfig = Config.getClientConfig();
-            getRetryTemplate().execute(retryContext -> {
-                try {
-                    logger.info("客户端重试开始连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
-                    clientBootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).get();
-                    return true;
-                } catch (InterruptedException | ExecutionException exception) {
-                    logger.info("客户端重试失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), exception.getCause().getMessage());
-                    throw exception;
-                }
-            });
-        }
+        retryConnect();
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         ctx.channel().close();
+    }
+
+    private void retryConnect() throws Exception {
+        if (!connected.get()) {
+            return;
+        }
+        ClientConfig clientConfig = Config.getClientConfig();
+        getRetryTemplate().execute(retryContext -> {
+            try {
+                logger.info("客户端第{}次重试开始连接服务端IP:{},服务端端口:{}", retryContext.getRetryCount(), clientConfig.getServerIp(), clientConfig.getServerPort());
+                clientBootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).get(15, TimeUnit.SECONDS);
+                return true;
+            } catch (Exception exception) {
+                logger.info("客户端第{}次重试失败连接服务端IP:{},服务端端口:{},原因:{}", retryContext.getRetryCount(), clientConfig.getServerIp(), clientConfig.getServerPort(), exception.getCause().getMessage());
+                throw exception;
+            }
+        });
     }
 
     private RetryTemplate getRetryTemplate() {
@@ -160,10 +165,10 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         AlwaysRetryPolicy policy = new AlwaysRetryPolicy();
         // 设置重试回退操作策略，主要设置重试间隔时间
         FixedBackOffPolicy fixedBackOffPolicy = new FixedBackOffPolicy();
-        fixedBackOffPolicy.setBackOffPeriod(3000L);
+        // 重试间隔时间大于重连的超时时间
+        fixedBackOffPolicy.setBackOffPeriod(20000L);
         retryTemplate.setRetryPolicy(policy);
         retryTemplate.setBackOffPolicy(fixedBackOffPolicy);
         return retryTemplate;
     }
-
 }

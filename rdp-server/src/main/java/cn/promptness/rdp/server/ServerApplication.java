@@ -12,12 +12,8 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 public class ServerApplication {
 
@@ -40,7 +36,7 @@ public class ServerApplication {
                 ch.pipeline().addLast(new MessageDecoder());
                 //自定义协议编码器
                 ch.pipeline().addLast(new MessageEncoder());
-                ch.pipeline().addLast(new IdleCheckHandler(60,40,0));
+                ch.pipeline().addLast(new IdleCheckHandler(60, 40, 0));
                 //代理客户端连接代理服务器处理器
                 ch.pipeline().addLast(new ServerHandler());
             }
@@ -49,7 +45,7 @@ public class ServerApplication {
         try {
             bootstrap.bind(serverConfig.getServerIp(), serverConfig.getServerPort()).get();
             logger.info("服务端启动成功,本机绑定IP:{},服务端口:{}", serverConfig.getServerIp(), serverConfig.getServerPort());
-        } catch (InterruptedException | ExecutionException exception) {
+        } catch (Exception exception) {
             logger.info("服务端启动失败,本机绑定IP:{},服务端口:{},原因:{}", serverConfig.getServerIp(), serverConfig.getServerPort(), exception.getCause().getMessage());
             serverBossGroup.shutdownGracefully();
             serverWorkerGroup.shutdownGracefully();
