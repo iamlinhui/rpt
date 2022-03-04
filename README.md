@@ -54,3 +54,17 @@ config:
     localIp: 127.0.0.1
     description: tomcat
 ```
+
+Java命令行添加外部文件到classpath，从而实现读取外部配置文件
+```text
+对于jar包启动，使用-Xbootclasspath/a:命令；对于class启动，使用-cp命令。
+
+两种方法分别是：
+1. java -Xbootclasspath/a:/etc/hadoop/conf:/etc/hive/conf -jar example.jar
+2. java -cp /etc/hadoop/conf:/etc/hive/conf:./example.jar example.Main.class
+注意事项：
+（1）-Xbootclasspath/a:要在-jar之前
+（2）-Xbootclasspath/a:和后面的参数之间不能有空格
+（3）example.Main.class是jar包的主类，要把相应的jar包放到classpath参数中。
+（4）文件路径之间使用分隔符（win下为分号，linux下为冒号）
+```
