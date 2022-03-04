@@ -13,12 +13,10 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 public class ClientApplication {
 
@@ -33,16 +31,15 @@ public class ClientApplication {
         bootstrap.group(clientWorkerGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
-                ch.pipeline().addLast(new IdleStateHandler(60, 40, 120, TimeUnit.SECONDS));
                 //固定帧长解码器
                 ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4));
                 //自定义协议解码器
                 ch.pipeline().addLast(new MessageDecoder());
                 //自定义协议编码器
                 ch.pipeline().addLast(new MessageEncoder());
+                ch.pipeline().addLast(new IdleCheckHandler(60, 30, 0));
                 //服务器连接处理器
                 ch.pipeline().addLast(new ClientHandler(bootstrap, clientWorkerGroup));
-                ch.pipeline().addLast(new IdleCheckHandler());
             }
         });
         try {

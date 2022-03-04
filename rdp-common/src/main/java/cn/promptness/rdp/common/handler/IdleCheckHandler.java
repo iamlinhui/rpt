@@ -3,27 +3,33 @@ package cn.promptness.rdp.common.handler;
 import cn.promptness.rdp.common.protocol.Message;
 import cn.promptness.rdp.common.protocol.MessageType;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.handler.timeout.IdleStateEvent;
+import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class IdleCheckHandler extends ChannelInboundHandlerAdapter {
+import java.util.concurrent.TimeUnit;
+
+public class IdleCheckHandler extends IdleStateHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(IdleCheckHandler.class);
 
-    @Override
-    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        logger.info("发送心跳包");
-        Message proxyMessage = new Message();
-        proxyMessage.setType(MessageType.TYPE_KEEPALIVE);
-        ctx.channel().writeAndFlush(proxyMessage);
-        super.userEventTriggered(ctx, evt);
+    public IdleCheckHandler(int readerIdleTimeSeconds, int writerIdleTimeSeconds, int allIdleTimeSeconds) {
+        super(readerIdleTimeSeconds, writerIdleTimeSeconds, allIdleTimeSeconds, TimeUnit.SECONDS);
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        ctx.fireExceptionCaught(cause);
-        ctx.channel().close();
+    protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) throws Exception {
+        if (IdleStateEvent.FIRST_WRITER_IDLE_STATE_EVENT == evt) {
+            logger.info("写超时,发送心跳包");
+            Message proxyMessage = new Message();
+            proxyMessage.setType(MessageType.TYPE_KEEPALIVE);
+            ctx.channel().writeAndFlush(proxyMessage);
+        } else if (IdleStateEvent.FIRST_READER_IDLE_STATE_EVENT == evt) {
+            logger.info("读超时,断开连接");
+            ctx.channel().close();
+        }
+        super.channelIdle(ctx, evt);
     }
 
 }
