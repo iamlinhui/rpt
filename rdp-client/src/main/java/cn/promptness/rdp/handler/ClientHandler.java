@@ -59,6 +59,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
                 connected.set(message.getClientConfig().isConnection());
                 if (connected.get()) {
                     logger.info("授权连接成功,clientKey:{}", message.getClientConfig().getClientKey());
+                    for (String remoteResult : message.getClientConfig().getRemoteResult()) {
+                        logger.info(remoteResult);
+                    }
                 } else {
                     logger.info("授权连接失败,clientKey:{}", message.getClientConfig().getClientKey());
                     clientWorkerGroup.shutdownGracefully();

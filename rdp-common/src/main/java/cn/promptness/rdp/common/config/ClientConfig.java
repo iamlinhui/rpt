@@ -11,6 +11,7 @@ public class ClientConfig {
     private String channelId;
 
     private List<RemoteConfig> config;
+    private List<String> remoteResult;
 
     public String getServerIp() {
         return serverIp;
@@ -58,5 +59,13 @@ public class ClientConfig {
 
     public void setChannelId(String channelId) {
         this.channelId = channelId;
+    }
+
+    public void setRemoteResult(List<String> remoteResult) {
+        this.remoteResult = remoteResult;
+    }
+
+    public List<String> getRemoteResult() {
+        return remoteResult;
     }
 }

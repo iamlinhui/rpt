@@ -5,6 +5,7 @@ import cn.promptness.rdp.common.config.Config;
 import cn.promptness.rdp.common.config.RemoteConfig;
 import cn.promptness.rdp.common.protocol.Message;
 import cn.promptness.rdp.common.protocol.MessageType;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.Unpooled;
@@ -17,6 +18,7 @@ import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
@@ -101,6 +103,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             context.writeAndFlush(res);
             return;
         }
+        List<String> remoteResult = Lists.newArrayList();
         for (RemoteConfig remoteConfig : clientConfig.getConfig()) {
             ServerBootstrap remoteBootstrap = new ServerBootstrap();
             remoteBootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true)
@@ -116,11 +119,14 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             try {
                 logger.info("服务端开始建立本地端口绑定[{}]", remoteConfig.getRemotePort());
                 remoteBootstrap.bind(Config.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).get();
+                remoteResult.add(String.format("服务端绑定端口[%s]成功", remoteConfig.getRemotePort()));
             } catch (InterruptedException | ExecutionException exception) {
                 logger.info("服务端失败建立本地端口绑定[{}], {}", remoteConfig.getRemotePort(), exception.getCause().getMessage());
+                remoteResult.add(String.format("服务端绑定端口[%s]失败,原因:%s", remoteConfig.getRemotePort(), exception.getCause().getMessage()));
             }
         }
         clientConfig.setConnection(true);
+        clientConfig.setRemoteResult(remoteResult);
         Message res = new Message();
         res.setType(MessageType.TYPE_AUTH);
         res.setClientConfig(clientConfig);
