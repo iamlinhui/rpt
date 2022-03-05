@@ -12,6 +12,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.traffic.GlobalTrafficShapingHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,14 +36,16 @@ public class ServerApplication {
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
                 ch.pipeline().addLast(globalTrafficShapingHandler);
-                //固定帧长解码器
+                // 固定帧长解码器
                 ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4));
-                //自定义协议解码器
+                // 最大16M
+                ch.pipeline().addLast(new LengthFieldPrepender(4));
+                // 自定义协议解码器
                 ch.pipeline().addLast(new MessageDecoder());
-                //自定义协议编码器
+                // 自定义协议编码器
                 ch.pipeline().addLast(new MessageEncoder());
                 ch.pipeline().addLast(new IdleCheckHandler(60, 40, 0));
-                //代理客户端连接代理服务器处理器
+                // 代理客户端连接代理服务器处理器
                 ch.pipeline().addLast(new ServerHandler());
             }
         });
