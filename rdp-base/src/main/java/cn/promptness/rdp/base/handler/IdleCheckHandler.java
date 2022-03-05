@@ -21,7 +21,7 @@ public class IdleCheckHandler extends IdleStateHandler {
     @Override
     protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) throws Exception {
         if (IdleStateEvent.FIRST_WRITER_IDLE_STATE_EVENT == evt) {
-            logger.info("写超时,发送心跳包");
+            logger.debug("写超时,发送心跳包");
             Message proxyMessage = new Message();
             proxyMessage.setType(MessageType.TYPE_KEEPALIVE);
             ctx.channel().writeAndFlush(proxyMessage);
