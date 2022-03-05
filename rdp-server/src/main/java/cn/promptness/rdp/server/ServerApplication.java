@@ -40,7 +40,7 @@ public class ServerApplication {
         NioEventLoopGroup serverWorkerGroup = new NioEventLoopGroup();
 
         ServerBootstrap bootstrap = new ServerBootstrap();
-        // 服务上行带宽8Mbps 限制数据流入速度1m/s
+        // 服务上行带宽8Mbps 则限制数据流入速度1m/s
         GlobalTrafficShapingHandler globalTrafficShapingHandler = new GlobalTrafficShapingHandler(serverBossGroup, 0, serverConfig.getServerLimit());
         bootstrap.group(serverBossGroup, serverWorkerGroup).channel(NioServerSocketChannel.class).childHandler(new ChannelInitializer<SocketChannel>() {
 
@@ -50,7 +50,6 @@ public class ServerApplication {
                 ch.pipeline().addLast(globalTrafficShapingHandler);
                 // 固定帧长解码器
                 ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4));
-                // 最大16M
                 ch.pipeline().addLast(new LengthFieldPrepender(4));
                 // 自定义协议解码器
                 ch.pipeline().addLast(new MessageDecoder());
