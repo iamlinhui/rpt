@@ -13,17 +13,28 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslProvider;
 import io.netty.handler.traffic.GlobalTrafficShapingHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLException;
+import java.io.InputStream;
 
 public class ServerApplication {
 
     private static final Logger logger = LoggerFactory.getLogger(ServerApplication.class);
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws SSLException {
 
         ServerConfig serverConfig = Config.getServerConfig();
+        InputStream certChainFile = ClassLoader.getSystemResourceAsStream("server.crt");
+        InputStream keyFile = ClassLoader.getSystemResourceAsStream("pkcs8_server.key");
+        InputStream rootFile = ClassLoader.getSystemResourceAsStream("ca.crt");
+        SslContext sslContext = SslContextBuilder.forServer(certChainFile, keyFile).trustManager(rootFile).clientAuth(ClientAuth.REQUIRE).sslProvider(SslProvider.OPENSSL).build();
 
         NioEventLoopGroup serverBossGroup = new NioEventLoopGroup();
         NioEventLoopGroup serverWorkerGroup = new NioEventLoopGroup();
@@ -35,6 +46,7 @@ public class ServerApplication {
 
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
+                ch.pipeline().addLast(sslContext.newHandler(ch.alloc()));
                 ch.pipeline().addLast(globalTrafficShapingHandler);
                 // 固定帧长解码器
                 ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4));

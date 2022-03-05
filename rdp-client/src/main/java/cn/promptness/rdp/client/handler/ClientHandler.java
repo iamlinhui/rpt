@@ -89,7 +89,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         ClientConfig clientConfig = message.getClientConfig();
         Channel channel = localChannelMap.get(clientConfig.getChannelId());
         if (channel != null) {
-            //将数据转发到对应内网服务器
+            // 将数据转发到对应内网服务器
             channel.writeAndFlush(message.getData());
         }
     }

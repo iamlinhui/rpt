@@ -43,7 +43,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        logger.info("服务端-客户端连接中断|{}", clientKey == null ? "未知连接" : clientKey);
+        logger.info("服务端-客户端连接中断,{}", clientKey == null ? "未知连接" : clientKey);
         for (Channel channel : remoteChannelMap.values()) {
             channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         }
@@ -96,10 +96,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         ClientConfig clientConfig = message.getClientConfig();
         clientKey = clientConfig.getClientKey();
         if (!Config.getServerConfig().getClientKey().contains(clientKey)) {
-            clientConfig.setConnection(false);
             Message res = new Message();
             res.setType(MessageType.TYPE_AUTH);
-            res.setClientConfig(clientConfig);
+            res.setClientConfig(clientConfig.setConnection(false));
             context.writeAndFlush(res);
             return;
         }
@@ -128,11 +127,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                 remoteResult.add(String.format("服务端绑定端口[%s]失败,原因:%s", remoteConfig.getRemotePort(), exception.getCause().getMessage()));
             }
         }
-        clientConfig.setConnection(true);
-        clientConfig.setRemoteResult(remoteResult);
         Message res = new Message();
         res.setType(MessageType.TYPE_AUTH);
-        res.setClientConfig(clientConfig);
+        res.setClientConfig(clientConfig.setConnection(true).setRemoteResult(remoteResult));
         context.writeAndFlush(res);
     }
 }

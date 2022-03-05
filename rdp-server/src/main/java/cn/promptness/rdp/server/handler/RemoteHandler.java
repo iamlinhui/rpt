@@ -40,7 +40,7 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, byte[] bytes) throws Exception {
-        logger.info("收到来自端口[{}]的数据,大小为:{}字节", remoteConfig.getRemotePort(), bytes.length);
+        logger.debug("收到来自端口[{}]的数据,大小为:{}字节", remoteConfig.getRemotePort(), bytes.length);
         // 从外部连接接收到的数据 转发到客户端
         send(MessageType.TYPE_DATA, bytes, ctx);
     }

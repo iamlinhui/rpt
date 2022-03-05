@@ -49,8 +49,9 @@ public class ClientConfig {
         return connection;
     }
 
-    public void setConnection(boolean connection) {
+    public ClientConfig setConnection(boolean connection) {
         this.connection = connection;
+        return this;
     }
 
     public String getChannelId() {
@@ -61,8 +62,9 @@ public class ClientConfig {
         this.channelId = channelId;
     }
 
-    public void setRemoteResult(List<String> remoteResult) {
+    public ClientConfig setRemoteResult(List<String> remoteResult) {
         this.remoteResult = remoteResult;
+        return this;
     }
 
     public List<String> getRemoteResult() {

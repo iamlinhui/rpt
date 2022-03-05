@@ -14,21 +14,33 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLException;
+import java.io.InputStream;
 
 public class ClientApplication {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientApplication.class);
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws SSLException {
         ClientConfig clientConfig = Config.getClientConfig();
-        NioEventLoopGroup clientWorkerGroup = new NioEventLoopGroup();
+        InputStream certChainFile = ClassLoader.getSystemResourceAsStream("client.crt");
+        InputStream keyFile = ClassLoader.getSystemResourceAsStream("pkcs8_client.key");
+        InputStream rootFile = ClassLoader.getSystemResourceAsStream("ca.crt");
+        SslContext sslContext = SslContextBuilder.forClient().keyManager(certChainFile, keyFile).trustManager(rootFile).clientAuth(ClientAuth.REQUIRE).sslProvider(SslProvider.OPENSSL).build();
 
+        NioEventLoopGroup clientWorkerGroup = new NioEventLoopGroup();
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(clientWorkerGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
+                ch.pipeline().addLast(sslContext.newHandler(ch.alloc()));
                 //固定帧长解码器
                 ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4));
                 ch.pipeline().addLast(new LengthFieldPrepender(4));
