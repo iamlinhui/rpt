@@ -107,7 +107,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         for (RemoteConfig remoteConfig : clientConfig.getConfig()) {
             ServerBootstrap remoteBootstrap = new ServerBootstrap();
             // 服务上行带宽8Mbps 限制数据流入速度1m/s
-            GlobalTrafficShapingHandler globalTrafficShapingHandler = new GlobalTrafficShapingHandler(remoteBossGroup, 0, 1024L * 1024);
+            GlobalTrafficShapingHandler globalTrafficShapingHandler = new GlobalTrafficShapingHandler(remoteBossGroup, 0, Config.getServerConfig().getServerLimit());
             remoteBootstrap.group(remoteBossGroup, remoteWorkerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override

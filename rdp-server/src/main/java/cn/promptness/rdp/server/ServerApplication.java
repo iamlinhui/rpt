@@ -29,7 +29,7 @@ public class ServerApplication {
 
         ServerBootstrap bootstrap = new ServerBootstrap();
         // 服务上行带宽8Mbps 限制数据流入速度1m/s
-        GlobalTrafficShapingHandler globalTrafficShapingHandler = new GlobalTrafficShapingHandler(serverBossGroup, 0, 1024L * 1024);
+        GlobalTrafficShapingHandler globalTrafficShapingHandler = new GlobalTrafficShapingHandler(serverBossGroup, 0, serverConfig.getServerLimit());
         bootstrap.group(serverBossGroup, serverWorkerGroup).channel(NioServerSocketChannel.class).childHandler(new ChannelInitializer<SocketChannel>() {
 
             @Override
