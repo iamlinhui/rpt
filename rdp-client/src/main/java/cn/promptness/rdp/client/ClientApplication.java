@@ -1,10 +1,10 @@
 package cn.promptness.rdp.client;
 
-import cn.promptness.rdp.common.coder.MessageDecoder;
-import cn.promptness.rdp.common.coder.MessageEncoder;
-import cn.promptness.rdp.common.config.ClientConfig;
-import cn.promptness.rdp.common.config.Config;
-import cn.promptness.rdp.common.handler.IdleCheckHandler;
+import cn.promptness.rdp.base.coder.MessageDecoder;
+import cn.promptness.rdp.base.coder.MessageEncoder;
+import cn.promptness.rdp.base.config.ClientConfig;
+import cn.promptness.rdp.base.config.Config;
+import cn.promptness.rdp.base.handler.IdleCheckHandler;
 import cn.promptness.rdp.handler.ClientHandler;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelInitializer;
@@ -15,11 +15,6 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.retry.backoff.FixedBackOffPolicy;
-import org.springframework.retry.policy.AlwaysRetryPolicy;
-import org.springframework.retry.support.RetryTemplate;
-
-import java.util.concurrent.TimeUnit;
 
 public class ClientApplication {
 

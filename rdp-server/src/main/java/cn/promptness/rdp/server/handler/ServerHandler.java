@@ -1,10 +1,10 @@
 package cn.promptness.rdp.server.handler;
 
-import cn.promptness.rdp.common.config.ClientConfig;
-import cn.promptness.rdp.common.config.Config;
-import cn.promptness.rdp.common.config.RemoteConfig;
-import cn.promptness.rdp.common.protocol.Message;
-import cn.promptness.rdp.common.protocol.MessageType;
+import cn.promptness.rdp.base.config.ClientConfig;
+import cn.promptness.rdp.base.config.Config;
+import cn.promptness.rdp.base.config.RemoteConfig;
+import cn.promptness.rdp.base.protocol.Message;
+import cn.promptness.rdp.base.protocol.MessageType;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.netty.bootstrap.ServerBootstrap;

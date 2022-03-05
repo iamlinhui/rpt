@@ -1,7 +1,7 @@
-package cn.promptness.rdp.common.handler;
+package cn.promptness.rdp.base.handler;
 
-import cn.promptness.rdp.common.protocol.Message;
-import cn.promptness.rdp.common.protocol.MessageType;
+import cn.promptness.rdp.base.protocol.Message;
+import cn.promptness.rdp.base.protocol.MessageType;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;

@@ -1,8 +1,8 @@
-package cn.promptness.rdp.common.coder;
+package cn.promptness.rdp.base.coder;
 
-import cn.promptness.rdp.common.config.ClientConfig;
-import cn.promptness.rdp.common.protocol.Message;
-import cn.promptness.rdp.common.protocol.MessageType;
+import cn.promptness.rdp.base.config.ClientConfig;
+import cn.promptness.rdp.base.protocol.Message;
+import cn.promptness.rdp.base.protocol.MessageType;
 import com.google.gson.Gson;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;

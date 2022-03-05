@@ -1,10 +1,10 @@
 package cn.promptness.rdp.server;
 
-import cn.promptness.rdp.common.coder.MessageDecoder;
-import cn.promptness.rdp.common.coder.MessageEncoder;
-import cn.promptness.rdp.common.config.Config;
-import cn.promptness.rdp.common.config.ServerConfig;
-import cn.promptness.rdp.common.handler.IdleCheckHandler;
+import cn.promptness.rdp.base.coder.MessageDecoder;
+import cn.promptness.rdp.base.coder.MessageEncoder;
+import cn.promptness.rdp.base.config.Config;
+import cn.promptness.rdp.base.config.ServerConfig;
+import cn.promptness.rdp.base.handler.IdleCheckHandler;
 import cn.promptness.rdp.server.handler.ServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;

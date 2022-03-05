@@ -1,4 +1,4 @@
-package cn.promptness.rdp.common.protocol;
+package cn.promptness.rdp.base.protocol;
 
 public enum MessageType {
 

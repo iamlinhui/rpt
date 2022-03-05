@@ -1,9 +1,9 @@
 package cn.promptness.rdp.handler;
 
-import cn.promptness.rdp.common.config.ClientConfig;
-import cn.promptness.rdp.common.config.RemoteConfig;
-import cn.promptness.rdp.common.protocol.Message;
-import cn.promptness.rdp.common.protocol.MessageType;
+import cn.promptness.rdp.base.config.ClientConfig;
+import cn.promptness.rdp.base.config.RemoteConfig;
+import cn.promptness.rdp.base.protocol.Message;
+import cn.promptness.rdp.base.protocol.MessageType;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;

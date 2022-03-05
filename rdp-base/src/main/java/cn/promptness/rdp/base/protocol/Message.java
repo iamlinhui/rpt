@@ -1,6 +1,6 @@
-package cn.promptness.rdp.common.protocol;
+package cn.promptness.rdp.base.protocol;
 
-import cn.promptness.rdp.common.config.ClientConfig;
+import cn.promptness.rdp.base.config.ClientConfig;
 
 /**
  * 客户端-服务器自定义通信协议

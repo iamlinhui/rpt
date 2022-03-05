@@ -1,4 +1,4 @@
-package cn.promptness.rdp.common.config;
+package cn.promptness.rdp.base.config;
 
 import java.util.List;
 
