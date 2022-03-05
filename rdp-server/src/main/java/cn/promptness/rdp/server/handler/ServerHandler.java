@@ -15,6 +15,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
+import io.netty.handler.traffic.GlobalTrafficShapingHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,8 +29,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     private static final Logger logger = LoggerFactory.getLogger(ServerHandler.class);
     private final Map<String, Channel> remoteChannelMap = Maps.newConcurrentMap();
-    private final EventLoopGroup bossGroup = new NioEventLoopGroup();
-    private final EventLoopGroup workerGroup = new NioEventLoopGroup();
+    private final EventLoopGroup remoteBossGroup = new NioEventLoopGroup();
+    private final EventLoopGroup remoteWorkerGroup = new NioEventLoopGroup();
     private String clientKey;
 
     @Override
@@ -48,8 +49,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         }
         remoteChannelMap.clear();
         // 取消监听的端口 否则第二次连接时无法再次绑定端口
-        bossGroup.shutdownGracefully();
-        workerGroup.shutdownGracefully();
+        remoteBossGroup.shutdownGracefully();
+        remoteWorkerGroup.shutdownGracefully();
     }
 
     @Override
@@ -105,10 +106,13 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         List<String> remoteResult = Lists.newArrayList();
         for (RemoteConfig remoteConfig : clientConfig.getConfig()) {
             ServerBootstrap remoteBootstrap = new ServerBootstrap();
-            remoteBootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true)
+            // 服务上行带宽8Mbps 限制数据流入速度1m/s
+            GlobalTrafficShapingHandler globalTrafficShapingHandler = new GlobalTrafficShapingHandler(remoteBossGroup, 0, 1024L * 1024);
+            remoteBootstrap.group(remoteBossGroup, remoteWorkerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         public void initChannel(SocketChannel channel) throws Exception {
+                            channel.pipeline().addLast(globalTrafficShapingHandler);
                             channel.pipeline().addLast(new ByteArrayDecoder());
                             channel.pipeline().addLast(new ByteArrayEncoder());
                             channel.pipeline().addLast(new RemoteHandler(context.channel(), remoteConfig));
