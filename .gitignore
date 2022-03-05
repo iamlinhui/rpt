@@ -1,3 +1,4 @@
 target
 .idea
 log
+dependency-reduced-pom.xml

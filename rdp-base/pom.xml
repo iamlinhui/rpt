@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>rdp-common</artifactId>
+    <artifactId>rdp-base</artifactId>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>

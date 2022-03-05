@@ -19,7 +19,7 @@
     <dependencies>
         <dependency>
             <groupId>cn.promptness</groupId>
-            <artifactId>rdp-common</artifactId>
+            <artifactId>rdp-base</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
         <dependency>
