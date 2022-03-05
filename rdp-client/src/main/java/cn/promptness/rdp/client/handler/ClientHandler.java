@@ -1,4 +1,4 @@
-package cn.promptness.rdp.handler;
+package cn.promptness.rdp.client.handler;
 
 import cn.promptness.rdp.base.config.ClientConfig;
 import cn.promptness.rdp.base.config.Config;

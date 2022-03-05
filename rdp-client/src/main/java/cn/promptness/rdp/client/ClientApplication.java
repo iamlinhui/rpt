@@ -5,7 +5,7 @@ import cn.promptness.rdp.base.coder.MessageEncoder;
 import cn.promptness.rdp.base.config.ClientConfig;
 import cn.promptness.rdp.base.config.Config;
 import cn.promptness.rdp.base.handler.IdleCheckHandler;
-import cn.promptness.rdp.handler.ClientHandler;
+import cn.promptness.rdp.client.handler.ClientHandler;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
