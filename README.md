@@ -82,6 +82,12 @@ kill $(cat pid.file)
 详细操作步骤看这里
 [OpenSSL申请证书](https://github.com/iamlinhui/rdp/wiki/OpenSSL证书申请)
 
+## 替换证书
+client端需要在conf文件夹里面放置`client.crt`和`pkcs8_client.key`和`ca.crt`
+
+server端需要在conf文件夹里面放置`server.crt`和`pkcs8_server.key`和`ca.crt`
+
+## 其他
 Java命令行添加外部文件到classpath，从而实现读取外部配置文件
 ```text
 对于jar包启动，使用-Xbootclasspath/a:命令；对于class启动，使用-cp命令。
