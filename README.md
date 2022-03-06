@@ -65,7 +65,7 @@ config:
 ## 部署
 首先在jar包的当前目录,新建conf文件夹,并将相应的配置文件(`client.yml`或者`server.yml`)放进去
 
-启动脚本
+启动脚本`start.sh`
 ```shell
 java -server -d64 -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Dnetworkaddress.cache.ttl=600 \
      -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -Duser.timezone=Asia/Shanghai \
@@ -73,7 +73,7 @@ java -server -d64 -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Dnetworkaddress.cache.t
      -jar rdp*.jar  > /dev/null 2>&1 & echo $! > pid.file &
 ```
 
-关闭脚本
+关闭脚本`stop.sh`
 ```shell
 kill $(cat pid.file)
 ```
