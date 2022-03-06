@@ -17,7 +17,7 @@
 - RDP协议：远程桌面协议，是一个多通道的协议，让用户连上提供终端服务的电脑
 - SOCKS协议: 防火墙安全会话转换协议
 
-服务端配置`server.yml`
+## 服务端配置`server.yml`
 
 ```yaml
 #服务端绑定IP
@@ -32,7 +32,7 @@ clientKey:
   - 4befea7e-a61c-4979-b012-47659bab6f21
 ```
 
-客户端配置`client.yml`
+## 客户端配置`client.yml`
 
 ```yaml
 #服务端IP
@@ -62,6 +62,26 @@ config:
     description: tomcat
 ```
 
+## 部署
+首先在jar包的当前目录,新建conf文件夹,并将相应的配置文件(`client.yml`或者`server.yml`)放进去
+
+启动脚本
+```shell
+java -server -d64 -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Dnetworkaddress.cache.ttl=600 \
+     -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -Duser.timezone=Asia/Shanghai \
+     -Dclient.encoding.override=UTF-8 -Dfile.encoding=UTF-8 -Xbootclasspath/a:./conf \
+     -jar rdp*.jar  > /dev/null 2>&1 & echo $! > pid.file &
+```
+
+关闭脚本
+```shell
+kill $(cat pid.file)
+```
+
+## SSL证书申请
+详细操作步骤看这里
+[OpenSSL申请证书](https://github.com/iamlinhui/rdp/wiki/OpenSSL证书申请)
+
 Java命令行添加外部文件到classpath，从而实现读取外部配置文件
 ```text
 对于jar包启动，使用-Xbootclasspath/a:命令；对于class启动，使用-cp命令。
@@ -76,4 +96,3 @@ Java命令行添加外部文件到classpath，从而实现读取外部配置文�
 （4）文件路径之间使用分隔符（win下为分号，linux下为冒号）
 ```
 
-[OpenSSL申请证书](https://github.com/iamlinhui/rdp/wiki/OpenSSL证书申请)
