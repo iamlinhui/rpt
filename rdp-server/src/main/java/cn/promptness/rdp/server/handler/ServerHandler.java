@@ -28,10 +28,22 @@ import java.util.Map;
 public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     private static final Logger logger = LoggerFactory.getLogger(ServerHandler.class);
+    /**
+     * remoteChannelId --> remoteChannel
+     */
     private final Map<String, Channel> remoteChannelMap = Maps.newConcurrentMap();
     private final EventLoopGroup remoteBossGroup = new NioEventLoopGroup();
     private final EventLoopGroup remoteWorkerGroup = new NioEventLoopGroup();
+
+    /**
+     * 全局服务器读限速器
+     */
+    private final GlobalTrafficShapingHandler globalTrafficShapingHandler;
     private String clientKey;
+
+    public ServerHandler(GlobalTrafficShapingHandler globalTrafficShapingHandler) {
+        this.globalTrafficShapingHandler = globalTrafficShapingHandler;
+    }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
@@ -105,8 +117,6 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         List<String> remoteResult = Lists.newArrayList();
         for (RemoteConfig remoteConfig : clientConfig.getConfig()) {
             ServerBootstrap remoteBootstrap = new ServerBootstrap();
-            // 服务上行带宽8Mbps 则限制数据流入速度1m/s
-            GlobalTrafficShapingHandler globalTrafficShapingHandler = new GlobalTrafficShapingHandler(remoteBossGroup, 0, Config.getServerConfig().getServerLimit());
             remoteBootstrap.group(remoteBossGroup, remoteWorkerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override

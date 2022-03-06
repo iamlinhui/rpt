@@ -57,7 +57,7 @@ public class ServerApplication {
                 ch.pipeline().addLast(new MessageEncoder());
                 ch.pipeline().addLast(new IdleCheckHandler(60, 40, 0));
                 // 代理客户端连接代理服务器处理器
-                ch.pipeline().addLast(new ServerHandler());
+                ch.pipeline().addLast(new ServerHandler(globalTrafficShapingHandler));
             }
         });
 

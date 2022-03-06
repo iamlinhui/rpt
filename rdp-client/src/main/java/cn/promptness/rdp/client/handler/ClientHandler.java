@@ -32,6 +32,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientHandler.class);
     private final EventLoopGroup localGroup = new NioEventLoopGroup();
+    /**
+     * remoteChannelId --> localChannel
+     */
     private final Map<String, Channel> localChannelMap = Maps.newConcurrentMap();
     private final Bootstrap clientBootstrap;
     private final NioEventLoopGroup clientWorkerGroup;
