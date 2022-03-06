@@ -1,4 +1,4 @@
-### 基于Netty实现的TCP代理工具(内网穿透)
+### 基于Netty实现的TCP代理工具,支持SSL双端验证(内网穿透)
 
 > http代理、https代理(eg:本地支付接口调试,本地微信公众号调试)\
 > 远程桌面(eg:远程办公)\
@@ -83,6 +83,8 @@ kill $(cat pid.file)
 [OpenSSL申请证书](https://github.com/iamlinhui/rdp/wiki/OpenSSL证书申请)
 
 ## 替换证书
+如果需要替换证书则:
+
 client端需要在conf文件夹里面放置`client.crt`和`pkcs8_client.key`和`ca.crt`
 
 server端需要在conf文件夹里面放置`server.crt`和`pkcs8_server.key`和`ca.crt`
