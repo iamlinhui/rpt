@@ -7,10 +7,11 @@ public enum MessageType {
      */
     TYPE_REGISTER(1, "注册"),
     TYPE_AUTH(2, "授权"),
-    TYPE_CONNECTED(3, "建立连接"),
-    TYPE_DISCONNECTED(4, "断开连接"),
-    TYPE_KEEPALIVE(5, "心跳"),
-    TYPE_DATA(6, "数据传输");
+    TYPE_CONNECT(3, "开始建立连接"),
+    TYPE_CONNECTED(4, "建立连接成功"),
+    TYPE_DISCONNECTED(5, "断开连接"),
+    TYPE_KEEPALIVE(6, "心跳"),
+    TYPE_DATA(7, "数据传输");
 
     MessageType(int code, String desc) {
         this.code = code;
@@ -29,7 +30,7 @@ public enum MessageType {
         return desc;
     }
 
-    public static MessageType getInstance(int code){
+    public static MessageType getInstance(int code) {
         for (MessageType value : MessageType.values()) {
             if (value.code == code) {
                 return value;

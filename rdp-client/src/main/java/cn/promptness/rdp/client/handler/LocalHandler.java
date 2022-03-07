@@ -29,6 +29,11 @@ public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         RemoteConfig remoteConfig = clientConfig.getConfig().get(0);
         logger.info("客户端建立本地连接成功,本地绑定IP:{},本地绑定端口:{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort());
+        Message message = new Message();
+        message.setType(MessageType.TYPE_CONNECTED);
+        message.setClientConfig(clientConfig);
+        message.setData(new byte[0]);
+        channel.writeAndFlush(message);
     }
 
     @Override

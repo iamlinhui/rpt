@@ -70,7 +70,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
                     clientWorkerGroup.shutdownGracefully();
                 }
                 break;
-            case TYPE_CONNECTED:
+            case TYPE_CONNECT:
                 // 外部请求进入，开始与内网建立连接
                 connected(context, message);
                 break;
