@@ -52,6 +52,7 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         logger.info("服务端端口[{}]连接断开", remoteConfig.getRemotePort());
+        ctx.channel().config().setAutoRead(true);
         send(MessageType.TYPE_DISCONNECTED, new byte[]{}, ctx);
     }
 
