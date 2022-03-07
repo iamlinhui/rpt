@@ -70,7 +70,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
                     clientWorkerGroup.shutdownGracefully();
                 }
                 break;
-            case TYPE_CONNECT:
+            case TYPE_CONNECTED:
                 // 外部请求进入，开始与内网建立连接
                 connected(context, message);
                 break;
@@ -169,7 +169,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         // 设置重试回退操作策略，主要设置重试间隔时间
         FixedBackOffPolicy fixedBackOffPolicy = new FixedBackOffPolicy();
         // 重试间隔时间大于重连的超时时间
-        fixedBackOffPolicy.setBackOffPeriod(20000L);
+        fixedBackOffPolicy.setBackOffPeriod(30000L);
         retryTemplate.setRetryPolicy(policy);
         retryTemplate.setBackOffPolicy(fixedBackOffPolicy);
         return retryTemplate;
