@@ -122,16 +122,16 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
             }
         });
         try {
-            logger.info("客户端开始建立本地连接,本地绑定IP:{},本地绑定端口:{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort());
+            logger.info("客户端开始建立本地连接,{}:{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort());
             localBootstrap.connect(remoteConfig.getLocalIp(), remoteConfig.getLocalPort()).get();
         } catch (Exception exception) {
-            logger.error("客户端建立本地连接失败,本地绑定IP:{},本地绑定端口:{},{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort(), exception.getCause().getMessage());
+            logger.error("客户端建立本地连接失败,{}:{},{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort(), exception.getCause().getMessage());
         }
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        logger.info("客户端-服务端连接中断{}:{}", Config.getClientConfig().getServerIp(), Config.getClientConfig().getServerPort());
+        logger.info("客户端-服务端连接中断,{}:{}", Config.getClientConfig().getServerIp(), Config.getClientConfig().getServerPort());
         for (Channel channel : localChannelMap.values()) {
             channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         }
@@ -169,7 +169,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         // 设置重试回退操作策略，主要设置重试间隔时间
         FixedBackOffPolicy fixedBackOffPolicy = new FixedBackOffPolicy();
         // 重试间隔时间大于重连的超时时间
-        fixedBackOffPolicy.setBackOffPeriod(30000L);
+        fixedBackOffPolicy.setBackOffPeriod(60000L);
         retryTemplate.setRetryPolicy(policy);
         retryTemplate.setBackOffPolicy(fixedBackOffPolicy);
         return retryTemplate;

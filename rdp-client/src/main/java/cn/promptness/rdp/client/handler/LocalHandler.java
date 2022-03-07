@@ -28,7 +28,7 @@ public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         RemoteConfig remoteConfig = clientConfig.getConfig().get(0);
-        logger.info("客户端建立本地连接成功,本地绑定IP:{},本地绑定端口:{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort());
+        logger.info("客户端建立本地连接成功,{}:{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort());
         ctx.channel().config().setAutoRead(false);
         send(MessageType.TYPE_CONNECTED, new byte[0]);
         ctx.channel().config().setAutoRead(true);
@@ -49,7 +49,7 @@ public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         RemoteConfig remoteConfig = clientConfig.getConfig().get(0);
-        logger.info("客户端本地连接断开,本地绑定IP:{},本地绑定端口:{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort());
+        logger.info("客户端本地连接断开,{}:{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort());
         ctx.channel().config().setAutoRead(true);
         send(MessageType.TYPE_DISCONNECTED, new byte[0]);
     }
@@ -59,8 +59,6 @@ public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
      */
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        RemoteConfig remoteConfig = clientConfig.getConfig().get(0);
-        logger.info("客户端本地连接中断,本地绑定IP:{},本地绑定端口:{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort());
         ctx.channel().close();
     }
 

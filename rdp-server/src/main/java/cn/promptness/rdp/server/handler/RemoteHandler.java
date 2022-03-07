@@ -61,7 +61,6 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
      */
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        logger.info("服务端端口[{}]连接中断", remoteConfig.getRemotePort());
         ctx.channel().close();
     }
 
