@@ -2,24 +2,24 @@ package cn.promptness.rdp.base.config;
 
 public class RemoteConfig {
 
-    private Integer remotePort;
-    private Integer localPort;
+    private int remotePort;
+    private int localPort;
     private String localIp;
     private String description;
 
-    public Integer getRemotePort() {
+    public int getRemotePort() {
         return remotePort;
     }
 
-    public void setRemotePort(Integer remotePort) {
+    public void setRemotePort(int remotePort) {
         this.remotePort = remotePort;
     }
 
-    public Integer getLocalPort() {
+    public int getLocalPort() {
         return localPort;
     }
 
-    public void setLocalPort(Integer localPort) {
+    public void setLocalPort(int localPort) {
         this.localPort = localPort;
     }
 

@@ -5,15 +5,15 @@ import java.util.List;
 public class ServerConfig {
 
     private String serverIp;
-    private Integer serverPort;
-    private Long serverLimit;
+    private int serverPort;
+    private long serverLimit;
     private List<String> clientKey;
 
-    public Long getServerLimit() {
+    public long getServerLimit() {
         return serverLimit;
     }
 
-    public void setServerLimit(Long serverLimit) {
+    public void setServerLimit(long serverLimit) {
         this.serverLimit = serverLimit;
     }
 
@@ -25,11 +25,11 @@ public class ServerConfig {
         this.serverIp = serverIp;
     }
 
-    public Integer getServerPort() {
+    public int getServerPort() {
         return serverPort;
     }
 
-    public void setServerPort(Integer serverPort) {
+    public void setServerPort(int serverPort) {
         this.serverPort = serverPort;
     }
 

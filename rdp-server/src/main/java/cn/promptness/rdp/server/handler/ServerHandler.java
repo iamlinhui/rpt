@@ -126,6 +126,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         }
         List<String> remoteResult = Lists.newArrayList();
         for (RemoteConfig remoteConfig : clientConfig.getConfig()) {
+            if (remoteConfig.getRemotePort() == 0 || remoteConfig.getRemotePort() == Config.getServerConfig().getServerPort()) {
+                return;
+            }
             ServerBootstrap remoteBootstrap = new ServerBootstrap();
             remoteBootstrap.group(remoteBossGroup, remoteWorkerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true)
                     .childHandler(new ChannelInitializer<SocketChannel>() {

@@ -111,6 +111,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
             return;
         }
         RemoteConfig remoteConfig = remoteConfigList.get(0);
+        if (remoteConfig.getLocalPort() == 0) {
+            return;
+        }
         Bootstrap localBootstrap = new Bootstrap();
         localBootstrap.group(localGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
             @Override
