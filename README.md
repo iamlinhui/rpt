@@ -24,7 +24,7 @@
 serverIp: 0.0.0.0
 #服务端与客户端通讯端口
 serverPort: 6167
-#服务端的传输速度限制 0 or a limit in bytes/s
+#服务端的传输速度限制 单位bytes/s 为0则不限制
 serverLimit: 1048576
 #授权给客户端的秘钥
 clientKey:
