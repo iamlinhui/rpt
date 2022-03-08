@@ -10,6 +10,7 @@ import com.google.common.collect.Lists;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.util.internal.EmptyArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +37,7 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         logger.info("服务端本地端口[{}]连接成功", remoteConfig.getRemotePort());
         ctx.channel().config().setAutoRead(false);
-        send(MessageType.TYPE_CONNECTED, new byte[]{}, ctx);
+        send(MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES, ctx);
     }
 
     @Override
@@ -53,7 +54,7 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         logger.info("服务端端口[{}]连接断开", remoteConfig.getRemotePort());
         ctx.channel().config().setAutoRead(true);
-        send(MessageType.TYPE_DISCONNECTED, new byte[]{}, ctx);
+        send(MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES, ctx);
     }
 
     /**

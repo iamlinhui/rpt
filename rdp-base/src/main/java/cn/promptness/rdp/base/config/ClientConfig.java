@@ -54,6 +54,7 @@ public class ClientConfig {
         serverPort = clientConfig.getServerPort();
         clientKey = clientConfig.getClientKey();
         connection = clientConfig.getConnection();
+        channelId = clientConfig.getChannelId();
         List<ClientConfigProto.ClientConfig.RemoteConfig> configList = clientConfig.getConfigList();
         if (!configList.isEmpty()) {
             config = Lists.newArrayList();

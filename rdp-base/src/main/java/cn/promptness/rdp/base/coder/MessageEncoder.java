@@ -4,9 +4,9 @@ import cn.promptness.rdp.base.config.ClientConfig;
 import cn.promptness.rdp.base.protocol.Message;
 import cn.promptness.rdp.base.protocol.MessageType;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
+import io.netty.util.internal.EmptyArrays;
 
 
 public class MessageEncoder extends MessageToByteEncoder<Message> {
@@ -17,7 +17,7 @@ public class MessageEncoder extends MessageToByteEncoder<Message> {
         out.writeInt(type.getCode());
 
         ClientConfig clientConfig = message.getClientConfig();
-        byte[] protobuf = clientConfig == null ? Unpooled.EMPTY_BUFFER.array() : clientConfig.toProtobuf();
+        byte[] protobuf = clientConfig == null ? EmptyArrays.EMPTY_BYTES : clientConfig.toProtobuf();
         out.writeInt(protobuf.length);
         out.writeBytes(protobuf);
 
