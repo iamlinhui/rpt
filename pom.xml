@@ -7,7 +7,7 @@
     <groupId>cn.promptness</groupId>
     <artifactId>netty-rdp</artifactId>
     <packaging>pom</packaging>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.2</version>
     <modules>
         <module>rdp-base</module>
         <module>rdp-client</module>
