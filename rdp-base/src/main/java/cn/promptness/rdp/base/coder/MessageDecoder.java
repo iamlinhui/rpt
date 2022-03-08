@@ -20,9 +20,9 @@ public class MessageDecoder extends MessageToMessageDecoder<ByteBuf> {
         // 4个字节
         proxyMessage.setType(MessageType.getInstance(byteBuf.readInt()));
 
-        int length = byteBuf.readInt();
-        if (length > 0) {
-            byte[] clientConfigByte = new byte[length];
+        int protobufLength = byteBuf.readInt();
+        if (protobufLength > 0) {
+            byte[] clientConfigByte = new byte[protobufLength];
             byteBuf.readBytes(clientConfigByte);
             ClientConfigProto.ClientConfig clientConfig = ClientConfigProto.ClientConfig.parseFrom(clientConfigByte);
             proxyMessage.setClientConfig(new ClientConfig().fromProtobuf(clientConfig));
