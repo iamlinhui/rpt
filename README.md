@@ -103,7 +103,7 @@ server端需要在conf文件夹里面放置`server.crt`和`pkcs8_server.key`和`
   <arguments>-server -d64 -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Dnetworkaddress.cache.ttl=600 -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -Duser.timezone=Asia/Shanghai -Dclient.encoding.override=UTF-8 -Dfile.encoding=UTF-8 -Xbootclasspath/a:./conf -jar rdp-client.jar</arguments>
 </service>
 ```
-执行`rdp-client.exe install`即可完成注册为window服务
+执行`rdp-client.exe install`即可完成注册为Windows服务
 
 ## 其他
 Java命令行添加外部文件到classpath，从而实现读取外部配置文件
