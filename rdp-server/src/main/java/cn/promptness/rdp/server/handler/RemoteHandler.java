@@ -6,13 +6,14 @@ import cn.promptness.rdp.base.config.RemoteConfig;
 import cn.promptness.rdp.base.config.ServerConfig;
 import cn.promptness.rdp.base.protocol.Message;
 import cn.promptness.rdp.base.protocol.MessageType;
-import com.google.common.collect.Lists;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.internal.EmptyArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Collections;
 
 /**
  * 处理服务器接收到的外部请求
@@ -74,7 +75,7 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
         ClientConfig clientConfig = new ClientConfig();
         clientConfig.setServerIp(serverConfig.getServerIp());
         clientConfig.setServerPort(serverConfig.getServerPort());
-        clientConfig.setConfig(Lists.newArrayList(remoteConfig));
+        clientConfig.setConfig(Collections.singletonList(remoteConfig));
         clientConfig.setConnection(true);
         clientConfig.setChannelId(ctx.channel().id().asLongText());
 

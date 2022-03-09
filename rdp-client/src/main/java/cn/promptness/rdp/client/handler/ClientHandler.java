@@ -5,7 +5,6 @@ import cn.promptness.rdp.base.config.Config;
 import cn.promptness.rdp.base.config.RemoteConfig;
 import cn.promptness.rdp.base.protocol.Message;
 import cn.promptness.rdp.base.protocol.MessageType;
-import com.google.common.collect.Maps;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
@@ -22,6 +21,7 @@ import org.springframework.retry.support.RetryTemplate;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -35,7 +35,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
     /**
      * remoteChannelId --> localChannel
      */
-    private final Map<String, Channel> localChannelMap = Maps.newConcurrentMap();
+    private final Map<String, Channel> localChannelMap = new ConcurrentHashMap<>();
     private final Bootstrap clientBootstrap;
     private final NioEventLoopGroup clientWorkerGroup;
     private final AtomicBoolean connected = new AtomicBoolean(false);

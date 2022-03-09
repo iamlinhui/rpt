@@ -1,8 +1,8 @@
 package cn.promptness.rdp.base.config;
 
-import com.google.common.collect.Lists;
 import com.google.protobuf.ProtocolStringList;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ClientConfig {
@@ -57,7 +57,7 @@ public class ClientConfig {
         channelId = clientConfig.getChannelId();
         List<ClientConfigProto.ClientConfig.RemoteConfig> configList = clientConfig.getConfigList();
         if (!configList.isEmpty()) {
-            config = Lists.newArrayList();
+            config = new ArrayList<>();
             for (ClientConfigProto.ClientConfig.RemoteConfig remoteConfigProto : configList) {
                 RemoteConfig remoteConfig = new RemoteConfig();
                 remoteConfig.setRemotePort(remoteConfigProto.getRemotePort());
@@ -69,7 +69,7 @@ public class ClientConfig {
         }
         ProtocolStringList remoteResultList = clientConfig.getRemoteResultList();
         if (!remoteResultList.isEmpty()) {
-            remoteResult = Lists.newArrayList();
+            remoteResult = new ArrayList<>();
             remoteResult.addAll(remoteResultList);
         }
         return this;

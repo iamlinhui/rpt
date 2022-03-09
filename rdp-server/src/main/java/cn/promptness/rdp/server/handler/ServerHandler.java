@@ -5,8 +5,6 @@ import cn.promptness.rdp.base.config.Config;
 import cn.promptness.rdp.base.config.RemoteConfig;
 import cn.promptness.rdp.base.protocol.Message;
 import cn.promptness.rdp.base.protocol.MessageType;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
@@ -19,8 +17,11 @@ import io.netty.handler.traffic.GlobalTrafficShapingHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 处理服务器接收到的客户端连接
@@ -31,7 +32,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     /**
      * remoteChannelId --> remoteChannel
      */
-    private final Map<String, Channel> remoteChannelMap = Maps.newConcurrentMap();
+    private final Map<String, Channel> remoteChannelMap = new ConcurrentHashMap<>();
     private final EventLoopGroup remoteBossGroup = new NioEventLoopGroup();
     private final EventLoopGroup remoteWorkerGroup = new NioEventLoopGroup();
 
@@ -124,9 +125,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             context.writeAndFlush(res);
             return;
         }
-        List<String> remoteResult = Lists.newArrayList();
+        List<String> remoteResult = new ArrayList<>();
         for (RemoteConfig remoteConfig : clientConfig.getConfig()) {
-            if (remoteConfig.getRemotePort() == 0 || remoteConfig.getRemotePort() == Config.getServerConfig().getServerPort()) {
+            if (remoteConfig.getRemotePort() == 0 || Objects.equals(remoteConfig.getRemotePort(), Config.getServerConfig().getServerPort())) {
                 return;
             }
             ServerBootstrap remoteBootstrap = new ServerBootstrap();
