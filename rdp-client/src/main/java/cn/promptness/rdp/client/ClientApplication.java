@@ -33,7 +33,7 @@ public class ClientApplication {
         InputStream certChainFile = ClassLoader.getSystemResourceAsStream("client.crt");
         InputStream keyFile = ClassLoader.getSystemResourceAsStream("pkcs8_client.key");
         InputStream rootFile = ClassLoader.getSystemResourceAsStream("ca.crt");
-        SslContext sslContext = SslContextBuilder.forClient().keyManager(certChainFile, keyFile).trustManager(rootFile).clientAuth(ClientAuth.REQUIRE).sslProvider(SslProvider.OPENSSL).build();
+        SslContext sslContext = SslContextBuilder.forClient().keyManager(certChainFile, keyFile).trustManager(rootFile).sslProvider(SslProvider.OPENSSL).build();
 
         NioEventLoopGroup clientWorkerGroup = new NioEventLoopGroup();
         Bootstrap bootstrap = new Bootstrap();
