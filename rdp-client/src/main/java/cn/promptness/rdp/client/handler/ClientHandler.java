@@ -15,9 +15,6 @@ import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.retry.backoff.FixedBackOffPolicy;
-import org.springframework.retry.policy.AlwaysRetryPolicy;
-import org.springframework.retry.support.RetryTemplate;
 
 import java.util.List;
 import java.util.Map;
@@ -153,28 +150,16 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
             return;
         }
         ClientConfig clientConfig = Config.getClientConfig();
-        getRetryTemplate().execute(retryContext -> {
+        int count = 0;
+        while (count >= 0) {
             try {
-                logger.info("客户端第{}次重试开始连接服务端IP:{},服务端端口:{}", retryContext.getRetryCount(), clientConfig.getServerIp(), clientConfig.getServerPort());
+                logger.info("客户端第{}次重试开始连接服务端IP:{},服务端端口:{}", ++count, clientConfig.getServerIp(), clientConfig.getServerPort());
                 clientBootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).get(15, TimeUnit.SECONDS);
-                return true;
+                break;
             } catch (Exception exception) {
-                logger.info("客户端第{}次重试失败连接服务端IP:{},服务端端口:{},原因:{}", retryContext.getRetryCount(), clientConfig.getServerIp(), clientConfig.getServerPort(), exception.getCause().getMessage());
-                throw exception;
+                logger.info("客户端第{}次重试失败连接服务端IP:{},服务端端口:{},原因:{}", count, clientConfig.getServerIp(), clientConfig.getServerPort(), exception.getCause().getMessage());
+                TimeUnit.MINUTES.sleep(1);
             }
-        });
-    }
-
-    private RetryTemplate getRetryTemplate() {
-        RetryTemplate retryTemplate = new RetryTemplate();
-        // 设置重试策略
-        AlwaysRetryPolicy policy = new AlwaysRetryPolicy();
-        // 设置重试回退操作策略，主要设置重试间隔时间
-        FixedBackOffPolicy fixedBackOffPolicy = new FixedBackOffPolicy();
-        // 重试间隔时间大于重连的超时时间
-        fixedBackOffPolicy.setBackOffPeriod(60000L);
-        retryTemplate.setRetryPolicy(policy);
-        retryTemplate.setBackOffPolicy(fixedBackOffPolicy);
-        return retryTemplate;
+        }
     }
 }
