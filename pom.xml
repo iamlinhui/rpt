@@ -5,13 +5,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>cn.promptness</groupId>
-    <artifactId>netty-rdp</artifactId>
+    <artifactId>rpt</artifactId>
     <packaging>pom</packaging>
     <version>1.0.2</version>
     <modules>
-        <module>rdp-base</module>
-        <module>rdp-client</module>
-        <module>rdp-server</module>
+        <module>rpt-base</module>
+        <module>rpt-client</module>
+        <module>rpt-server</module>
     </modules>
 
     <properties>
