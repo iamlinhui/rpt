@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package cn.promptness.rdp.base.config.ClientConfig;
+package cn.promptness.rpt.base.config.ClientConfig;
 
 option optimize_for = SPEED;
 option java_package = "cn.promptness.rdp.base.config";
