@@ -3,7 +3,7 @@ syntax = "proto3";
 package cn.promptness.rpt.base.config.ClientConfig;
 
 option optimize_for = SPEED;
-option java_package = "cn.promptness.rdp.base.config";
+option java_package = "cn.promptness.rpt.base.config";
 option java_outer_classname = "ClientConfigProto";
 
 message ClientConfig {
