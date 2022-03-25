@@ -5,6 +5,7 @@ import cn.promptness.rpt.base.coder.MessageEncoder;
 import cn.promptness.rpt.base.config.ClientConfig;
 import cn.promptness.rpt.base.config.Config;
 import cn.promptness.rpt.base.handler.IdleCheckHandler;
+import cn.promptness.rpt.base.utils.ScheduledThreadFactory;
 import cn.promptness.rpt.client.handler.ClientHandler;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelInitializer;
@@ -56,12 +57,11 @@ public class ClientApplication {
                 ch.pipeline().addLast(new ClientHandler(connect));
             }
         });
-
-        new ScheduledThreadPoolExecutor(1, r -> new Thread(r, "Client")).scheduleAtFixedRate(() -> {
+        new ScheduledThreadPoolExecutor(1, ScheduledThreadFactory.create("client", false)).scheduleAtFixedRate(() -> {
             if (connect.get()) {
                 return;
             }
-            synchronized (connect) {
+            synchronized (logger) {
                 if (connect.get()) {
                     return;
                 }
