@@ -19,7 +19,6 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -33,13 +32,10 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
      * remoteChannelId --> localChannel
      */
     private final Map<String, Channel> localChannelMap = new ConcurrentHashMap<>();
-    private final Bootstrap clientBootstrap;
-    private final NioEventLoopGroup clientWorkerGroup;
-    private final AtomicBoolean connected = new AtomicBoolean(false);
+    private final AtomicBoolean connect;
 
-    public ClientHandler(Bootstrap clientBootstrap, NioEventLoopGroup clientWorkerGroup) {
-        this.clientBootstrap = clientBootstrap;
-        this.clientWorkerGroup = clientWorkerGroup;
+    public ClientHandler(AtomicBoolean connect) {
+        this.connect = connect;
     }
 
     @Override
@@ -56,15 +52,14 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
     protected void channelRead0(ChannelHandlerContext context, Message message) throws Exception {
         switch (message.getType()) {
             case TYPE_AUTH:
-                connected.set(message.getClientConfig().isConnection());
-                if (connected.get()) {
+                connect.set(message.getClientConfig().isConnection());
+                if (connect.get()) {
                     logger.info("授权连接成功,clientKey:{}", message.getClientConfig().getClientKey());
                     for (String remoteResult : message.getClientConfig().getRemoteResult()) {
                         logger.info(remoteResult);
                     }
                 } else {
                     logger.info("授权连接失败,clientKey:{}", message.getClientConfig().getClientKey());
-                    clientWorkerGroup.shutdownGracefully();
                 }
                 break;
             case TYPE_CONNECTED:
@@ -137,29 +132,11 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         }
         localChannelMap.clear();
         localGroup.shutdownGracefully();
-        retryConnect();
+        connect.set(false);
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         ctx.channel().close();
-    }
-
-    private void retryConnect() throws Exception {
-        if (!connected.get()) {
-            return;
-        }
-        ClientConfig clientConfig = Config.getClientConfig();
-        int count = 0;
-        while (count >= 0) {
-            try {
-                logger.info("客户端第{}次重试开始连接服务端IP:{},服务端端口:{}", ++count, clientConfig.getServerIp(), clientConfig.getServerPort());
-                clientBootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).get(15, TimeUnit.SECONDS);
-                break;
-            } catch (Exception exception) {
-                logger.info("客户端第{}次重试失败连接服务端IP:{},服务端端口:{},原因:{}", count, clientConfig.getServerIp(), clientConfig.getServerPort(), exception.getCause().getMessage());
-                TimeUnit.MINUTES.sleep(1);
-            }
-        }
     }
 }

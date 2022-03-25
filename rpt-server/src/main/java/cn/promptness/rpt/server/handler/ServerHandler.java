@@ -119,6 +119,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         ClientConfig clientConfig = message.getClientConfig();
         clientKey = clientConfig.getClientKey();
         if (!Config.getServerConfig().getClientKey().contains(clientKey)) {
+            logger.info("授权连接失败,clientKey:{}", clientKey);
             Message res = new Message();
             res.setType(MessageType.TYPE_AUTH);
             res.setClientConfig(clientConfig.setConnection(false));

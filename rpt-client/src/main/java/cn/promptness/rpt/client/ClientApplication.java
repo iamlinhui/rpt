@@ -22,6 +22,9 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLException;
 import java.io.InputStream;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ClientApplication {
 
@@ -36,6 +39,7 @@ public class ClientApplication {
 
         NioEventLoopGroup clientWorkerGroup = new NioEventLoopGroup();
         Bootstrap bootstrap = new Bootstrap();
+        AtomicBoolean connect = new AtomicBoolean(false);
         bootstrap.group(clientWorkerGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
@@ -49,15 +53,25 @@ public class ClientApplication {
                 ch.pipeline().addLast(new MessageEncoder());
                 ch.pipeline().addLast(new IdleCheckHandler(60, 30, 0));
                 //服务器连接处理器
-                ch.pipeline().addLast(new ClientHandler(bootstrap, clientWorkerGroup));
+                ch.pipeline().addLast(new ClientHandler(connect));
             }
         });
-        try {
-            bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).get();
-            logger.info("客户端成功连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
-        } catch (Exception exception) {
-            logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), exception.getCause().getMessage());
-            clientWorkerGroup.shutdownGracefully();
-        }
+
+        new ScheduledThreadPoolExecutor(1, r -> new Thread(r, "Client")).scheduleAtFixedRate(() -> {
+            if (connect.get()) {
+                return;
+            }
+            synchronized (connect) {
+                if (connect.get()) {
+                    return;
+                }
+                try {
+                    bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).get();
+                    logger.info("客户端成功连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
+                } catch (Exception exception) {
+                    logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), exception.getCause().getMessage());
+                }
+            }
+        }, 0, 1, TimeUnit.MINUTES);
     }
 }
