@@ -1,4 +1,4 @@
-### 基于Netty实现的TCP代理工具,支持SSL双端验证(内网穿透)
+### 基于Netty实现的TCP/HTTP代理工具,HTTP端口复用,支持SSL双端验证(内网穿透)
 
 > http代理、https代理(eg:本地支付接口调试,本地微信公众号调试)\
 > 远程桌面(eg:远程办公)\
@@ -26,6 +26,8 @@
 serverIp: 0.0.0.0
 #服务端与客户端通讯端口
 serverPort: 6167
+#服务端暴露的HTTP复用端口
+httpPort: 80
 #服务端的传输速度限制 单位bytes/s 为0则不限制
 serverLimit: 1048576
 #授权给客户端的秘钥
@@ -46,28 +48,36 @@ clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
 
 # remotePort与localPort映射配置
 config:
-  # 服务暴露端口
-  - remotePort: 4389
-    # 客户端连接目标端口
-    localPort: 3389
+  - # 传输协议类型 (TCP或者HTTP)
+    proxyType: TCP
     # 客户端连接目标IP
     localIp: 127.0.0.1
+    # 客户端连接目标端口
+    localPort: 3389
+    # 服务暴露端口
+    remotePort: 4389
     # 描述
     description: rdp
-  - remotePort: 7379
-    localPort: 6379
+    
+  - proxyType: TCP
     localIp: 127.0.0.1
+    localPort: 7399
+    remotePort: 6379
     description: redis
-  - remotePort: 9080
-    localPort: 8080
+    
+  - proxyType: HTTP
     localIp: 127.0.0.1
+    localPort: 8080
+    domain: localhost
     description: tomcat
 ```
 
 ## 部署
+
 首先在jar包的当前目录,新建conf文件夹,并将相应的配置文件(`client.yml`或者`server.yml`)放进去
 
 启动脚本`start.sh`
+
 ```shell
 java -server -d64 -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Dnetworkaddress.cache.ttl=600 \
      -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -Duser.timezone=Asia/Shanghai \
@@ -76,15 +86,18 @@ java -server -d64 -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Dnetworkaddress.cache.t
 ```
 
 关闭脚本`stop.sh`
+
 ```shell
 kill $(cat pid.file)
 ```
 
 ## SSL证书申请
+
 详细操作步骤看这里
 [OpenSSL申请证书](https://github.com/iamlinhui/rpt/wiki/OpenSSL证书申请)
 
 ## 替换证书
+
 如果需要替换证书则:
 
 client端需要在conf文件夹里面放置`client.crt`和`pkcs8_client.key`和`ca.crt`
@@ -92,21 +105,28 @@ client端需要在conf文件夹里面放置`client.crt`和`pkcs8_client.key`和`
 server端需要在conf文件夹里面放置`server.crt`和`pkcs8_server.key`和`ca.crt`
 
 ## 注册Windows服务
-下载 [winsw工具](https://github.com/winsw/winsw/releases) ,将WinSW-x64.exe文件重命名为rpt-client.exe, 
-和rpt-client.jar放在同一个目录中, 在该目录中新建文件rpt-client.xml文件,写入如下内容
+
+下载 [winsw工具](https://github.com/winsw/winsw/releases) ,将WinSW-x64.exe文件重命名为rpt-client.exe, 和rpt-client.jar放在同一个目录中,
+在该目录中新建文件rpt-client.xml文件,写入如下内容
+
 ```xml
+
 <service>
-  <id>rpt-client</id>
-  <name>rpt-client</name>
-  <description>rpt-client</description>
-  <executable>java</executable>
-  <arguments>-server -d64 -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Dnetworkaddress.cache.ttl=600 -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -Duser.timezone=Asia/Shanghai -Dclient.encoding.override=UTF-8 -Dfile.encoding=UTF-8 -Xbootclasspath/a:./conf -jar rpt-client.jar</arguments>
+    <id>rpt-client</id>
+    <name>rpt-client</name>
+    <description>rpt-client</description>
+    <executable>java</executable>
+    <arguments>-server -d64 -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Dnetworkaddress.cache.ttl=600 -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -Duser.timezone=Asia/Shanghai -Dclient.encoding.override=UTF-8 -Dfile.encoding=UTF-8 -Xbootclasspath/a:./conf -jar rpt-client.jar
+    </arguments>
 </service>
 ```
+
 执行`rpt-client.exe install`即可完成注册为Windows服务
 
 ## 其他
+
 Java命令行添加外部文件到classpath，从而实现读取外部配置文件
+
 ```text
 对于jar包启动，使用-Xbootclasspath/a:命令；对于class启动，使用-cp命令。
 
