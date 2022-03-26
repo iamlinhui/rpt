@@ -1,4 +1,4 @@
-package cn.promptness.rpt.base.protocol;
+package cn.promptness.rpt.base.utils;
 
 public interface Constants {
 

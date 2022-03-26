@@ -3,7 +3,7 @@ package cn.promptness.rpt.server.handler;
 import cn.promptness.rpt.base.coder.HttpEncoder;
 import cn.promptness.rpt.base.config.ClientConfig;
 import cn.promptness.rpt.base.config.RemoteConfig;
-import cn.promptness.rpt.base.protocol.Constants;
+import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.protocol.ProxyType;

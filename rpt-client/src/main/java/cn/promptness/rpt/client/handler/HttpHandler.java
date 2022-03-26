@@ -3,7 +3,7 @@ package cn.promptness.rpt.client.handler;
 import cn.promptness.rpt.base.coder.HttpEncoder;
 import cn.promptness.rpt.base.config.Config;
 import cn.promptness.rpt.base.config.RemoteConfig;
-import cn.promptness.rpt.base.protocol.Constants;
+import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.base.utils.StringUtils;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
