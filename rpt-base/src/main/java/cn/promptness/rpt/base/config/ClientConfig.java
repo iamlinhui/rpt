@@ -1,9 +1,11 @@
 package cn.promptness.rpt.base.config;
 
+import cn.promptness.rpt.base.protocol.ProxyType;
 import com.google.protobuf.ProtocolStringList;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class ClientConfig {
 
@@ -18,7 +20,10 @@ public class ClientConfig {
 
     public byte[] toProtobuf() {
         ClientConfigProto.ClientConfig.Builder clientConfigBuilder = ClientConfigProto.ClientConfig.newBuilder();
-        clientConfigBuilder.setServerIp(serverIp).setServerPort(serverPort).setConnection(connection);
+        clientConfigBuilder.setServerPort(serverPort).setConnection(connection);
+        if (serverIp != null) {
+            clientConfigBuilder.setServerIp(serverIp);
+        }
         if (clientKey != null) {
             clientConfigBuilder.setClientKey(clientKey);
         }
@@ -34,6 +39,12 @@ public class ClientConfig {
                 }
                 if (remoteConfig.getDescription() != null) {
                     remoteBuilder.setDescription(remoteConfig.getDescription());
+                }
+                if (remoteConfig.getDomain() != null) {
+                    remoteBuilder.setDomain(remoteConfig.getDomain());
+                }
+                if (remoteConfig.getProxyType() != null) {
+                    remoteBuilder.setProxyTypeValue(remoteConfig.getProxyType().getCode());
                 }
                 clientConfigBuilder.addConfig(remoteBuilder.build());
             }
@@ -64,6 +75,8 @@ public class ClientConfig {
                 remoteConfig.setLocalPort(remoteConfigProto.getLocalPort());
                 remoteConfig.setLocalIp(remoteConfigProto.getLocalIp());
                 remoteConfig.setDescription(remoteConfigProto.getDescription());
+                remoteConfig.setProxyType(ProxyType.getInstance(remoteConfigProto.getProxyType().getNumber()));
+                remoteConfig.setDomain(remoteConfigProto.getDomain());
                 config.add(remoteConfig);
             }
         }
@@ -131,6 +144,19 @@ public class ClientConfig {
 
     public List<String> getRemoteResult() {
         return remoteResult;
+    }
+
+    public RemoteConfig getHttpConfig(String domain) {
+        for (RemoteConfig remoteConfig : config) {
+            ProxyType proxyType = remoteConfig.getProxyType();
+            if (proxyType == null) {
+                continue;
+            }
+            if (Objects.equals(ProxyType.HTTP, proxyType) && Objects.equals(domain, remoteConfig.getDomain())) {
+                return remoteConfig;
+            }
+        }
+        return null;
     }
 
 }

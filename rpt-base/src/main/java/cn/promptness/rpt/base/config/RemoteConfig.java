@@ -1,11 +1,15 @@
 package cn.promptness.rpt.base.config;
 
+import cn.promptness.rpt.base.protocol.ProxyType;
+
 public class RemoteConfig {
 
     private int remotePort;
     private int localPort;
     private String localIp;
     private String description;
+    private ProxyType proxyType;
+    private String domain;
 
     public int getRemotePort() {
         return remotePort;
@@ -37,5 +41,21 @@ public class RemoteConfig {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public ProxyType getProxyType() {
+        return proxyType;
+    }
+
+    public void setProxyType(ProxyType proxyType) {
+        this.proxyType = proxyType;
+    }
+
+    public String getDomain() {
+        return domain;
+    }
+
+    public void setDomain(String domain) {
+        this.domain = domain;
     }
 }

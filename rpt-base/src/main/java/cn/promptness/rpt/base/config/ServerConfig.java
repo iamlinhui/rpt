@@ -7,6 +7,7 @@ public class ServerConfig {
     private String serverIp;
     private int serverPort;
     private long serverLimit;
+    private int httpPort;
     private List<String> clientKey;
 
     public long getServerLimit() {
@@ -39,5 +40,13 @@ public class ServerConfig {
 
     public void setClientKey(List<String> clientKey) {
         this.clientKey = clientKey;
+    }
+
+    public int getHttpPort() {
+        return httpPort;
+    }
+
+    public void setHttpPort(int httpPort) {
+        this.httpPort = httpPort;
     }
 }

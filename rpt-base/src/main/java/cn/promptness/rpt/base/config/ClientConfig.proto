@@ -22,5 +22,12 @@ message ClientConfig {
     int32 localPort = 2;
     string localIp = 3;
     string description = 4;
+    ProxyType proxyType = 5;
+    string domain = 6;
+  }
+
+  enum ProxyType {
+    TCP = 0;
+    HTTP = 1;
   }
 }

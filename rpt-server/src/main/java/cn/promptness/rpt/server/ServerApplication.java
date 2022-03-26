@@ -5,28 +5,39 @@ import cn.promptness.rpt.base.coder.MessageEncoder;
 import cn.promptness.rpt.base.config.Config;
 import cn.promptness.rpt.base.config.ServerConfig;
 import cn.promptness.rpt.base.handler.IdleCheckHandler;
+import cn.promptness.rpt.server.handler.RequestHandler;
 import cn.promptness.rpt.server.handler.ServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.traffic.GlobalTrafficShapingHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLException;
 import java.io.InputStream;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ServerApplication {
 
     private static final Logger logger = LoggerFactory.getLogger(ServerApplication.class);
+
+    private static final Map<String, Channel> SERVER_CHANNEL_MAP = new ConcurrentHashMap<>();
+    private static final Map<String, Channel> HTTP_CHANNEL_MAP = new ConcurrentHashMap<>();
 
     public static void main(String[] args) throws SSLException {
 
@@ -57,7 +68,7 @@ public class ServerApplication {
                 ch.pipeline().addLast(new MessageEncoder());
                 ch.pipeline().addLast(new IdleCheckHandler(60, 40, 0));
                 // 代理客户端连接代理服务器处理器
-                ch.pipeline().addLast(new ServerHandler(globalTrafficShapingHandler));
+                ch.pipeline().addLast(new ServerHandler(globalTrafficShapingHandler, SERVER_CHANNEL_MAP, HTTP_CHANNEL_MAP));
             }
         });
 
@@ -66,6 +77,34 @@ public class ServerApplication {
             logger.info("服务端启动成功,本机绑定IP:{},服务端口:{}", serverConfig.getServerIp(), serverConfig.getServerPort());
         } catch (Exception exception) {
             logger.info("服务端启动失败,本机绑定IP:{},服务端口:{},原因:{}", serverConfig.getServerIp(), serverConfig.getServerPort(), exception.getCause().getMessage());
+            serverBossGroup.shutdownGracefully();
+            serverWorkerGroup.shutdownGracefully();
+        }
+        startHttp(serverBossGroup, serverWorkerGroup, globalTrafficShapingHandler);
+    }
+
+    private static void startHttp(NioEventLoopGroup serverBossGroup, NioEventLoopGroup serverWorkerGroup, GlobalTrafficShapingHandler globalTrafficShapingHandler) throws SSLException {
+        ServerConfig serverConfig = Config.getServerConfig();
+
+        ServerBootstrap httpsBootstrap = new ServerBootstrap();
+        httpsBootstrap.group(serverBossGroup, serverWorkerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
+
+            @Override
+            public void initChannel(SocketChannel ch) throws Exception {
+                ch.pipeline().addLast(globalTrafficShapingHandler);
+                ch.pipeline().addLast(new HttpRequestDecoder());
+                ch.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
+                ch.pipeline().addLast(new ChunkedWriteHandler());
+                ch.pipeline().addLast(new RequestHandler(SERVER_CHANNEL_MAP, HTTP_CHANNEL_MAP));
+                HTTP_CHANNEL_MAP.put(ch.id().asLongText(), ch);
+            }
+        });
+
+        try {
+            httpsBootstrap.bind(serverConfig.getServerIp(), serverConfig.getHttpPort()).get();
+            logger.info("服务端启动成功,本机绑定IP:{},Http端口:{}", serverConfig.getServerIp(), serverConfig.getHttpPort());
+        } catch (Exception exception) {
+            logger.info("服务端启动失败,本机绑定IP:{},Http端口:{},原因:{}", serverConfig.getServerIp(), serverConfig.getHttpPort(), exception.getCause().getMessage());
             serverBossGroup.shutdownGracefully();
             serverWorkerGroup.shutdownGracefully();
         }

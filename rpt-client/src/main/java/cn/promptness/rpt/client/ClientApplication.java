@@ -7,7 +7,9 @@ import cn.promptness.rpt.base.config.Config;
 import cn.promptness.rpt.base.handler.IdleCheckHandler;
 import cn.promptness.rpt.base.utils.ScheduledThreadFactory;
 import cn.promptness.rpt.client.handler.ClientHandler;
+import cn.promptness.rpt.client.handler.HttpHandler;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -15,14 +17,19 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLException;
 import java.io.InputStream;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -30,6 +37,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ClientApplication {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientApplication.class);
+
+    private static final Map<String, Channel> LOCAL_HTTP_CHANNEL_MAP = new ConcurrentHashMap<>();
 
     public static void main(String[] args) throws SSLException {
         ClientConfig clientConfig = Config.getClientConfig();
@@ -54,7 +63,11 @@ public class ClientApplication {
                 ch.pipeline().addLast(new MessageEncoder());
                 ch.pipeline().addLast(new IdleCheckHandler(60, 30, 0));
                 //服务器连接处理器
-                ch.pipeline().addLast(new ClientHandler(connect));
+                ch.pipeline().addLast(new ClientHandler(connect, LOCAL_HTTP_CHANNEL_MAP));
+                ch.pipeline().addLast(new HttpRequestDecoder());
+                ch.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
+                ch.pipeline().addLast(new ChunkedWriteHandler());
+                ch.pipeline().addLast(new HttpHandler(LOCAL_HTTP_CHANNEL_MAP));
             }
         });
         new ScheduledThreadPoolExecutor(1, ScheduledThreadFactory.create("client", false)).scheduleAtFixedRate(() -> {
