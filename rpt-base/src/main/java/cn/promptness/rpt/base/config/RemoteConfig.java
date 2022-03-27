@@ -8,6 +8,9 @@ public class RemoteConfig {
     private int localPort;
     private String localIp;
     private String description;
+    /**
+     * 不填写默认就是TCP
+     */
     private ProxyType proxyType;
     private String domain;
 

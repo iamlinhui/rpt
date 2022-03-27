@@ -251,6 +251,10 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     }
 
     private void registerTcp(ChannelHandlerContext context, List<String> remoteResult, RemoteConfig remoteConfig) {
+        if (remoteConfig.getRemotePort() == 0 || remoteConfig.getRemotePort() == Config.getServerConfig().getServerPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getHttpPort()) {
+            remoteResult.add(String.format("需要绑定的端口[%s]不合法", remoteConfig.getRemotePort()));
+            return;
+        }
         ServerBootstrap remoteBootstrap = new ServerBootstrap();
         remoteBootstrap.group(remoteBossGroup, remoteWorkerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true)
                 .childHandler(new ChannelInitializer<SocketChannel>() {
