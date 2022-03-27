@@ -248,6 +248,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             }
             domainList.add(domain);
             remoteResult.add(String.format("服务端绑定域名成功%s", domain));
+            logger.info("服务端成功绑定域名{}", domain);
             return context.channel();
         });
     }
