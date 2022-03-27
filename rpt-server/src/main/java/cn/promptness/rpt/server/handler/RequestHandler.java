@@ -3,15 +3,17 @@ package cn.promptness.rpt.server.handler;
 import cn.promptness.rpt.base.coder.HttpEncoder;
 import cn.promptness.rpt.base.config.ClientConfig;
 import cn.promptness.rpt.base.config.RemoteConfig;
-import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.protocol.ProxyType;
+import cn.promptness.rpt.base.utils.Constants;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.handler.codec.http.*;
 import io.netty.util.internal.EmptyArrays;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -20,6 +22,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * request处理器
  */
 public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
+
+    private static final Logger logger = LoggerFactory.getLogger(RequestHandler.class);
 
     private final Queue<FullHttpRequest> requestMessage = new LinkedList<>();
 
@@ -85,6 +89,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
         String hostAndPort = fullHttpRequest.headers().get(HttpHeaderNames.HOST);
         domain = hostAndPort.split(":")[0];
+        logger.info("收到来自{}的请求", domain);
         serverChannel = serverChannelMap.get(domain);
         if (serverChannel == null) {
             handle(ctx, fullHttpRequest, HttpResponseStatus.NOT_FOUND);
