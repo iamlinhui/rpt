@@ -6,6 +6,7 @@ import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.protocol.ProxyType;
+import cn.promptness.rpt.base.utils.StringUtils;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -236,13 +237,17 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
 
     private void registerHttp(ChannelHandlerContext context, List<String> remoteResult, RemoteConfig remoteConfig) {
-        serverChannelMap.compute(remoteConfig.getDomain(), (httpDomain, channel) -> {
+        if (!StringUtils.hasText(remoteConfig.getDomain())) {
+            remoteResult.add(String.format("服务端绑定域名不能为空%s", remoteConfig.getDomain()));
+            return;
+        }
+        serverChannelMap.compute(remoteConfig.getDomain(), (domain, channel) -> {
             if (channel != null) {
-                remoteResult.add(String.format("服务端绑定域名重复%s", httpDomain));
+                remoteResult.add(String.format("服务端绑定域名重复%s", domain));
                 return channel;
             }
-            domainList.add(httpDomain);
-            remoteResult.add(String.format("服务端绑定域名成功%s", httpDomain));
+            domainList.add(domain);
+            remoteResult.add(String.format("服务端绑定域名成功%s", domain));
             return context.channel();
         });
     }
