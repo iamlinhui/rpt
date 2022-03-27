@@ -48,7 +48,7 @@ clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
 
 # remotePort与localPort映射配置
 config:
-  - # 传输协议类型 (TCP或者HTTP)
+  - # 传输协议类型 (TCP或者HTTP) 不填写默认就是TCP
     proxyType: TCP
     # 客户端连接目标IP
     localIp: 127.0.0.1
