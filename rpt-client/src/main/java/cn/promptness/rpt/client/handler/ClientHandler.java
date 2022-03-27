@@ -17,7 +17,6 @@ import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpResponseDecoder;
-import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,7 +108,6 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
             case HTTP:
                 ByteBuf buf = context.alloc().buffer(message.getData().length);
                 buf.writeBytes(message.getData());
-                ReferenceCountUtil.release(message.getData());
                 context.fireChannelRead(buf);
                 break;
             default:
