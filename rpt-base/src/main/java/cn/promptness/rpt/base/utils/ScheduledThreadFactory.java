@@ -8,7 +8,7 @@ public class ScheduledThreadFactory implements ThreadFactory {
     private final AtomicLong threadNumber = new AtomicLong(1L);
     private final String namePrefix;
     private final boolean daemon;
-    private static final ThreadGroup THREAD_GROUP = new ThreadGroup("rpt");
+    private static final ThreadGroup THREAD_GROUP = new ThreadGroup(Constants.RPT);
 
     public static ThreadFactory create(String namePrefix, boolean daemon) {
         return new ScheduledThreadFactory(namePrefix, daemon);
