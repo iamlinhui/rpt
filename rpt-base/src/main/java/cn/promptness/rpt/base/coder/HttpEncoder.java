@@ -20,7 +20,7 @@ public class HttpEncoder {
         try {
             new ResponseEncoder().encode(ctx, fullHttpResponse, out);
         } catch (Exception e) {
-            logger.error(e.getMessage());
+            logger.error(e.getMessage(), e);
         }
         return out;
     }
@@ -31,7 +31,7 @@ public class HttpEncoder {
             new RequestEncoder().encode(ctx, fullHttpRequest, out);
             return out;
         } catch (Exception e) {
-            logger.error(e.getMessage());
+            logger.error(e.getMessage(), e);
         }
         return out;
     }
