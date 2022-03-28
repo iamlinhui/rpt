@@ -2,9 +2,9 @@ package cn.promptness.rpt.client.handler;
 
 import cn.promptness.rpt.base.coder.HttpEncoder;
 import cn.promptness.rpt.base.config.ClientConfig;
-import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
+import cn.promptness.rpt.base.utils.Constants;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -13,11 +13,15 @@ import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.internal.EmptyArrays;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.List;
 
 public class ReceiveHandler extends SimpleChannelInboundHandler<FullHttpResponse> {
+
+    private static final Logger logger = LoggerFactory.getLogger(ReceiveHandler.class);
 
     private static final List<Integer> REDIRECT_STATUS = Arrays.asList(HttpResponseStatus.FOUND.code(), HttpResponseStatus.SEE_OTHER.code());
 
@@ -31,6 +35,7 @@ public class ReceiveHandler extends SimpleChannelInboundHandler<FullHttpResponse
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        logger.info("客户端成功建立远端{}请求的本地连接", clientConfig.getConfig().get(0).getDomain());
         ctx.channel().config().setAutoRead(false);
         send(MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES);
         ctx.channel().config().setAutoRead(true);
@@ -43,6 +48,7 @@ public class ReceiveHandler extends SimpleChannelInboundHandler<FullHttpResponse
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        logger.info("客户端断开远端{}请求的本地连接", clientConfig.getConfig().get(0).getDomain());
         ctx.channel().config().setAutoRead(true);
         send(MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
     }
@@ -50,7 +56,7 @@ public class ReceiveHandler extends SimpleChannelInboundHandler<FullHttpResponse
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpResponse response) throws Exception {
-
+        logger.info("客户端传输远端{}请求的本地连接的响应数据", clientConfig.getConfig().get(0).getDomain());
         HttpResponseStatus status = response.status();
         if (REDIRECT_STATUS.contains(status.code())) {
             String location = String.valueOf(response.headers().get(HttpHeaderNames.LOCATION));
