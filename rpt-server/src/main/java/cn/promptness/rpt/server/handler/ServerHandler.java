@@ -179,7 +179,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                 String channelId = message.getClientConfig().getChannelId();
                 Channel channel = httpChannelMap.get(channelId);
                 if (channel != null) {
-                    channel.writeAndFlush(Unpooled.wrappedBuffer(message.getData()));
+                    byte[] data = message.getData();
+                    logger.info("响应客户端转发的HTTP数据,{}byte", data.length);
+                    channel.writeAndFlush(Unpooled.wrappedBuffer(data));
                 }
                 break;
             default:

@@ -2,7 +2,6 @@ package cn.promptness.rpt.client.handler;
 
 import cn.promptness.rpt.base.coder.HttpEncoder;
 import cn.promptness.rpt.base.config.ClientConfig;
-import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.utils.Constants;
@@ -36,8 +35,7 @@ public class ReceiveHandler extends SimpleChannelInboundHandler<FullHttpResponse
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        RemoteConfig remoteConfig = clientConfig.getConfig().get(0);
-        logger.info("客户端建立本地连接成功,{}:{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort());
+        logger.info("客户端成功建立远端{}请求的本地连接", clientConfig.getConfig().get(0).getDomain());
         ctx.channel().config().setAutoRead(false);
         send(MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES);
         ctx.channel().config().setAutoRead(true);
@@ -50,8 +48,7 @@ public class ReceiveHandler extends SimpleChannelInboundHandler<FullHttpResponse
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        RemoteConfig remoteConfig = clientConfig.getConfig().get(0);
-        logger.info("客户端本地连接断开,{}:{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort());
+        logger.info("客户端断开远端{}请求的本地连接", clientConfig.getConfig().get(0).getDomain());
         ctx.channel().config().setAutoRead(true);
         send(MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
     }
@@ -59,8 +56,7 @@ public class ReceiveHandler extends SimpleChannelInboundHandler<FullHttpResponse
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpResponse response) throws Exception {
-        RemoteConfig remoteConfig = clientConfig.getConfig().get(0);
-        logger.debug("收到本地{}:{}的数据", remoteConfig.getLocalIp(), remoteConfig.getLocalPort());
+        logger.info("客户端传输远端{}请求的本地连接的响应数据", clientConfig.getConfig().get(0).getDomain());
         HttpResponseStatus status = response.status();
         if (REDIRECT_STATUS.contains(status.code())) {
             String location = String.valueOf(response.headers().get(HttpHeaderNames.LOCATION));

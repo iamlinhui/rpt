@@ -4,5 +4,5 @@ public interface Constants {
 
     String REQUEST_CHANNEL_ID = "REQUEST_CHANNEL_ID";
 
-    String RPT = "RPT";
+    String RPT = "rpt";
 }

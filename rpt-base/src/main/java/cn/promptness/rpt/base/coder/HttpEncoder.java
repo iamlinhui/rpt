@@ -5,27 +5,36 @@ import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpRequestEncoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class HttpEncoder {
 
+    private static final Logger logger = LoggerFactory.getLogger(HttpEncoder.class);
 
     public static List<Object> encode(ChannelHandlerContext ctx, FullHttpResponse fullHttpResponse) throws Exception {
         List<Object> out = new ArrayList<>();
-        RESPONSE_ENCODER.encode(ctx, fullHttpResponse, out);
+        try {
+            new ResponseEncoder().encode(ctx, fullHttpResponse, out);
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+        }
         return out;
     }
 
-    public static List<Object> encode(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
+    public static List<Object> encode(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
         List<Object> out = new ArrayList<>();
-        REQUEST_ENCODER.encode(ctx, fullHttpRequest, out);
+        try {
+            new RequestEncoder().encode(ctx, fullHttpRequest, out);
+            return out;
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+        }
         return out;
     }
-
-    private static final ResponseEncoder RESPONSE_ENCODER = new ResponseEncoder();
-    private static final RequestEncoder REQUEST_ENCODER = new RequestEncoder();
 
     private static class ResponseEncoder extends HttpResponseEncoder {
         @Override
