@@ -134,7 +134,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
     private void handle(Channel serverChannel, ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
         logger.info("传输{}请求数据,当前缓存的请求数据{}个", domain, requestMessage.size());
-        List<Object> encode = HttpEncoder.encode(ctx, fullHttpRequest);
+        List<Object> encode = HttpEncoder.encode(ctx, fullHttpRequest.retain());
         for (Object obj : encode) {
             ByteBuf buf = (ByteBuf) obj;
             byte[] data = new byte[buf.readableBytes()];
@@ -154,7 +154,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         response.headers().set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
         response.headers().set(HttpHeaderNames.SERVER, Constants.RPT);
 
-        List<Object> encode = HttpEncoder.encode(ctx, response);
+        List<Object> encode = HttpEncoder.encode(ctx, response.retain());
         for (Object obj : encode) {
             ChannelFuture future = ctx.writeAndFlush(obj);
             if (!HttpUtil.isKeepAlive(fullHttpRequest)) {
