@@ -60,7 +60,7 @@ public class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
         fullHttpRequest.setProtocolVersion(HttpVersion.HTTP_1_1);
         fullHttpRequest.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
 
-        List<Object> encode = HttpEncoder.encode(context, fullHttpRequest);
+        List<Object> encode = HttpEncoder.encode(context, fullHttpRequest.retain());
         for (Object obj : encode) {
             localHttpChannel.writeAndFlush(obj);
         }
