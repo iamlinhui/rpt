@@ -58,6 +58,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         logger.info("断开连接,{}", domain == null ? "未知连接" : domain);
+        ctx.channel().config().setAutoRead(true);
         Channel remove = httpChannelMap.remove(ctx.channel().id().asLongText());
         if (remove != null) {
             remove.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
