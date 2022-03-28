@@ -61,8 +61,8 @@ config:
     
   - proxyType: TCP
     localIp: 127.0.0.1
-    localPort: 7399
-    remotePort: 6379
+    localPort: 6399
+    remotePort: 7379
     description: redis
     
   - proxyType: HTTP
