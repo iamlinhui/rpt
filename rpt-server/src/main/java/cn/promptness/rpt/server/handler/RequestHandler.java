@@ -71,6 +71,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             return;
         }
         logger.info("通知客户端,断开连接,{}", domain);
+        requestMessage.clear();
         send(serverChannel, ctx, domain, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
     }
 
@@ -86,7 +87,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (serverChannel == null) {
             return;
         }
-        logger.info("恢复请求{}可读状态,开始传输数据", domain);
+        logger.info("恢复请求{}可读状态,开始传输缓存的请求数据{}个", domain, requestMessage.size());
         connected.set(true);
         if (!requestMessage.isEmpty()) {
             synchronized (connected) {
@@ -132,6 +133,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     }
 
     private void handle(Channel serverChannel, ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
+        logger.info("传输{}请求数据,当前缓存的请求数据{}个", domain, requestMessage.size());
         List<Object> encode = HttpEncoder.encode(ctx, fullHttpRequest);
         for (Object obj : encode) {
             ByteBuf buf = (ByteBuf) obj;
@@ -163,6 +165,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
 
     private void send(Channel serverChannel, ChannelHandlerContext ctx, String domain, MessageType typeConnect, byte[] data) {
+        logger.info("[{}]传输{}请求的数据,{}byte", typeConnect.getDesc(), domain, data.length);
         RemoteConfig remoteConfig = new RemoteConfig();
         remoteConfig.setProxyType(ProxyType.HTTP);
         remoteConfig.setDomain(domain);
