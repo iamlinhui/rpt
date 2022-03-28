@@ -65,7 +65,7 @@ public class ReceiveHandler extends SimpleChannelInboundHandler<FullHttpResponse
             response.headers().set(HttpHeaderNames.LOCATION, location);
         }
         response.headers().set(HttpHeaderNames.SERVER, Constants.RPT);
-        List<Object> encode = HttpEncoder.encode(ctx, response.retain());
+        List<Object> encode = HttpEncoder.encode(ctx, response);
         for (Object obj : encode) {
             ByteBuf buf = (ByteBuf) obj;
             byte[] data = new byte[buf.readableBytes()];

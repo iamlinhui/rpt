@@ -7,6 +7,7 @@ import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.protocol.ProxyType;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -108,7 +109,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
                 // 向下传递
                 byte[] data = message.getData();
                 logger.info("收到服务端转发的HTTP数据,{}byte", data.length);
-                context.fireChannelRead(Unpooled.wrappedBuffer(data));
+                ByteBuf buffer = context.alloc().buffer(data.length);
+                buffer.writeBytes(data);
+                context.fireChannelRead(buffer);
                 break;
             default:
         }

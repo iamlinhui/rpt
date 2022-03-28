@@ -12,6 +12,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.handler.codec.http.*;
+import io.netty.util.ReferenceCountUtil;
 import io.netty.util.internal.EmptyArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +72,9 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             return;
         }
         logger.info("通知客户端,断开连接,{}", domain);
+        for (FullHttpRequest fullHttpRequest : requestMessage) {
+            ReferenceCountUtil.release(fullHttpRequest);
+        }
         requestMessage.clear();
         send(serverChannel, ctx, domain, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
     }
@@ -94,6 +98,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                 FullHttpRequest request;
                 while ((request = requestMessage.poll()) != null) {
                     handle(serverChannel, ctx, request);
+                    ReferenceCountUtil.release(request);
                 }
             }
         }
@@ -124,7 +129,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (!connected.get()) {
             synchronized (connected) {
                 if (!connected.get()) {
-                    requestMessage.offer(fullHttpRequest);
+                    requestMessage.offer(fullHttpRequest.retain());
                     return;
                 }
             }
@@ -132,9 +137,9 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         handle(serverChannel, ctx, fullHttpRequest);
     }
 
-    private void handle(Channel serverChannel, ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
+    private void handle(Channel serverChannel, ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
         logger.info("传输{}请求数据,当前缓存的请求数据{}个", domain, requestMessage.size());
-        List<Object> encode = HttpEncoder.encode(ctx, fullHttpRequest.retain());
+        List<Object> encode = HttpEncoder.encode(ctx, fullHttpRequest);
         for (Object obj : encode) {
             ByteBuf buf = (ByteBuf) obj;
             byte[] data = new byte[buf.readableBytes()];
@@ -149,12 +154,14 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     }
 
     private void handle(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, HttpResponseStatus httpResponseStatus, byte[] result) throws Exception {
-        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, httpResponseStatus, Unpooled.wrappedBuffer(result));
+        ByteBuf buffer = ctx.channel().alloc().buffer(result.length);
+        buffer.writeBytes(result);
+        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, httpResponseStatus, buffer);
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_PLAIN);
         response.headers().set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
         response.headers().set(HttpHeaderNames.SERVER, Constants.RPT);
 
-        List<Object> encode = HttpEncoder.encode(ctx, response.retain());
+        List<Object> encode = HttpEncoder.encode(ctx, response);
         for (Object obj : encode) {
             ChannelFuture future = ctx.writeAndFlush(obj);
             if (!HttpUtil.isKeepAlive(fullHttpRequest)) {
