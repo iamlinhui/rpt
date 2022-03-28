@@ -32,6 +32,9 @@ public class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
     protected void channelRead0(ChannelHandlerContext context, FullHttpRequest fullHttpRequest) throws Exception {
 
         String requestChannelId = fullHttpRequest.headers().get(Constants.REQUEST_CHANNEL_ID);
+        if (!StringUtils.hasText(requestChannelId)) {
+            return;
+        }
         Channel localHttpChannel = localHttpChannelMap.get(requestChannelId);
         if (localHttpChannel == null) {
             return;

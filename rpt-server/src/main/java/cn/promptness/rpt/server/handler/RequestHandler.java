@@ -7,6 +7,7 @@ import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.protocol.ProxyType;
 import cn.promptness.rpt.base.utils.Constants;
+import cn.promptness.rpt.base.utils.StringUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
@@ -39,7 +40,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
      */
     private final Map<String, Channel> httpChannelMap;
 
-    private Channel serverChannel;
     private String domain;
 
     public RequestHandler(Map<String, Channel> serverChannelMap, Map<String, Channel> httpChannelMap) {
@@ -57,30 +57,45 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        logger.info("断开连接,{}", domain == null ? "未知连接" : domain);
+        ctx.channel().config().setAutoRead(true);
         Channel remove = httpChannelMap.remove(ctx.channel().id().asLongText());
         if (remove != null) {
             remove.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         }
+        if (!StringUtils.hasText(domain)) {
+            return;
+        }
+        Channel serverChannel = serverChannelMap.get(domain);
         if (serverChannel == null) {
             return;
         }
+        logger.info("通知客户端,断开连接,{}", domain);
+        requestMessage.clear();
         send(serverChannel, ctx, domain, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
     }
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        if (evt instanceof ProxyType) {
-            connected.set(true);
-            if (!requestMessage.isEmpty()) {
-                synchronized (connected) {
-                    FullHttpRequest request;
-                    while ((request = requestMessage.poll()) != null) {
-                        handle(ctx, request);
-                    }
+        if (!(evt instanceof ProxyType)) {
+            ctx.fireUserEventTriggered(evt);
+        }
+        if (!StringUtils.hasText(domain)) {
+            return;
+        }
+        Channel serverChannel = serverChannelMap.get(domain);
+        if (serverChannel == null) {
+            return;
+        }
+        logger.info("恢复请求{}可读状态,开始传输缓存的请求数据{}个", domain, requestMessage.size());
+        connected.set(true);
+        if (!requestMessage.isEmpty()) {
+            synchronized (connected) {
+                FullHttpRequest request;
+                while ((request = requestMessage.poll()) != null) {
+                    handle(serverChannel, ctx, request);
                 }
             }
-        } else {
-            ctx.fireUserEventTriggered(evt);
         }
     }
 
@@ -88,19 +103,20 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
 
         String hostAndPort = fullHttpRequest.headers().get(HttpHeaderNames.HOST);
-        domain = hostAndPort.split(":")[0];
-        logger.info("收到来自{}的请求", domain);
-        serverChannel = serverChannelMap.get(domain);
-        if (serverChannel == null) {
-            handle(ctx, fullHttpRequest, HttpResponseStatus.NOT_FOUND);
+        domain = StringUtils.hasText(domain) ? domain : hostAndPort.split(":")[0];
+        logger.info("接收到来自{}的请求", domain);
+        if (!StringUtils.hasText(domain)) {
+            handle(ctx, fullHttpRequest, HttpResponseStatus.NO_CONTENT);
             return;
         }
-        if (!serverChannel.isOpen()) {
-            handle(ctx, fullHttpRequest, HttpResponseStatus.BAD_REQUEST);
+        Channel serverChannel = serverChannelMap.get(domain);
+        if (serverChannel == null || !serverChannel.isOpen()) {
+            handle(ctx, fullHttpRequest, HttpResponseStatus.NOT_FOUND);
             return;
         }
         if (!connected.get()) {
             ctx.channel().config().setAutoRead(false);
+            logger.info("设置{}请求为不可读,传输[建立连接]通知到客户端", domain);
             send(serverChannel, ctx, domain, MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES);
         }
         fullHttpRequest.headers().set(Constants.REQUEST_CHANNEL_ID, ctx.channel().id().asLongText());
@@ -113,10 +129,11 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                 }
             }
         }
-        handle(ctx, fullHttpRequest);
+        handle(serverChannel, ctx, fullHttpRequest);
     }
 
-    private void handle(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
+    private void handle(Channel serverChannel, ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
+        logger.info("传输{}请求数据,当前缓存的请求数据{}个", domain, requestMessage.size());
         List<Object> encode = HttpEncoder.encode(ctx, fullHttpRequest);
         for (Object obj : encode) {
             ByteBuf buf = (ByteBuf) obj;
@@ -148,6 +165,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
 
     private void send(Channel serverChannel, ChannelHandlerContext ctx, String domain, MessageType typeConnect, byte[] data) {
+        logger.info("[{}]传输{}请求的数据,{}byte", typeConnect.getDesc(), domain, data.length);
         RemoteConfig remoteConfig = new RemoteConfig();
         remoteConfig.setProxyType(ProxyType.HTTP);
         remoteConfig.setDomain(domain);

@@ -106,7 +106,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
                 break;
             case HTTP:
                 // 向下传递
-                context.fireChannelRead(Unpooled.wrappedBuffer(message.getData()));
+                byte[] data = message.getData();
+                logger.info("收到服务端转发的HTTP数据,{}byte", data.length);
+                context.fireChannelRead(Unpooled.wrappedBuffer(data));
                 break;
             default:
         }
