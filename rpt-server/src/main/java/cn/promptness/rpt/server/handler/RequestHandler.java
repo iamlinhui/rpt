@@ -17,7 +17,11 @@ import io.netty.util.internal.EmptyArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -27,7 +31,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
     private static final Logger logger = LoggerFactory.getLogger(RequestHandler.class);
 
-    private final Queue<FullHttpRequest> requestMessage = new LinkedList<>();
+    private final Queue<FullHttpRequest> requestMessage = new LinkedBlockingQueue<>();
 
     private final AtomicBoolean connected = new AtomicBoolean(false);
 
@@ -64,6 +68,10 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (remove != null) {
             remove.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         }
+        FullHttpRequest request;
+        while ((request = requestMessage.poll()) != null) {
+            ReferenceCountUtil.release(request);
+        }
         if (!StringUtils.hasText(domain)) {
             return;
         }
@@ -72,10 +80,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             return;
         }
         logger.info("通知客户端,断开连接,{}", domain);
-        for (FullHttpRequest fullHttpRequest : requestMessage) {
-            ReferenceCountUtil.release(fullHttpRequest);
-        }
-        requestMessage.clear();
         send(serverChannel, ctx, domain, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
     }
 
@@ -102,6 +106,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                 }
             }
         }
+        ctx.channel().config().setAutoRead(true);
     }
 
     @Override

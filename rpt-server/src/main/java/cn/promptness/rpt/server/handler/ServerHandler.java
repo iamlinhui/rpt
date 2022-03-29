@@ -130,7 +130,6 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             case HTTP:
                 Channel httpChannel = httpChannelMap.get(channelId);
                 if (httpChannel != null) {
-                    httpChannel.config().setAutoRead(true);
                     httpChannel.pipeline().fireUserEventTriggered(ProxyType.HTTP);
                 }
                 break;
