@@ -73,7 +73,7 @@ public class ServerApplication {
         });
 
         try {
-            bootstrap.bind(serverConfig.getServerIp(), serverConfig.getServerPort()).get();
+            bootstrap.bind(serverConfig.getServerIp(), serverConfig.getServerPort()).sync();
             logger.info("服务端启动成功,本机绑定IP:{},服务端口:{}", serverConfig.getServerIp(), serverConfig.getServerPort());
         } catch (Exception exception) {
             logger.info("服务端启动失败,本机绑定IP:{},服务端口:{},原因:{}", serverConfig.getServerIp(), serverConfig.getServerPort(), exception.getCause().getMessage());
@@ -101,7 +101,7 @@ public class ServerApplication {
         });
 
         try {
-            httpsBootstrap.bind(serverConfig.getServerIp(), serverConfig.getHttpPort()).get();
+            httpsBootstrap.bind(serverConfig.getServerIp(), serverConfig.getHttpPort()).sync();
             logger.info("服务端启动成功,本机绑定IP:{},Http端口:{}", serverConfig.getServerIp(), serverConfig.getHttpPort());
         } catch (Exception exception) {
             logger.info("服务端启动失败,本机绑定IP:{},Http端口:{},原因:{}", serverConfig.getServerIp(), serverConfig.getHttpPort(), exception.getCause().getMessage());

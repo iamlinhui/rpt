@@ -17,6 +17,7 @@ import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpResponseDecoder;
+import io.netty.util.internal.EmptyArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -179,15 +180,19 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
                 channel.pipeline().addLast(new ByteArrayDecoder());
                 channel.pipeline().addLast(new ByteArrayEncoder());
                 channel.pipeline().addLast(new LocalHandler(context.channel(), clientConfig));
-                localTcpChannelMap.put(clientConfig.getChannelId(), channel);
             }
         });
-        try {
-            logger.info("客户端开始建立本地连接,{}:{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort());
-            localBootstrap.connect(remoteConfig.getLocalIp(), remoteConfig.getLocalPort()).get();
-        } catch (Exception exception) {
-            logger.error("客户端建立本地连接失败,{}:{},{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort(), exception.getCause().getMessage());
-        }
+        localBootstrap.connect(remoteConfig.getLocalIp(), remoteConfig.getLocalPort()).addListener((ChannelFutureListener) future -> {
+            if (future.isSuccess()) {
+                localTcpChannelMap.put(clientConfig.getChannelId(), future.channel());
+            } else {
+                Message message = new Message();
+                message.setType(MessageType.TYPE_DISCONNECTED);
+                message.setData(EmptyArrays.EMPTY_BYTES);
+                message.setClientConfig(clientConfig);
+                context.channel().writeAndFlush(message);
+            }
+        });
     }
 
     private void connectedHttp(ChannelHandlerContext context, RemoteConfig httpConfig, String channelId) {
@@ -201,15 +206,19 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
                 channel.pipeline().addLast(new HttpResponseDecoder());
                 channel.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
                 channel.pipeline().addLast(new ReceiveHandler(context.channel(), clientConfig));
-                localHttpChannelMap.put(clientConfig.getChannelId(), channel);
             }
         });
-        try {
-            logger.info("客户端开始建立本地连接,{}:{}", httpConfig.getLocalIp(), httpConfig.getLocalPort());
-            localBootstrap.connect(httpConfig.getLocalIp(), httpConfig.getLocalPort()).get();
-        } catch (Exception exception) {
-            logger.error("客户端建立本地连接失败,{}:{},{}", httpConfig.getLocalIp(), httpConfig.getLocalPort(), exception.getCause().getMessage());
-        }
+        localBootstrap.connect(httpConfig.getLocalIp(), httpConfig.getLocalPort()).addListener((ChannelFutureListener) future -> {
+            if (future.isSuccess()) {
+                localHttpChannelMap.put(clientConfig.getChannelId(), future.channel());
+            } else {
+                Message message = new Message();
+                message.setType(MessageType.TYPE_DISCONNECTED);
+                message.setClientConfig(clientConfig);
+                message.setData(EmptyArrays.EMPTY_BYTES);
+                context.channel().writeAndFlush(message);
+            }
+        });
     }
 
     @Override
