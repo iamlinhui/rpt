@@ -238,9 +238,10 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     private void registerHttp(ChannelHandlerContext context, List<String> remoteResult, RemoteConfig remoteConfig) {
         if (!StringUtils.hasText(remoteConfig.getDomain())) {
-            remoteResult.add(String.format("服务端绑定域名不能为空%s", remoteConfig.getDomain()));
+            remoteResult.add(String.format("需要绑定域名[%s]不合法", remoteConfig.getDomain()));
             return;
         }
+        logger.info("服务端开始绑定域名[{}]", remoteConfig.getDomain());
         serverChannelMap.compute(remoteConfig.getDomain(), (domain, channel) -> {
             if (channel != null) {
                 remoteResult.add(String.format("服务端绑定域名重复%s", domain));
@@ -248,7 +249,6 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             }
             domainList.add(domain);
             remoteResult.add(String.format("服务端绑定域名成功%s", domain));
-            logger.info("服务端成功绑定域名{}", domain);
             return context.channel();
         });
     }
