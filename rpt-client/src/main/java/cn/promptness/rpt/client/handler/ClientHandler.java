@@ -109,7 +109,6 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
             case HTTP:
                 // 向下传递
                 byte[] data = message.getData();
-                logger.info("收到服务端转发的HTTP数据,{}byte", data.length);
                 ByteBuf buffer = context.alloc().buffer(data.length);
                 buffer.writeBytes(data);
                 context.fireChannelRead(buffer);

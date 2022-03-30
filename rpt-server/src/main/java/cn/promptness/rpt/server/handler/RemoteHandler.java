@@ -10,8 +10,6 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.internal.EmptyArrays;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 
@@ -19,8 +17,6 @@ import java.util.Collections;
  * 处理服务器接收到的外部请求
  */
 public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
-
-    private static final Logger logger = LoggerFactory.getLogger(RemoteHandler.class);
 
     private final Channel channel;
     private final RemoteConfig remoteConfig;
@@ -36,14 +32,12 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
      */
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        logger.info("服务端本地端口[{}]连接成功", remoteConfig.getRemotePort());
         ctx.channel().config().setAutoRead(false);
         send(MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES, ctx);
     }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, byte[] bytes) throws Exception {
-        logger.debug("收到来自端口[{}]的数据,大小为:{}字节", remoteConfig.getRemotePort(), bytes.length);
         // 从外部连接接收到的数据 转发到客户端
         send(MessageType.TYPE_DATA, bytes, ctx);
     }
@@ -53,7 +47,6 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        logger.info("服务端端口[{}]连接断开", remoteConfig.getRemotePort());
         ctx.channel().config().setAutoRead(true);
         send(MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES, ctx);
     }

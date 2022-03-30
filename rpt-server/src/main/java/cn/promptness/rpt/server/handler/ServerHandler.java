@@ -180,7 +180,6 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                 Channel channel = httpChannelMap.get(channelId);
                 if (channel != null) {
                     byte[] data = message.getData();
-                    logger.info("响应客户端转发的HTTP数据,{}byte", data.length);
                     ByteBuf buffer = context.alloc().buffer(data.length);
                     buffer.writeBytes(data);
                     channel.writeAndFlush(buffer);
