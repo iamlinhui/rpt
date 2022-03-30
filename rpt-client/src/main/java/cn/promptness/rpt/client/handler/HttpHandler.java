@@ -4,7 +4,6 @@ import cn.promptness.rpt.base.coder.HttpEncoder;
 import cn.promptness.rpt.base.config.Config;
 import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.utils.Constants;
-import cn.promptness.rpt.base.utils.StringUtils;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -13,10 +12,13 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpVersion;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
+
+    private final HttpEncoder.RequestEncoder requestEncoder = new HttpEncoder.RequestEncoder();
 
     /**
      * requestChannelId --> localHttpChannel
@@ -27,12 +29,11 @@ public class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
         this.localHttpChannelMap = localHttpChannelMap;
     }
 
-
     @Override
     protected void channelRead0(ChannelHandlerContext context, FullHttpRequest fullHttpRequest) throws Exception {
 
         String requestChannelId = fullHttpRequest.headers().get(Constants.REQUEST_CHANNEL_ID);
-        if (!StringUtils.hasText(requestChannelId)) {
+        if (requestChannelId == null) {
             return;
         }
         Channel localHttpChannel = localHttpChannelMap.get(requestChannelId);
@@ -50,7 +51,7 @@ public class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
         }
         String oldHost = fullHttpRequest.headers().get(HttpHeaderNames.HOST);
         String referer = fullHttpRequest.headers().get(HttpHeaderNames.REFERER);
-        if (StringUtils.hasText(referer)) {
+        if (referer != null) {
             String newReferer = referer.replace(oldHost, httpConfig.getLocalIp());
             fullHttpRequest.headers().set(HttpHeaderNames.REFERER, newReferer);
         }
@@ -60,7 +61,8 @@ public class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
         fullHttpRequest.setProtocolVersion(HttpVersion.HTTP_1_1);
         fullHttpRequest.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
 
-        List<Object> encode = HttpEncoder.encode(context, fullHttpRequest);
+        List<Object> encode = new ArrayList<>();
+        requestEncoder.encode(context, fullHttpRequest, encode);
         for (Object obj : encode) {
             localHttpChannel.writeAndFlush(obj);
         }

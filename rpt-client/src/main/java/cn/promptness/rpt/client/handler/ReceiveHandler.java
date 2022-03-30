@@ -16,6 +16,7 @@ import io.netty.util.internal.EmptyArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -24,6 +25,8 @@ public class ReceiveHandler extends SimpleChannelInboundHandler<FullHttpResponse
     private static final Logger logger = LoggerFactory.getLogger(ReceiveHandler.class);
 
     private static final List<Integer> REDIRECT_STATUS = Arrays.asList(HttpResponseStatus.FOUND.code(), HttpResponseStatus.SEE_OTHER.code());
+
+    private final HttpEncoder.ResponseEncoder responseEncoder = new HttpEncoder.ResponseEncoder();
 
     private final Channel clientChannel;
     private final ClientConfig clientConfig;
@@ -65,7 +68,8 @@ public class ReceiveHandler extends SimpleChannelInboundHandler<FullHttpResponse
             response.headers().set(HttpHeaderNames.LOCATION, location);
         }
         response.headers().set(HttpHeaderNames.SERVER, Constants.RPT);
-        List<Object> encode = HttpEncoder.encode(ctx, response);
+        List<Object> encode = new ArrayList<>();
+        responseEncoder.encode(ctx, response, encode);
         for (Object obj : encode) {
             ByteBuf buf = (ByteBuf) obj;
             byte[] data = new byte[buf.readableBytes()];
