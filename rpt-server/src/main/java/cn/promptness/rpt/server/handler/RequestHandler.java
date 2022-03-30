@@ -17,10 +17,7 @@ import io.netty.util.internal.EmptyArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -34,6 +31,9 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private final Queue<FullHttpRequest> requestMessage = new LinkedBlockingQueue<>();
 
     private final AtomicBoolean connected = new AtomicBoolean(false);
+
+    private final HttpEncoder.RequestEncoder requestEncoder = new HttpEncoder.RequestEncoder();
+    private final HttpEncoder.ResponseEncoder responseEncoder = new HttpEncoder.ResponseEncoder();
 
     /**
      * domain -> serverChannel 全局
@@ -72,7 +72,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         while ((request = requestMessage.poll()) != null) {
             ReferenceCountUtil.release(request);
         }
-        if (!StringUtils.hasText(domain)) {
+        if (domain == null) {
             return;
         }
         Channel serverChannel = serverChannelMap.get(domain);
@@ -88,7 +88,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (!(evt instanceof ProxyType)) {
             ctx.fireUserEventTriggered(evt);
         }
-        if (!StringUtils.hasText(domain)) {
+        if (domain == null) {
             return;
         }
         Channel serverChannel = serverChannelMap.get(domain);
@@ -113,7 +113,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
 
         String hostAndPort = fullHttpRequest.headers().get(HttpHeaderNames.HOST);
-        domain = StringUtils.hasText(domain) ? domain : hostAndPort.split(":")[0];
+        domain = Optional.ofNullable(domain).orElse(hostAndPort.split(":")[0]);
         logger.info("接收到来自{}的请求", domain);
         if (!StringUtils.hasText(domain)) {
             handle(ctx, fullHttpRequest, HttpResponseStatus.NO_CONTENT);
@@ -142,9 +142,10 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         handle(serverChannel, ctx, fullHttpRequest);
     }
 
-    private void handle(Channel serverChannel, ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
+    private void handle(Channel serverChannel, ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
         logger.info("传输{}请求数据,当前缓存的请求数据{}个", domain, requestMessage.size());
-        List<Object> encode = HttpEncoder.encode(ctx, fullHttpRequest);
+        List<Object> encode = new ArrayList<>();
+        requestEncoder.encode(ctx, fullHttpRequest, encode);
         for (Object obj : encode) {
             ByteBuf buf = (ByteBuf) obj;
             byte[] data = new byte[buf.readableBytes()];
@@ -165,8 +166,8 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_PLAIN);
         response.headers().set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
         response.headers().set(HttpHeaderNames.SERVER, Constants.RPT);
-
-        List<Object> encode = HttpEncoder.encode(ctx, response);
+        List<Object> encode = new ArrayList<>();
+        responseEncoder.encode(ctx, response, encode);
         for (Object obj : encode) {
             ChannelFuture future = ctx.writeAndFlush(obj);
             if (!HttpUtil.isKeepAlive(fullHttpRequest)) {
