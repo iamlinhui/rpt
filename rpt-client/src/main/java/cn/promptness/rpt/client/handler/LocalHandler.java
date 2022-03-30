@@ -1,22 +1,17 @@
 package cn.promptness.rpt.client.handler;
 
 import cn.promptness.rpt.base.config.ClientConfig;
-import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.internal.EmptyArrays;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * 实际内网连接处理器
  */
 public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
-
-    private static final Logger logger = LoggerFactory.getLogger(LocalHandler.class);
 
     private final Channel channel;
     private final ClientConfig clientConfig;
@@ -28,8 +23,6 @@ public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        RemoteConfig remoteConfig = clientConfig.getConfig().get(0);
-        logger.info("客户端建立本地连接成功,{}:{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort());
         ctx.channel().config().setAutoRead(false);
         send(MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES);
         ctx.channel().config().setAutoRead(true);
@@ -38,8 +31,6 @@ public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, byte[] bytes) throws Exception {
-        RemoteConfig remoteConfig = clientConfig.getConfig().get(0);
-        logger.debug("收到本地{}:{}的数据,数据量为:{}字节", remoteConfig.getLocalIp(), remoteConfig.getLocalPort(), bytes.length);
         send(MessageType.TYPE_DATA, bytes);
     }
 
@@ -49,8 +40,6 @@ public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        RemoteConfig remoteConfig = clientConfig.getConfig().get(0);
-        logger.info("客户端本地连接断开,{}:{}", remoteConfig.getLocalIp(), remoteConfig.getLocalPort());
         ctx.channel().config().setAutoRead(true);
         send(MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
     }

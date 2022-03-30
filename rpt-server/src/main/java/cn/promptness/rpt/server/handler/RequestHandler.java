@@ -33,6 +33,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private final AtomicBoolean connected = new AtomicBoolean(false);
 
     private final HttpEncoder.RequestEncoder requestEncoder = new HttpEncoder.RequestEncoder();
+
     private final HttpEncoder.ResponseEncoder responseEncoder = new HttpEncoder.ResponseEncoder();
 
     /**
@@ -62,7 +63,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        logger.info("断开连接,{}", domain == null ? "未知连接" : domain);
         ctx.channel().config().setAutoRead(true);
         Channel remove = httpChannelMap.remove(ctx.channel().id().asLongText());
         if (remove != null) {
@@ -79,7 +79,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (serverChannel == null) {
             return;
         }
-        logger.info("通知客户端,断开连接,{}", domain);
         send(serverChannel, ctx, domain, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
     }
 
@@ -95,7 +94,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (serverChannel == null) {
             return;
         }
-        logger.info("恢复请求{}可读状态,开始传输缓存的请求数据{}个", domain, requestMessage.size());
         connected.set(true);
         if (!requestMessage.isEmpty()) {
             synchronized (connected) {
@@ -113,8 +111,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
 
         String hostAndPort = fullHttpRequest.headers().get(HttpHeaderNames.HOST);
-        domain = Optional.ofNullable(domain).orElse(hostAndPort.split(":")[0]);
-        logger.info("接收到来自{}的请求", domain);
+        domain = Optional.ofNullable(domain).orElse(Constants.PATTERN.split(hostAndPort)[0]);
         if (!StringUtils.hasText(domain)) {
             handle(ctx, fullHttpRequest, HttpResponseStatus.NO_CONTENT);
             return;
@@ -126,7 +123,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         }
         if (!connected.get()) {
             ctx.channel().config().setAutoRead(false);
-            logger.info("设置{}请求为不可读,传输[建立连接]通知到客户端", domain);
             send(serverChannel, ctx, domain, MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES);
         }
         fullHttpRequest.headers().set(Constants.REQUEST_CHANNEL_ID, ctx.channel().id().asLongText());
@@ -143,7 +139,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     }
 
     private void handle(Channel serverChannel, ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
-        logger.info("传输{}请求数据,当前缓存的请求数据{}个", domain, requestMessage.size());
         List<Object> encode = new ArrayList<>();
         requestEncoder.encode(ctx, fullHttpRequest, encode);
         for (Object obj : encode) {
@@ -178,7 +173,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
 
     private void send(Channel serverChannel, ChannelHandlerContext ctx, String domain, MessageType typeConnect, byte[] data) {
-        logger.info("[{}]传输{}请求的数据,{}byte", typeConnect.getDesc(), domain, data.length);
         RemoteConfig remoteConfig = new RemoteConfig();
         remoteConfig.setProxyType(ProxyType.HTTP);
         remoteConfig.setDomain(domain);
