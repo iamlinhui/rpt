@@ -112,12 +112,12 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
         domain = Optional.ofNullable(domain).orElse(Constants.PATTERN.split(fullHttpRequest.headers().get(HttpHeaderNames.HOST))[0]);
         if (!StringUtils.hasText(domain)) {
-            handle(ctx, fullHttpRequest, HttpResponseStatus.NO_CONTENT);
+            handle(ctx, fullHttpRequest, HttpResponseStatus.NO_CONTENT, Constants.NOT_FOUND);
             return;
         }
         Channel serverChannel = serverChannelMap.get(domain);
         if (serverChannel == null || !serverChannel.isOpen()) {
-            handle(ctx, fullHttpRequest, HttpResponseStatus.NOT_FOUND);
+            handle(ctx, fullHttpRequest, HttpResponseStatus.NOT_FOUND, Constants.NOT_FOUND);
             return;
         }
         if (!connected.get()) {
@@ -149,15 +149,11 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         }
     }
 
-    private void handle(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, HttpResponseStatus httpResponseStatus) throws Exception {
-        handle(ctx, fullHttpRequest, httpResponseStatus, httpResponseStatus.codeAsText().toByteArray());
-    }
-
     private void handle(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, HttpResponseStatus httpResponseStatus, byte[] result) throws Exception {
         ByteBuf buffer = ctx.channel().alloc().buffer(result.length);
         buffer.writeBytes(result);
         FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, httpResponseStatus, buffer);
-        response.headers().set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_PLAIN);
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_HTML);
         response.headers().set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
         response.headers().set(HttpHeaderNames.SERVER, Constants.RPT);
         List<Object> encode = new ArrayList<>();
