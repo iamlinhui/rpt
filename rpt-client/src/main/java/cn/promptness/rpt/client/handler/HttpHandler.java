@@ -42,8 +42,7 @@ public class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
         }
         fullHttpRequest.headers().remove(Constants.REQUEST_CHANNEL_ID);
 
-        String hostAndPort = fullHttpRequest.headers().get(HttpHeaderNames.HOST);
-        String domain = hostAndPort.split(":")[0];
+        String domain = Constants.PATTERN.split(fullHttpRequest.headers().get(HttpHeaderNames.HOST))[0];
 
         RemoteConfig httpConfig = Config.getClientConfig().getHttpConfig(domain);
         if (httpConfig == null) {
