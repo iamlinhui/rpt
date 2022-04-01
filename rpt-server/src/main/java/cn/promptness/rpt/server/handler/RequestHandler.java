@@ -168,6 +168,8 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                 future.addListener(ChannelFutureListener.CLOSE);
             }
         }
+        // 释放缓冲区内存
+        ReferenceCountUtil.release(response);
     }
 
 
