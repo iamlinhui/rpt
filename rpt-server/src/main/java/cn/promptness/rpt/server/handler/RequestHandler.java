@@ -86,6 +86,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (!(evt instanceof ProxyType)) {
             ctx.fireUserEventTriggered(evt);
+            return;
         }
         if (domain == null) {
             return;
