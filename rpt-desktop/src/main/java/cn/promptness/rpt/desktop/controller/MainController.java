@@ -10,7 +10,9 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseButton;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class MainController {
@@ -18,7 +20,7 @@ public class MainController {
     @FXML
     public TableView<RemoteConfig> tableView;
 
-    public static TableView<RemoteConfig> back;
+    private static TableView<RemoteConfig> back;
 
     private static final List<RemoteConfig> CONFIG = new CopyOnWriteArrayList<>();
 
@@ -31,12 +33,13 @@ public class MainController {
 
     public void initialize() {
         back = tableView;
+        CONFIG.addAll(Optional.ofNullable(Config.getClientConfig().getConfig()).orElse(new ArrayList<>()));
         TableColumn<RemoteConfig, String> proxyType = new TableColumn<>("传输类型");
         proxyType.setMinWidth(100);
         proxyType.setCellValueFactory(new PropertyValueFactory<>("proxyType"));
 
         TableColumn<RemoteConfig, String> localIp = new TableColumn<>("本地地址");
-        localIp.setMinWidth(100);
+        localIp.setMinWidth(150);
         localIp.setCellValueFactory(new PropertyValueFactory<>("localIp"));
 
         TableColumn<RemoteConfig, Integer> localPort = new TableColumn<>("本地端口");
@@ -52,7 +55,7 @@ public class MainController {
         remotePort.setCellValueFactory(new PropertyValueFactory<>("remotePort"));
 
         TableColumn<RemoteConfig, String> description = new TableColumn<>("备注");
-        description.setMinWidth(180);
+        description.setMinWidth(150);
         description.setCellValueFactory(new PropertyValueFactory<>("description"));
 
         tableView.getColumns().addAll(proxyType, localIp, localPort, domain, remotePort, description);

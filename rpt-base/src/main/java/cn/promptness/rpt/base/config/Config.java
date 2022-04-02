@@ -27,6 +27,10 @@ public class Config {
         return clientConfig;
     }
 
+    public static void setClientConfig(ClientConfig config) {
+        clientConfig = config;
+    }
+
     public static ServerConfig getServerConfig() {
         return serverConfig;
     }

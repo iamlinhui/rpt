@@ -78,38 +78,32 @@ public class ClientApplication {
                 ch.pipeline().addLast(new HttpHandler(LOCAL_HTTP_CHANNEL_MAP));
             }
         });
-        QUEUE.offer(new Pair<>(clientWorkerGroup, EXECUTOR.scheduleAtFixedRate(() -> {
-            if (connect.get()) {
+        if (!QUEUE.isEmpty()) {
+            return;
+        }
+        synchronized (QUEUE) {
+            if (!QUEUE.isEmpty()) {
                 return;
             }
-            if (QUEUE.size() != 1) {
-                return;
-            }
-            synchronized (logger) {
-                if (connect.get()) {
-                    return;
-                }
-                if (QUEUE.size() != 1) {
-                    return;
-                }
+            QUEUE.offer(new Pair<>(clientWorkerGroup, EXECUTOR.scheduleAtFixedRate(() -> {
                 try {
                     bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).sync();
                     logger.info("客户端成功连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
                 } catch (Exception exception) {
                     logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), exception.getCause().getMessage());
                 }
-            }
-        }, 0, 1, TimeUnit.MINUTES)));
+            }, 0, 1, TimeUnit.MINUTES)));
+        }
     }
 
-    public static Pair<NioEventLoopGroup, ScheduledFuture<?>> getPair() {
-        synchronized (logger) {
+    public static Pair<NioEventLoopGroup, ScheduledFuture<?>> peek() {
+        synchronized (QUEUE) {
             return QUEUE.peek();
         }
     }
 
     public static void clear() {
-        synchronized (logger) {
+        synchronized (QUEUE) {
             QUEUE.clear();
         }
     }
