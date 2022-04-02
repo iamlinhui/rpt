@@ -3,11 +3,14 @@ package cn.promptness.rpt.base.config;
 import cn.promptness.rpt.base.protocol.ProxyType;
 import com.google.protobuf.ProtocolStringList;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class ClientConfig {
+public class ClientConfig implements Serializable {
+
+    private static final long serialVersionUID = 5217521062971065225L;
 
     private String serverIp;
     private int serverPort;

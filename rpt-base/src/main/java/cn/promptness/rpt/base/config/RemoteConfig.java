@@ -2,7 +2,11 @@ package cn.promptness.rpt.base.config;
 
 import cn.promptness.rpt.base.protocol.ProxyType;
 
-public class RemoteConfig {
+import java.io.Serializable;
+
+public class RemoteConfig implements Serializable {
+
+    private static final long serialVersionUID = -8091778644881703493L;
 
     private int remotePort;
     private int localPort;

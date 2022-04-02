@@ -1,23 +1,19 @@
 package cn.promptness.rpt.desktop.controller;
 
-import cn.promptness.rpt.base.config.ClientConfig;
 import cn.promptness.rpt.base.config.Config;
 import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.utils.Constants;
-import cn.promptness.rpt.base.utils.StringUtils;
 import cn.promptness.rpt.client.ClientApplication;
 import cn.promptness.rpt.desktop.utils.SystemTrayUtil;
 import cn.promptness.rpt.desktop.utils.TooltipUtil;
 import io.netty.channel.nio.NioEventLoopGroup;
 import javafx.fxml.FXML;
-import javafx.geometry.Insets;
-import javafx.scene.control.*;
-import javafx.scene.layout.GridPane;
-import javafx.scene.text.Text;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.MenuItem;
 import javafx.util.Pair;
 
 import javax.net.ssl.SSLException;
-import java.util.Objects;
 import java.util.concurrent.ScheduledFuture;
 
 public class MenuController {
@@ -54,6 +50,11 @@ public class MenuController {
 
     @FXML
     public void add() {
+        Pair<NioEventLoopGroup, ScheduledFuture<?>> pair = ClientApplication.peek();
+        if (pair != null) {
+            TooltipUtil.show("请先关闭连接!");
+            return;
+        }
         RemoteConfig remoteConfig = ConfigController.buildDialog("确定", "新增映射配置", new RemoteConfig());
         if (remoteConfig != null) {
             MainController.addConfig(remoteConfig);
@@ -67,55 +68,17 @@ public class MenuController {
 
     @FXML
     public void account() {
-
-        ClientConfig clientConfig = Config.getClientConfig();
-
-        ButtonType cancel = new ButtonType("确定");
-
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle(Constants.TITLE);
-        dialog.setHeaderText("连接配置");
-        dialog.initOwner(SystemTrayUtil.getPrimaryStage());
-        dialog.getDialogPane().getButtonTypes().add(cancel);
-
-
-        TextField serverIp = new TextField(clientConfig.getServerIp());
-        TextField serverPort = new TextField(String.valueOf(clientConfig.getServerPort()));
-        serverPort.textProperty().addListener((observable, oldValue, newValue) -> {
-            if (!newValue.matches("\\d*")) {
-                serverPort.setText(newValue.replaceAll("[^\\d]", ""));
-            }
-        });
-        TextField clientKey = new TextField(clientConfig.getClientKey());
-
-        GridPane grid = new GridPane();
-        grid.setMinWidth(300);
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20));
-        grid.add(new Text("服务端地址"), 0, 0);
-        grid.add(serverIp, 1, 0);
-
-        grid.add(new Text("服务端端口"), 0, 1);
-        grid.add(serverPort, 1, 1);
-
-        grid.add(new Text("连接秘钥"), 0, 2);
-        grid.add(clientKey, 1, 2);
-
-        dialog.getDialogPane().setContent(grid);
-
-        ButtonType buttonType = dialog.showAndWait().orElse(null);
-        if (Objects.equals(cancel, buttonType)) {
-            clientConfig.setServerIp(serverIp.getText());
-            clientConfig.setServerPort(StringUtils.hasText(serverPort.getText()) ? Integer.parseInt(serverPort.getText()) : 0);
-            clientConfig.setClientKey(clientKey.getText());
+        Pair<NioEventLoopGroup, ScheduledFuture<?>> pair = ClientApplication.peek();
+        if (pair != null) {
+            TooltipUtil.show("请先关闭连接!");
+            return;
         }
-
+        ConfigController.buildDialog("确认", "连接配置", Config.getClientConfig());
     }
 
     @FXML
     public void start() throws SSLException {
-        Pair<NioEventLoopGroup, ScheduledFuture<?>> pair = ClientApplication.getPair();
+        Pair<NioEventLoopGroup, ScheduledFuture<?>> pair = ClientApplication.peek();
         if (pair == null) {
             ClientApplication.main(new String[0]);
             startText.setText("关闭");
