@@ -14,8 +14,6 @@ import io.netty.channel.*;
 import io.netty.handler.codec.http.*;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.internal.EmptyArrays;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -25,8 +23,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * request处理器
  */
 public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
-
-    private static final Logger logger = LoggerFactory.getLogger(RequestHandler.class);
 
     private final Queue<FullHttpRequest> requestMessage = new LinkedBlockingQueue<>();
 
@@ -113,12 +109,12 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
         domain = Optional.ofNullable(domain).orElse(Constants.PATTERN.split(fullHttpRequest.headers().get(HttpHeaderNames.HOST))[0]);
         if (!StringUtils.hasText(domain)) {
-            handle(ctx, fullHttpRequest, HttpResponseStatus.NO_CONTENT, Constants.NOT_FOUND);
+            handle(ctx, fullHttpRequest, HttpResponseStatus.NO_CONTENT, Constants.page("index.html"));
             return;
         }
         Channel serverChannel = serverChannelMap.get(domain);
         if (serverChannel == null || !serverChannel.isOpen()) {
-            handle(ctx, fullHttpRequest, HttpResponseStatus.NOT_FOUND, Constants.NOT_FOUND);
+            handle(ctx, fullHttpRequest, HttpResponseStatus.NOT_FOUND, Constants.page("index.html"));
             return;
         }
         if (!connected.get()) {
