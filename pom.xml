@@ -10,8 +10,9 @@
     <version>2.0.0</version>
     <modules>
         <module>rpt-base</module>
-        <module>rpt-client</module>
         <module>rpt-server</module>
+        <module>rpt-client</module>
+        <module>rpt-desktop</module>
     </modules>
 
     <properties>

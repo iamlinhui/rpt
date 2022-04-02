@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<MenuBar fx:controller="cn.promptness.rpt.desktop.controller.MenuController" xmlns="http://javafx.com/javafx/8"
+         xmlns:fx="http://javafx.com/fxml/1">
+    <Menu text="编辑">
+        <MenuItem text="新增" onAction="#add" accelerator="Shortcut+N"/>
+        <MenuItem text="退出" onAction="#close" accelerator="Shortcut+Q"/>
+    </Menu>
+    <Menu text="帮助">
+        <MenuItem text="说明" onAction="#instruction"/>
+        <MenuItem text="关于" onAction="#about"/>
+    </Menu>
+    <Menu text="设置">
+        <MenuItem text="开启" onAction="#start"/>
+        <MenuItem text="配置" onAction="#account"/>
+    </Menu>
+</MenuBar>
