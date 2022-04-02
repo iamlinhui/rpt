@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.geometry.Insets?>
+<VBox fx:controller="cn.promptness.rpt.desktop.controller.MainController" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity"
+      xmlns="http://javafx.com/javafx/11.0.14-internal" xmlns:fx="http://javafx.com/fxml/1">
+    <children>
+        <HBox VBox.vgrow="NEVER">
+            <children>
+                <fx:include source="menu.fxml"/>
+            </children>
+            <padding>
+                <Insets/>
+            </padding>
+        </HBox>
+        <HBox VBox.vgrow="ALWAYS">
+            <children>
+                <TableView fx:id="tableView" />
+            </children>
+            <padding>
+                <Insets/>
+            </padding>
+        </HBox>
+    </children>
+    <padding>
+        <Insets/>
+    </padding>
+</VBox>

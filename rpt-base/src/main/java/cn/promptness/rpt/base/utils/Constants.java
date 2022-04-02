@@ -18,6 +18,8 @@ public class Constants {
 
     public static final String REQUEST_CHANNEL_ID = "REQUEST_CHANNEL_ID";
 
+    public static final String TITLE = "Reverse Proxy Tool";
+
     public static final String RPT = "rpt";
 
     public static final Pattern PATTERN = Pattern.compile(":");
