@@ -3,23 +3,28 @@ package cn.promptness.rpt.desktop.controller;
 import cn.promptness.rpt.base.config.ClientConfig;
 import cn.promptness.rpt.base.config.Config;
 import cn.promptness.rpt.base.config.RemoteConfig;
-import cn.promptness.rpt.base.protocol.ProxyType;
 import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.base.utils.StringUtils;
 import cn.promptness.rpt.client.ClientApplication;
 import cn.promptness.rpt.desktop.utils.SystemTrayUtil;
-import javafx.collections.FXCollections;
+import cn.promptness.rpt.desktop.utils.TooltipUtil;
+import io.netty.channel.nio.NioEventLoopGroup;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.Text;
+import javafx.util.Pair;
 
 import javax.net.ssl.SSLException;
 import java.util.Objects;
+import java.util.concurrent.ScheduledFuture;
 
 public class MenuController {
 
+
+    @FXML
+    public MenuItem startText;
 
     public void initialize() {
 
@@ -110,8 +115,17 @@ public class MenuController {
 
     @FXML
     public void start() throws SSLException {
-
-        ClientApplication.main(new String[0]);
-
+        Pair<NioEventLoopGroup, ScheduledFuture<?>> pair = ClientApplication.getPair();
+        if (pair == null) {
+            ClientApplication.main(new String[0]);
+            startText.setText("关闭");
+            TooltipUtil.show("开启成功!");
+        } else {
+            pair.getValue().cancel(true);
+            pair.getKey().shutdownGracefully();
+            ClientApplication.clear();
+            startText.setText("开启");
+            TooltipUtil.show("关闭成功!");
+        }
     }
 }

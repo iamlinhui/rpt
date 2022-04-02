@@ -31,6 +31,7 @@ public class ConfigController {
         dialog.getDialogPane().getButtonTypes().add(confirmButton);
 
         ComboBox<ProxyType> proxyType = new ComboBox<>(FXCollections.observableArrayList(ProxyType.values()));
+        proxyType.setValue(remoteConfig.getProxyType());
 
         TextField localIp = new TextField(remoteConfig.getLocalIp());
         TextField localPort = new TextField(String.valueOf(remoteConfig.getLocalPort()));

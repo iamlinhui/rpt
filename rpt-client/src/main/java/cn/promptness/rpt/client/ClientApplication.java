@@ -23,13 +23,17 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
 import io.netty.handler.stream.ChunkedWriteHandler;
+import javafx.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLException;
 import java.io.InputStream;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -39,6 +43,10 @@ public class ClientApplication {
     private static final Logger logger = LoggerFactory.getLogger(ClientApplication.class);
 
     private static final Map<String, Channel> LOCAL_HTTP_CHANNEL_MAP = new ConcurrentHashMap<>();
+
+    private static final ScheduledThreadPoolExecutor EXECUTOR = new ScheduledThreadPoolExecutor(1, ScheduledThreadFactory.create("client", false));
+
+    private static final Queue<Pair<NioEventLoopGroup, ScheduledFuture<?>>> QUEUE = new LinkedList<>();
 
     public static void main(String[] args) throws SSLException {
         ClientConfig clientConfig = Config.getClientConfig();
@@ -70,12 +78,18 @@ public class ClientApplication {
                 ch.pipeline().addLast(new HttpHandler(LOCAL_HTTP_CHANNEL_MAP));
             }
         });
-        new ScheduledThreadPoolExecutor(1, ScheduledThreadFactory.create("client", false)).scheduleAtFixedRate(() -> {
+        QUEUE.offer(new Pair<>(clientWorkerGroup, EXECUTOR.scheduleAtFixedRate(() -> {
             if (connect.get()) {
+                return;
+            }
+            if (QUEUE.size() != 1) {
                 return;
             }
             synchronized (logger) {
                 if (connect.get()) {
+                    return;
+                }
+                if (QUEUE.size() != 1) {
                     return;
                 }
                 try {
@@ -85,6 +99,18 @@ public class ClientApplication {
                     logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), exception.getCause().getMessage());
                 }
             }
-        }, 0, 1, TimeUnit.MINUTES);
+        }, 0, 1, TimeUnit.MINUTES)));
+    }
+
+    public static Pair<NioEventLoopGroup, ScheduledFuture<?>> getPair() {
+        synchronized (logger) {
+            return QUEUE.peek();
+        }
+    }
+
+    public static void clear() {
+        synchronized (logger) {
+            QUEUE.clear();
+        }
     }
 }
