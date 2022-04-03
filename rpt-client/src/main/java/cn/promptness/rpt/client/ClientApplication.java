@@ -86,11 +86,19 @@ public class ClientApplication {
                 return;
             }
             QUEUE.offer(new Pair<>(clientWorkerGroup, EXECUTOR.scheduleAtFixedRate(() -> {
-                try {
-                    bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).sync();
-                    logger.info("客户端成功连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
-                } catch (Exception exception) {
-                    logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), exception.getCause().getMessage());
+                if (connect.get()) {
+                    return;
+                }
+                synchronized (connect) {
+                    if (connect.get()) {
+                        return;
+                    }
+                    try {
+                        bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).sync();
+                        logger.info("客户端成功连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
+                    } catch (Exception exception) {
+                        logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), exception.getCause().getMessage());
+                    }
                 }
             }, 0, 1, TimeUnit.MINUTES)));
         }
