@@ -44,6 +44,7 @@ public class ClientApplication {
     private static final ArrayBlockingQueue<Pair<NioEventLoopGroup, ScheduledFuture<?>>> QUEUE = new ArrayBlockingQueue<>(1);
 
     public static void main(String[] args) throws SSLException {
+        ClientConfig clientConfig = Config.getClientConfig();
         InputStream certChainFile = ClassLoader.getSystemResourceAsStream("client.crt");
         InputStream keyFile = ClassLoader.getSystemResourceAsStream("pkcs8_client.key");
         InputStream rootFile = ClassLoader.getSystemResourceAsStream("ca.crt");
@@ -72,20 +73,11 @@ public class ClientApplication {
                 ch.pipeline().addLast(new HttpHandler(LOCAL_HTTP_CHANNEL_MAP));
             }
         });
-        Pair<NioEventLoopGroup, ScheduledFuture<?>> pair = getPair(clientWorkerGroup, bootstrap, connect);
-        if (!QUEUE.offer(pair)) {
-            pair.getValue().cancel(true);
-            clientWorkerGroup.shutdownGracefully();
-        }
-    }
-
-    private static Pair<NioEventLoopGroup, ScheduledFuture<?>> getPair(NioEventLoopGroup clientWorkerGroup, Bootstrap bootstrap, AtomicBoolean connect) {
-        ClientConfig clientConfig = Config.getClientConfig();
-        return new Pair<>(clientWorkerGroup, EXECUTOR.scheduleAtFixedRate(() -> {
+        Pair<NioEventLoopGroup, ScheduledFuture<?>> pair = new Pair<>(clientWorkerGroup, EXECUTOR.scheduleAtFixedRate(() -> {
             if (connect.get()) {
                 return;
             }
-            synchronized (Object.class) {
+            synchronized (connect) {
                 if (connect.get()) {
                     return;
                 }
@@ -97,6 +89,10 @@ public class ClientApplication {
                 }
             }
         }, 0, 1, TimeUnit.MINUTES));
+        if (!QUEUE.offer(pair)) {
+            pair.getValue().cancel(true);
+            clientWorkerGroup.shutdownGracefully();
+        }
     }
 
     public static void stop() {
