@@ -68,11 +68,6 @@ public class MenuController {
 
     @FXML
     public void account() {
-        Pair<NioEventLoopGroup, ScheduledFuture<?>> pair = ClientApplication.peek();
-        if (pair != null) {
-            TooltipUtil.show("请先关闭连接!");
-            return;
-        }
         ConfigController.buildDialog("确认", "连接配置", Config.getClientConfig());
     }
 

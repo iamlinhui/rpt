@@ -2,6 +2,9 @@ package cn.promptness.rpt.desktop.controller;
 
 import cn.promptness.rpt.base.config.Config;
 import cn.promptness.rpt.base.config.RemoteConfig;
+import cn.promptness.rpt.client.ClientApplication;
+import cn.promptness.rpt.desktop.utils.TooltipUtil;
+import io.netty.channel.nio.NioEventLoopGroup;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.TableColumn;
@@ -9,11 +12,13 @@ import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseButton;
+import javafx.util.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ScheduledFuture;
 
 public class MainController {
 
@@ -80,6 +85,11 @@ public class MainController {
     }
 
     private void update(TableRow<RemoteConfig> remoteConfigTableRow) {
+        Pair<NioEventLoopGroup, ScheduledFuture<?>> pair = ClientApplication.peek();
+        if (pair != null) {
+            TooltipUtil.show("请先关闭连接!");
+            return;
+        }
         RemoteConfig remoteConfig = remoteConfigTableRow.getItem();
         if (remoteConfig == null) {
             return;
@@ -96,6 +106,11 @@ public class MainController {
     private void remove(TableRow<RemoteConfig> remoteConfigTableRow) {
         RemoteConfig remoteConfig = remoteConfigTableRow.getItem();
         if (remoteConfig == null) {
+            return;
+        }
+        Pair<NioEventLoopGroup, ScheduledFuture<?>> pair = ClientApplication.peek();
+        if (pair != null) {
+            TooltipUtil.show("请先关闭连接!");
             return;
         }
         RemoteConfig result = ConfigController.buildDialog("删除", "删除映射配置", remoteConfig);
