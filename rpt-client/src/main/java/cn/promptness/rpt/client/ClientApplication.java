@@ -85,7 +85,7 @@ public class ClientApplication {
             if (connect.get()) {
                 return;
             }
-            synchronized (connect) {
+            synchronized (Object.class) {
                 if (connect.get()) {
                     return;
                 }
