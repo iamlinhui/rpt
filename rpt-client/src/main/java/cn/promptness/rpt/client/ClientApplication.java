@@ -29,13 +29,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLException;
 import java.io.InputStream;
-import java.util.LinkedList;
 import java.util.Map;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ClientApplication {
@@ -46,10 +41,9 @@ public class ClientApplication {
 
     private static final ScheduledThreadPoolExecutor EXECUTOR = new ScheduledThreadPoolExecutor(1, ScheduledThreadFactory.create("client", false));
 
-    private static final Queue<Pair<NioEventLoopGroup, ScheduledFuture<?>>> QUEUE = new LinkedList<>();
+    private static final ArrayBlockingQueue<Pair<NioEventLoopGroup, ScheduledFuture<?>>> QUEUE = new ArrayBlockingQueue<>(1);
 
     public static void main(String[] args) throws SSLException {
-        ClientConfig clientConfig = Config.getClientConfig();
         InputStream certChainFile = ClassLoader.getSystemResourceAsStream("client.crt");
         InputStream keyFile = ClassLoader.getSystemResourceAsStream("pkcs8_client.key");
         InputStream rootFile = ClassLoader.getSystemResourceAsStream("ca.crt");
@@ -78,41 +72,43 @@ public class ClientApplication {
                 ch.pipeline().addLast(new HttpHandler(LOCAL_HTTP_CHANNEL_MAP));
             }
         });
-        if (!QUEUE.isEmpty()) {
-            return;
+        Pair<NioEventLoopGroup, ScheduledFuture<?>> pair = getPair(clientWorkerGroup, bootstrap, connect);
+        if (!QUEUE.offer(pair)) {
+            pair.getValue().cancel(true);
+            clientWorkerGroup.shutdownGracefully();
         }
-        synchronized (QUEUE) {
-            if (!QUEUE.isEmpty()) {
+    }
+
+    private static Pair<NioEventLoopGroup, ScheduledFuture<?>> getPair(NioEventLoopGroup clientWorkerGroup, Bootstrap bootstrap, AtomicBoolean connect) {
+        ClientConfig clientConfig = Config.getClientConfig();
+        return new Pair<>(clientWorkerGroup, EXECUTOR.scheduleAtFixedRate(() -> {
+            if (connect.get()) {
                 return;
             }
-            QUEUE.offer(new Pair<>(clientWorkerGroup, EXECUTOR.scheduleAtFixedRate(() -> {
+            synchronized (connect) {
                 if (connect.get()) {
                     return;
                 }
-                synchronized (connect) {
-                    if (connect.get()) {
-                        return;
-                    }
-                    try {
-                        bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).sync();
-                        logger.info("客户端成功连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
-                    } catch (Exception exception) {
-                        logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), exception.getCause().getMessage());
-                    }
+                try {
+                    bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).sync();
+                    logger.info("客户端成功连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
+                } catch (Exception exception) {
+                    logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), exception.getCause().getMessage());
                 }
-            }, 0, 1, TimeUnit.MINUTES)));
-        }
+            }
+        }, 0, 1, TimeUnit.MINUTES));
     }
 
-    public static Pair<NioEventLoopGroup, ScheduledFuture<?>> peek() {
-        synchronized (QUEUE) {
-            return QUEUE.peek();
+    public static void stop() {
+        Pair<NioEventLoopGroup, ScheduledFuture<?>> pair = QUEUE.poll();
+        if (pair == null) {
+            return;
         }
+        pair.getValue().cancel(true);
+        pair.getKey().shutdownGracefully();
     }
 
-    public static void clear() {
-        synchronized (QUEUE) {
-            QUEUE.clear();
-        }
+    public static boolean isStart() {
+        return !QUEUE.isEmpty();
     }
 }

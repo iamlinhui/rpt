@@ -6,15 +6,12 @@ import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.client.ClientApplication;
 import cn.promptness.rpt.desktop.utils.SystemTrayUtil;
 import cn.promptness.rpt.desktop.utils.TooltipUtil;
-import io.netty.channel.nio.NioEventLoopGroup;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.MenuItem;
-import javafx.util.Pair;
 
 import javax.net.ssl.SSLException;
-import java.util.concurrent.ScheduledFuture;
 
 public class MenuController {
 
@@ -50,8 +47,7 @@ public class MenuController {
 
     @FXML
     public void add() {
-        Pair<NioEventLoopGroup, ScheduledFuture<?>> pair = ClientApplication.peek();
-        if (pair != null) {
+        if (ClientApplication.isStart()) {
             TooltipUtil.show("请先关闭连接!");
             return;
         }
@@ -73,17 +69,14 @@ public class MenuController {
 
     @FXML
     public void start() throws SSLException {
-        Pair<NioEventLoopGroup, ScheduledFuture<?>> pair = ClientApplication.peek();
-        if (pair == null) {
+        if (ClientApplication.isStart()) {
+            ClientApplication.stop();
+            startText.setText("开启");
+            TooltipUtil.show("关闭成功!");
+        } else {
             ClientApplication.main(new String[0]);
             startText.setText("关闭");
             TooltipUtil.show("开启成功!");
-        } else {
-            pair.getValue().cancel(true);
-            pair.getKey().shutdownGracefully();
-            ClientApplication.clear();
-            startText.setText("开启");
-            TooltipUtil.show("关闭成功!");
         }
     }
 }
