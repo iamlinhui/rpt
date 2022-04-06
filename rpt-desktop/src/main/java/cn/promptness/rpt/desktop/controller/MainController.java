@@ -84,13 +84,12 @@ public class MainController {
     }
 
     private void update(TableRow<RemoteConfig> remoteConfigTableRow) {
-
-        if (ClientApplication.isStart()) {
-            TooltipUtil.show("请先关闭连接!");
-            return;
-        }
         RemoteConfig remoteConfig = remoteConfigTableRow.getItem();
         if (remoteConfig == null) {
+            return;
+        }
+        if (ClientApplication.isStart()) {
+            TooltipUtil.show("请先关闭连接!");
             return;
         }
         RemoteConfig result = ConfigController.buildDialog("修改", "修改映射配置", remoteConfig);
