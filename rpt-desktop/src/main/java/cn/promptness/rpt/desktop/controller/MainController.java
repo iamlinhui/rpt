@@ -4,6 +4,7 @@ import cn.promptness.rpt.base.config.Config;
 import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.client.ClientApplication;
 import cn.promptness.rpt.desktop.utils.TooltipUtil;
+import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.TableColumn;
@@ -35,29 +36,30 @@ public class MainController {
 
     public void initialize() {
         back = tableView;
+        ReadOnlyDoubleProperty widthProperty = tableView.widthProperty();
         CONFIG.addAll(Optional.ofNullable(Config.getClientConfig().getConfig()).orElse(new ArrayList<>()));
         TableColumn<RemoteConfig, String> proxyType = new TableColumn<>("传输类型");
-        proxyType.setMinWidth(100);
+        proxyType.prefWidthProperty().bind(widthProperty.multiply(.15));
         proxyType.setCellValueFactory(new PropertyValueFactory<>("proxyType"));
 
         TableColumn<RemoteConfig, String> localIp = new TableColumn<>("本地地址");
-        localIp.setMinWidth(150);
+        localIp.prefWidthProperty().bind(widthProperty.multiply(.15));
         localIp.setCellValueFactory(new PropertyValueFactory<>("localIp"));
 
         TableColumn<RemoteConfig, Integer> localPort = new TableColumn<>("本地端口");
-        localPort.setMinWidth(100);
+        localPort.prefWidthProperty().bind(widthProperty.multiply(.15));
         localPort.setCellValueFactory(new PropertyValueFactory<>("localPort"));
 
         TableColumn<RemoteConfig, String> domain = new TableColumn<>("暴露域名");
-        domain.setMinWidth(150);
+        domain.prefWidthProperty().bind(widthProperty.multiply(.15));
         domain.setCellValueFactory(new PropertyValueFactory<>("domain"));
 
         TableColumn<RemoteConfig, Integer> remotePort = new TableColumn<>("暴露端口");
-        remotePort.setMinWidth(100);
+        remotePort.prefWidthProperty().bind(widthProperty.multiply(.15));
         remotePort.setCellValueFactory(new PropertyValueFactory<>("remotePort"));
 
         TableColumn<RemoteConfig, String> description = new TableColumn<>("备注");
-        description.setMinWidth(150);
+        description.prefWidthProperty().bind(widthProperty.multiply(.15));
         description.setCellValueFactory(new PropertyValueFactory<>("description"));
 
         tableView.getColumns().addAll(proxyType, localIp, localPort, domain, remotePort, description);

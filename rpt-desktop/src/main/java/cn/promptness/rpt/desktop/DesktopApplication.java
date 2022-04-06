@@ -40,7 +40,7 @@ public class DesktopApplication extends Application {
         primaryStage.setTitle(Constants.TITLE);
         primaryStage.getIcons().add(new Image("/icon.png"));
         primaryStage.setScene(scene);
-        primaryStage.setResizable(false);
+        primaryStage.setResizable(true);
         primaryStage.show();
         SystemTrayUtil.systemTray(primaryStage, Constants.TITLE);
     }
