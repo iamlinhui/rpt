@@ -1,7 +1,7 @@
 package cn.promptness.rpt.desktop;
 
 import cn.promptness.rpt.base.utils.Constants;
-import cn.promptness.rpt.desktop.cache.ClientCache;
+import cn.promptness.rpt.desktop.cache.ClientConfigCache;
 import cn.promptness.rpt.desktop.utils.SystemTrayUtil;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -27,8 +27,8 @@ public class DesktopApplication extends Application {
 
     @Override
     public void init() throws Exception {
-        ClientCache.read();
-        Runtime.getRuntime().addShutdownHook(new Thread(ClientCache::cache));
+        ClientConfigCache.read();
+        Runtime.getRuntime().addShutdownHook(new Thread(ClientConfigCache::cache));
     }
 
     @Override

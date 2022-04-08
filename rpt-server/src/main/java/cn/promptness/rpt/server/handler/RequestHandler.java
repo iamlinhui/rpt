@@ -1,5 +1,6 @@
 package cn.promptness.rpt.server.handler;
 
+import cn.promptness.rpt.server.cache.ServerChannelCache;
 import cn.promptness.rpt.base.coder.HttpEncoder;
 import cn.promptness.rpt.base.config.ClientConfig;
 import cn.promptness.rpt.base.config.RemoteConfig;
@@ -32,22 +33,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
     private final HttpEncoder.ResponseEncoder responseEncoder = new HttpEncoder.ResponseEncoder();
 
-    /**
-     * domain -> serverChannel 全局
-     */
-    private final Map<String, Channel> serverChannelMap;
-
-    /**
-     * httpChannelId -> httpChannel 全局
-     */
-    private final Map<String, Channel> httpChannelMap;
-
     private String domain;
-
-    public RequestHandler(Map<String, Channel> serverChannelMap, Map<String, Channel> httpChannelMap) {
-        this.serverChannelMap = serverChannelMap;
-        this.httpChannelMap = httpChannelMap;
-    }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
@@ -60,7 +46,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         ctx.channel().config().setAutoRead(true);
-        Channel remove = httpChannelMap.remove(ctx.channel().id().asLongText());
+        Channel remove = ServerChannelCache.getServerHttpChannelMap().remove(ctx.channel().id().asLongText());
         if (remove != null) {
             remove.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         }
@@ -71,7 +57,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (domain == null) {
             return;
         }
-        Channel serverChannel = serverChannelMap.get(domain);
+        Channel serverChannel = ServerChannelCache.getServerDomainChannelMap().get(domain);
         if (serverChannel == null) {
             return;
         }
@@ -87,7 +73,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (domain == null) {
             return;
         }
-        Channel serverChannel = serverChannelMap.get(domain);
+        Channel serverChannel = ServerChannelCache.getServerDomainChannelMap().get(domain);
         if (serverChannel == null) {
             return;
         }
@@ -112,7 +98,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             handle(ctx, fullHttpRequest, HttpResponseStatus.NO_CONTENT, Constants.page("index.html"));
             return;
         }
-        Channel serverChannel = serverChannelMap.get(domain);
+        Channel serverChannel = ServerChannelCache.getServerDomainChannelMap().get(domain);
         if (serverChannel == null || !serverChannel.isOpen()) {
             handle(ctx, fullHttpRequest, HttpResponseStatus.NOT_FOUND, Constants.page("index.html"));
             return;

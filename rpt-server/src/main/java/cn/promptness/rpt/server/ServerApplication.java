@@ -5,10 +5,10 @@ import cn.promptness.rpt.base.coder.MessageEncoder;
 import cn.promptness.rpt.base.config.Config;
 import cn.promptness.rpt.base.config.ServerConfig;
 import cn.promptness.rpt.base.handler.IdleCheckHandler;
+import cn.promptness.rpt.server.cache.ServerChannelCache;
 import cn.promptness.rpt.server.handler.RequestHandler;
 import cn.promptness.rpt.server.handler.ServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -29,15 +29,10 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLException;
 import java.io.InputStream;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class ServerApplication {
 
     private static final Logger logger = LoggerFactory.getLogger(ServerApplication.class);
-
-    private static final Map<String, Channel> SERVER_CHANNEL_MAP = new ConcurrentHashMap<>();
-    private static final Map<String, Channel> HTTP_CHANNEL_MAP = new ConcurrentHashMap<>();
 
     public static void main(String[] args) throws SSLException {
 
@@ -68,7 +63,7 @@ public class ServerApplication {
                 ch.pipeline().addLast(new MessageEncoder());
                 ch.pipeline().addLast(new IdleCheckHandler(60, 40, 0));
                 // 代理客户端连接代理服务器处理器
-                ch.pipeline().addLast(new ServerHandler(globalTrafficShapingHandler, SERVER_CHANNEL_MAP, HTTP_CHANNEL_MAP));
+                ch.pipeline().addLast(new ServerHandler(globalTrafficShapingHandler));
             }
         });
 
@@ -95,8 +90,8 @@ public class ServerApplication {
                 ch.pipeline().addLast(new HttpRequestDecoder());
                 ch.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
                 ch.pipeline().addLast(new ChunkedWriteHandler());
-                ch.pipeline().addLast(new RequestHandler(SERVER_CHANNEL_MAP, HTTP_CHANNEL_MAP));
-                HTTP_CHANNEL_MAP.put(ch.id().asLongText(), ch);
+                ch.pipeline().addLast(new RequestHandler());
+                ServerChannelCache.getServerHttpChannelMap().put(ch.id().asLongText(), ch);
             }
         });
 

@@ -7,9 +7,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 
-public class ClientCache {
+public class ClientConfigCache {
 
-    private static final Logger log = LoggerFactory.getLogger(ClientCache.class);
+    private static final Logger log = LoggerFactory.getLogger(ClientConfigCache.class);
 
     private static final String CONFIG_FILE = "client.dat";
 
