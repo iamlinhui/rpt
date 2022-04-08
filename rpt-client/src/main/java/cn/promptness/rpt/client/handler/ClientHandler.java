@@ -6,6 +6,7 @@ import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.protocol.ProxyType;
+import cn.promptness.rpt.client.handler.cache.ClientChannelCache;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -23,8 +24,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -34,19 +33,11 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientHandler.class);
     private final EventLoopGroup localGroup = new NioEventLoopGroup();
-    /**
-     * remoteChannelId --> localChannel
-     */
-    private final Map<String, Channel> localTcpChannelMap = new ConcurrentHashMap<>();
-    /**
-     * requestChannelId --> localHttpChannel
-     */
-    private final Map<String, Channel> localHttpChannelMap;
+
     private final AtomicBoolean connect;
 
-    public ClientHandler(AtomicBoolean connect, Map<String, Channel> localHttpChannelMap) {
+    public ClientHandler(AtomicBoolean connect) {
         this.connect = connect;
-        this.localHttpChannelMap = localHttpChannelMap;
     }
 
     @Override
@@ -101,7 +92,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         switch (proxyType) {
             // 将数据转发到对应内网服务器
             case TCP:
-                Channel tcpChannel = localTcpChannelMap.get(clientConfig.getChannelId());
+                Channel tcpChannel = ClientChannelCache.getLocalTcpChannelMap().get(clientConfig.getChannelId());
                 if (tcpChannel != null) {
                     tcpChannel.writeAndFlush(message.getData());
                 }
@@ -126,13 +117,13 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         switch (proxyType) {
             // 将数据转发到对应内网服务器
             case TCP:
-                Channel tcpChannel = localTcpChannelMap.remove(clientConfig.getChannelId());
+                Channel tcpChannel = ClientChannelCache.getLocalTcpChannelMap().remove(clientConfig.getChannelId());
                 if (tcpChannel != null) {
                     tcpChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
                 }
                 break;
             case HTTP:
-                Channel httpChannel = localHttpChannelMap.remove(clientConfig.getChannelId());
+                Channel httpChannel = ClientChannelCache.getLocalHttpChannelMap().remove(clientConfig.getChannelId());
                 if (httpChannel != null) {
                     httpChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
                 }
@@ -183,7 +174,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         });
         localBootstrap.connect(remoteConfig.getLocalIp(), remoteConfig.getLocalPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
-                localTcpChannelMap.put(clientConfig.getChannelId(), future.channel());
+                ClientChannelCache.getLocalTcpChannelMap().put(clientConfig.getChannelId(), future.channel());
             } else {
                 Message message = new Message();
                 message.setType(MessageType.TYPE_DISCONNECTED);
@@ -209,7 +200,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         });
         localBootstrap.connect(httpConfig.getLocalIp(), httpConfig.getLocalPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
-                localHttpChannelMap.put(clientConfig.getChannelId(), future.channel());
+                ClientChannelCache.getLocalHttpChannelMap().put(clientConfig.getChannelId(), future.channel());
             } else {
                 Message message = new Message();
                 message.setType(MessageType.TYPE_DISCONNECTED);
@@ -223,14 +214,14 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         logger.info("客户端-服务端连接中断,{}:{}", Config.getClientConfig().getServerIp(), Config.getClientConfig().getServerPort());
-        for (Channel channel : localTcpChannelMap.values()) {
+        for (Channel channel : ClientChannelCache.getLocalTcpChannelMap().values()) {
             channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         }
-        localTcpChannelMap.clear();
-        for (Channel channel : localHttpChannelMap.values()) {
+        ClientChannelCache.getLocalTcpChannelMap().clear();
+        for (Channel channel : ClientChannelCache.getLocalHttpChannelMap().values()) {
             channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         }
-        localHttpChannelMap.clear();
+        ClientChannelCache.getLocalHttpChannelMap().clear();
         localGroup.shutdownGracefully();
         connect.set(false);
     }

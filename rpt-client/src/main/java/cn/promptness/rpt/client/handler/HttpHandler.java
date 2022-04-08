@@ -4,6 +4,7 @@ import cn.promptness.rpt.base.coder.HttpEncoder;
 import cn.promptness.rpt.base.config.Config;
 import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.utils.Constants;
+import cn.promptness.rpt.client.handler.cache.ClientChannelCache;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -14,20 +15,10 @@ import io.netty.handler.codec.http.HttpVersion;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
     private final HttpEncoder.RequestEncoder requestEncoder = new HttpEncoder.RequestEncoder();
-
-    /**
-     * requestChannelId --> localHttpChannel
-     */
-    private final Map<String, Channel> localHttpChannelMap;
-
-    public HttpHandler(Map<String, Channel> localHttpChannelMap) {
-        this.localHttpChannelMap = localHttpChannelMap;
-    }
 
     @Override
     protected void channelRead0(ChannelHandlerContext context, FullHttpRequest fullHttpRequest) throws Exception {
@@ -36,7 +27,7 @@ public class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
         if (requestChannelId == null) {
             return;
         }
-        Channel localHttpChannel = localHttpChannelMap.get(requestChannelId);
+        Channel localHttpChannel = ClientChannelCache.getLocalHttpChannelMap().get(requestChannelId);
         if (localHttpChannel == null) {
             return;
         }

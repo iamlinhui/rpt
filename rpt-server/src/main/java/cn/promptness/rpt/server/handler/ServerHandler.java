@@ -7,6 +7,7 @@ import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.protocol.ProxyType;
 import cn.promptness.rpt.base.utils.StringUtils;
+import cn.promptness.rpt.server.cache.ServerChannelCache;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -24,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * 处理服务器接收到的客户端连接
@@ -37,18 +39,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     private final Map<String, Channel> remoteChannelMap = new ConcurrentHashMap<>();
     private final EventLoopGroup remoteBossGroup = new NioEventLoopGroup();
     private final EventLoopGroup remoteWorkerGroup = new NioEventLoopGroup();
-
-    /**
-     * domain --> serverChannel 全局
-     */
-    private final Map<String, Channel> serverChannelMap;
-
-    /**
-     * requestChannelId --> httpChannel 全局
-     */
-    private final Map<String, Channel> httpChannelMap;
-
-    private final List<String> domainList = new ArrayList<>();
+    private final List<String> domainList = new CopyOnWriteArrayList<>();
 
     /**
      * 全局服务器读限速器
@@ -56,10 +47,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     private final GlobalTrafficShapingHandler globalTrafficShapingHandler;
     private String clientKey;
 
-    public ServerHandler(GlobalTrafficShapingHandler globalTrafficShapingHandler, Map<String, Channel> serverChannelMap, Map<String, Channel> httpChannelMap) {
+    public ServerHandler(GlobalTrafficShapingHandler globalTrafficShapingHandler) {
         this.globalTrafficShapingHandler = globalTrafficShapingHandler;
-        this.serverChannelMap = serverChannelMap;
-        this.httpChannelMap = httpChannelMap;
     }
 
     @Override
@@ -82,7 +71,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         remoteWorkerGroup.shutdownGracefully();
 
         for (String domain : domainList) {
-            Channel remove = serverChannelMap.remove(domain);
+            Channel remove = ServerChannelCache.getServerDomainChannelMap().remove(domain);
             if (remove != null) {
                 remove.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
             }
@@ -128,7 +117,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                 }
                 break;
             case HTTP:
-                Channel httpChannel = httpChannelMap.get(channelId);
+                Channel httpChannel = ServerChannelCache.getServerHttpChannelMap().get(channelId);
                 if (httpChannel != null) {
                     httpChannel.pipeline().fireUserEventTriggered(ProxyType.HTTP);
                 }
@@ -154,7 +143,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                 remoteChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
                 break;
             case HTTP:
-                Channel httpChannel = httpChannelMap.remove(clientConfig.getChannelId());
+                Channel httpChannel = ServerChannelCache.getServerHttpChannelMap().remove(clientConfig.getChannelId());
                 if (httpChannel == null) {
                     return;
                 }
@@ -177,7 +166,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                 break;
             case HTTP:
                 String channelId = message.getClientConfig().getChannelId();
-                Channel channel = httpChannelMap.get(channelId);
+                Channel channel = ServerChannelCache.getServerHttpChannelMap().get(channelId);
                 if (channel != null) {
                     byte[] data = message.getData();
                     ByteBuf buffer = context.alloc().buffer(data.length);
@@ -242,7 +231,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             return;
         }
         logger.info("服务端开始绑定域名[{}]", remoteConfig.getDomain());
-        serverChannelMap.compute(remoteConfig.getDomain(), (domain, channel) -> {
+        ServerChannelCache.getServerDomainChannelMap().compute(remoteConfig.getDomain(), (domain, channel) -> {
             if (channel != null) {
                 remoteResult.add(String.format("服务端绑定域名重复%s", domain));
                 return channel;
