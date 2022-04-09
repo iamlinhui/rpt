@@ -1,8 +1,6 @@
 package cn.promptness.rpt.client.handler;
 
 import cn.promptness.rpt.base.coder.HttpEncoder;
-import cn.promptness.rpt.base.config.Config;
-import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.client.handler.cache.ClientChannelCache;
 import io.netty.channel.Channel;
@@ -32,13 +30,6 @@ public class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
             return;
         }
         fullHttpRequest.headers().remove(Constants.REQUEST_CHANNEL_ID);
-
-        String domain = Constants.PATTERN.split(fullHttpRequest.headers().get(HttpHeaderNames.HOST))[0];
-
-        RemoteConfig httpConfig = Config.getClientConfig().getHttpConfig(domain);
-        if (httpConfig == null) {
-            return;
-        }
         fullHttpRequest.setProtocolVersion(HttpVersion.HTTP_1_1);
         fullHttpRequest.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
 
