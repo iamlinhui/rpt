@@ -39,15 +39,6 @@ public class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
         if (httpConfig == null) {
             return;
         }
-        String oldHost = fullHttpRequest.headers().get(HttpHeaderNames.HOST);
-        String referer = fullHttpRequest.headers().get(HttpHeaderNames.REFERER);
-        if (referer != null) {
-            String newReferer = referer.replace(oldHost, httpConfig.getLocalIp());
-            fullHttpRequest.headers().set(HttpHeaderNames.REFERER, newReferer);
-        }
-
-        //设置host为请求服务器地址
-        fullHttpRequest.headers().set(HttpHeaderNames.HOST, httpConfig.getLocalIp() + ":" + httpConfig.getLocalPort());
         fullHttpRequest.setProtocolVersion(HttpVersion.HTTP_1_1);
         fullHttpRequest.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
 
