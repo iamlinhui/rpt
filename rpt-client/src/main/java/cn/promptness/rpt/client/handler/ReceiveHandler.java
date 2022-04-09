@@ -12,6 +12,7 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpScheme;
 import io.netty.util.internal.EmptyArrays;
 
 import java.util.ArrayList;
@@ -57,7 +58,7 @@ public class ReceiveHandler extends SimpleChannelInboundHandler<FullHttpResponse
         if (REDIRECT_STATUS.contains(status.code())) {
             String location = String.valueOf(response.headers().get(HttpHeaderNames.LOCATION));
             int index = location.indexOf("/", 8);
-            location = "http" + "://" + clientConfig.getConfig().get(0).getDomain() + location.substring(index);
+            location = HttpScheme.HTTP + "://" + clientConfig.getConfig().get(0).getDomain() + location.substring(index);
             response.headers().set(HttpHeaderNames.LOCATION, location);
         }
         response.headers().set(HttpHeaderNames.SERVER, Constants.RPT);
