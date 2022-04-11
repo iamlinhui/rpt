@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
 public class Constants {
@@ -24,8 +23,6 @@ public class Constants {
 
     public static final Pattern PATTERN = Pattern.compile(":");
 
-    private static final byte[] NOT_FOUND = "<html><head><title>404 Not Found</title></head><body><center><h1>404 Not Found</h1></center><hr><center>rpt/2.0.0</center></body></html>".getBytes(StandardCharsets.UTF_8);
-
     public static byte[] page(String page) {
         try (InputStream resource = ClassLoader.getSystemResourceAsStream(page)) {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -40,7 +37,7 @@ public class Constants {
         } catch (Exception e) {
             logger.error(e.getMessage());
         }
-        return NOT_FOUND;
+        return new byte[0];
     }
 
 
