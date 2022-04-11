@@ -1,6 +1,5 @@
 package cn.promptness.rpt.server.handler;
 
-import cn.promptness.rpt.server.cache.ServerChannelCache;
 import cn.promptness.rpt.base.coder.HttpEncoder;
 import cn.promptness.rpt.base.config.ClientConfig;
 import cn.promptness.rpt.base.config.RemoteConfig;
@@ -9,10 +8,16 @@ import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.protocol.ProxyType;
 import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.base.utils.StringUtils;
+import cn.promptness.rpt.server.cache.DispatcherCache;
+import cn.promptness.rpt.server.cache.ServerChannelCache;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.*;
-import io.netty.handler.codec.http.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.internal.EmptyArrays;
 
@@ -30,8 +35,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private final AtomicBoolean connected = new AtomicBoolean(false);
 
     private final HttpEncoder.RequestEncoder requestEncoder = new HttpEncoder.RequestEncoder();
-
-    private final HttpEncoder.ResponseEncoder responseEncoder = new HttpEncoder.ResponseEncoder();
 
     private String domain;
 
@@ -95,12 +98,12 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
         domain = Optional.ofNullable(domain).orElse(Constants.PATTERN.split(fullHttpRequest.headers().get(HttpHeaderNames.HOST))[0]);
         if (!StringUtils.hasText(domain)) {
-            handle(ctx, fullHttpRequest, HttpResponseStatus.NO_CONTENT, Constants.page("index.html"));
+            DispatcherCache.doDispatch(fullHttpRequest, ctx);
             return;
         }
         Channel serverChannel = ServerChannelCache.getServerDomainChannelMap().get(domain);
         if (serverChannel == null || !serverChannel.isOpen()) {
-            handle(ctx, fullHttpRequest, HttpResponseStatus.NOT_FOUND, Constants.page("index.html"));
+            DispatcherCache.doDispatch(fullHttpRequest, ctx);
             return;
         }
         if (!connected.get()) {
@@ -130,25 +133,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             buf.release();
             send(serverChannel, ctx, domain, MessageType.TYPE_DATA, data);
         }
-    }
-
-    private void handle(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, HttpResponseStatus httpResponseStatus, byte[] result) throws Exception {
-        ByteBuf buffer = ctx.channel().alloc().buffer(result.length);
-        buffer.writeBytes(result);
-        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, httpResponseStatus, buffer);
-        response.headers().set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_HTML);
-        response.headers().set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
-        response.headers().set(HttpHeaderNames.SERVER, Constants.RPT);
-        List<Object> encode = new ArrayList<>();
-        responseEncoder.encode(ctx, response, encode);
-        for (Object obj : encode) {
-            ChannelFuture future = ctx.writeAndFlush(obj);
-            if (!HttpUtil.isKeepAlive(fullHttpRequest)) {
-                future.addListener(ChannelFutureListener.CLOSE);
-            }
-        }
-        // 释放缓冲区内存
-        ReferenceCountUtil.release(response);
     }
 
 
