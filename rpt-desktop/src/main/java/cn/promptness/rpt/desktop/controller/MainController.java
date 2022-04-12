@@ -10,6 +10,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseButton;
 
@@ -20,22 +21,39 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class MainController {
 
-    @FXML
-    public TableView<RemoteConfig> tableView;
-
-    private static TableView<RemoteConfig> back;
+    public static volatile MainController INSTANCE;
 
     private static final List<RemoteConfig> CONFIG = new CopyOnWriteArrayList<>();
 
-    public static void addConfig(RemoteConfig remoteConfig) {
+    public MainController() {
+        if (INSTANCE == null) {
+            synchronized (MainController.class) {
+                if (INSTANCE == null) {
+                    INSTANCE = this;
+                }
+            }
+        }
+    }
+
+    @FXML
+    public TableView<RemoteConfig> tableView;
+    @FXML
+    public TextArea textArea;
+
+    public void addLog(String message) {
+        textArea.appendText(message);
+        textArea.appendText("\n");
+    }
+
+    public void addConfig(RemoteConfig remoteConfig) {
         CONFIG.add(remoteConfig);
-        back.getItems().clear();
-        back.setItems(FXCollections.observableArrayList(CONFIG));
+        tableView.getItems().clear();
+        tableView.setItems(FXCollections.observableArrayList(CONFIG));
         Config.getClientConfig().setConfig(CONFIG);
     }
 
+    @SuppressWarnings("unchecked")
     public void initialize() {
-        back = tableView;
         ReadOnlyDoubleProperty widthProperty = tableView.widthProperty();
         CONFIG.addAll(Optional.ofNullable(Config.getClientConfig().getConfig()).orElse(new ArrayList<>()));
         TableColumn<RemoteConfig, String> proxyType = new TableColumn<>("传输类型");

@@ -3,6 +3,7 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.control.TextArea?>
 <VBox fx:controller="cn.promptness.rpt.desktop.controller.MainController" maxHeight="-Infinity" maxWidth="-Infinity"
       minHeight="-Infinity" minWidth="-Infinity"
       xmlns="http://javafx.com/javafx/11.0.14-internal" xmlns:fx="http://javafx.com/fxml/1">
@@ -18,6 +19,14 @@
         <HBox VBox.vgrow="ALWAYS">
             <children>
                 <TableView fx:id="tableView" prefWidth="750" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS"/>
+            </children>
+            <padding>
+                <Insets/>
+            </padding>
+        </HBox>
+        <HBox VBox.vgrow="ALWAYS">
+            <children>
+                <TextArea fx:id="textArea" prefWidth="750" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS"/>
             </children>
             <padding>
                 <Insets/>

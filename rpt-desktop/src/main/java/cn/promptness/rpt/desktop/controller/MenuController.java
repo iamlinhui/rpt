@@ -53,7 +53,7 @@ public class MenuController {
         }
         RemoteConfig remoteConfig = ConfigController.buildDialog("确定", "新增映射配置", new RemoteConfig());
         if (remoteConfig != null) {
-            MainController.addConfig(remoteConfig);
+            MainController.INSTANCE.addConfig(remoteConfig);
         }
     }
 
