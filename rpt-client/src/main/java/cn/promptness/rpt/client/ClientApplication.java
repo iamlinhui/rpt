@@ -9,6 +9,7 @@ import cn.promptness.rpt.base.utils.Pair;
 import cn.promptness.rpt.base.utils.ScheduledThreadFactory;
 import cn.promptness.rpt.client.handler.ClientHandler;
 import cn.promptness.rpt.client.handler.HttpHandler;
+import cn.promptness.rpt.client.handler.cache.ClientChannelCache;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -32,7 +33,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ClientApplication {
 
@@ -51,7 +51,6 @@ public class ClientApplication {
 
         NioEventLoopGroup clientWorkerGroup = new NioEventLoopGroup();
         Bootstrap bootstrap = new Bootstrap();
-        AtomicBoolean connect = new AtomicBoolean(false);
         bootstrap.group(clientWorkerGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
@@ -65,7 +64,7 @@ public class ClientApplication {
                 ch.pipeline().addLast(new MessageEncoder());
                 ch.pipeline().addLast(new IdleCheckHandler(60, 30, 0));
                 //服务器连接处理器
-                ch.pipeline().addLast(new ClientHandler(connect));
+                ch.pipeline().addLast(new ClientHandler());
                 ch.pipeline().addLast(new HttpRequestDecoder());
                 ch.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
                 ch.pipeline().addLast(new ChunkedWriteHandler());
@@ -73,11 +72,11 @@ public class ClientApplication {
             }
         });
         Pair<NioEventLoopGroup, ScheduledFuture<?>> pair = new Pair<>(clientWorkerGroup, EXECUTOR.scheduleAtFixedRate(() -> {
-            if (connect.get()) {
+            if (ClientChannelCache.getConnect()) {
                 return;
             }
-            synchronized (connect) {
-                if (connect.get()) {
+            synchronized (ClientApplication.class) {
+                if (ClientChannelCache.getConnect()) {
                     return;
                 }
                 try {
