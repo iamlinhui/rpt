@@ -14,6 +14,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseButton;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -41,6 +42,7 @@ public class MainController {
     public TextArea textArea;
 
     public void addLog(String message) {
+        textArea.appendText(LocalDateTime.now().toString());
         textArea.appendText(message);
         textArea.appendText("\n");
     }
