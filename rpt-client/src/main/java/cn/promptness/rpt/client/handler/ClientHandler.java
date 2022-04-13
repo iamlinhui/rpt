@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 服务器连接处理器
@@ -33,12 +32,6 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientHandler.class);
     private final EventLoopGroup localGroup = new NioEventLoopGroup();
-
-    private final AtomicBoolean connect;
-
-    public ClientHandler(AtomicBoolean connect) {
-        this.connect = connect;
-    }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -49,13 +42,13 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         ctx.writeAndFlush(message);
     }
 
-
     @Override
     protected void channelRead0(ChannelHandlerContext context, Message message) throws Exception {
         switch (message.getType()) {
             case TYPE_AUTH:
-                connect.set(message.getClientConfig().isConnection());
-                if (connect.get()) {
+                boolean connection = message.getClientConfig().isConnection();
+                ClientChannelCache.setConnect(connection);
+                if (connection) {
                     logger.info("授权连接成功,clientKey:{}", message.getClientConfig().getClientKey());
                     for (String remoteResult : message.getClientConfig().getRemoteResult()) {
                         logger.info(remoteResult);
@@ -223,7 +216,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         }
         ClientChannelCache.getLocalHttpChannelMap().clear();
         localGroup.shutdownGracefully();
-        connect.set(false);
+        ClientChannelCache.setConnect(false);
     }
 
     @Override
