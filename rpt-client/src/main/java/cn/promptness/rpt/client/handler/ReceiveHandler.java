@@ -21,7 +21,10 @@ import java.util.List;
 
 public class ReceiveHandler extends SimpleChannelInboundHandler<FullHttpResponse> {
 
-    private static final List<Integer> REDIRECT_STATUS = Arrays.asList(HttpResponseStatus.FOUND.code(), HttpResponseStatus.SEE_OTHER.code());
+    /**
+     * 301 302 303 307 308
+     */
+    private static final List<Integer> REDIRECT_STATUS = Arrays.asList(HttpResponseStatus.MOVED_PERMANENTLY.code(), HttpResponseStatus.FOUND.code(), HttpResponseStatus.SEE_OTHER.code(), HttpResponseStatus.TEMPORARY_REDIRECT.code(), HttpResponseStatus.PERMANENT_REDIRECT.code());
 
     private final HttpEncoder.ResponseEncoder responseEncoder = new HttpEncoder.ResponseEncoder();
 
