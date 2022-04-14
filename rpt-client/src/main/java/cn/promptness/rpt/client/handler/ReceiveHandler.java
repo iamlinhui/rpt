@@ -57,9 +57,11 @@ public class ReceiveHandler extends SimpleChannelInboundHandler<FullHttpResponse
         HttpResponseStatus status = response.status();
         if (REDIRECT_STATUS.contains(status.code())) {
             String location = String.valueOf(response.headers().get(HttpHeaderNames.LOCATION));
-            int index = location.indexOf("/", 8);
-            location = HttpScheme.HTTP + "://" + clientConfig.getConfig().get(0).getDomain() + location.substring(index);
-            response.headers().set(HttpHeaderNames.LOCATION, location);
+            if (location.startsWith(HttpScheme.HTTP.toString())) {
+                int index = location.indexOf("/", 8);
+                location = HttpScheme.HTTP + "://" + clientConfig.getConfig().get(0).getDomain() + location.substring(index);
+                response.headers().set(HttpHeaderNames.LOCATION, location);
+            }
         }
         response.headers().set(HttpHeaderNames.SERVER, Constants.RPT);
         List<Object> encode = new ArrayList<>();
