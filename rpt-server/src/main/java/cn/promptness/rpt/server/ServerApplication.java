@@ -18,7 +18,6 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
-import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -92,7 +91,6 @@ public class ServerApplication {
                 ch.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
                 ch.pipeline().addLast(new ChunkedWriteHandler());
                 ch.pipeline().addLast(new RequestHandler());
-                ch.pipeline().addLast(new WebSocketServerProtocolHandler("/"));
                 ServerChannelCache.getServerHttpChannelMap().put(ch.id().asLongText(), ch);
             }
         });

@@ -151,8 +151,4 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         message.setType(typeConnect);
         serverChannel.writeAndFlush(message);
     }
-
-    public String getDomain() {
-        return domain;
-    }
 }
