@@ -15,8 +15,6 @@ public class Constants {
 
     private static final Logger logger = LoggerFactory.getLogger(Constants.class);
 
-    public static final String REQUEST_CHANNEL_ID = "REQUEST_CHANNEL_ID";
-
     public static final String TITLE = "Reverse Proxy Tool";
 
     public static final String RPT = "rpt";

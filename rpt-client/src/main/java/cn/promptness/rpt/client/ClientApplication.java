@@ -8,7 +8,6 @@ import cn.promptness.rpt.base.handler.IdleCheckHandler;
 import cn.promptness.rpt.base.utils.Pair;
 import cn.promptness.rpt.base.utils.ScheduledThreadFactory;
 import cn.promptness.rpt.client.handler.ClientHandler;
-import cn.promptness.rpt.client.handler.HttpHandler;
 import cn.promptness.rpt.client.handler.cache.ClientChannelCache;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelInitializer;
@@ -18,12 +17,9 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
-import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
-import io.netty.handler.stream.ChunkedWriteHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,10 +61,6 @@ public class ClientApplication {
                 ch.pipeline().addLast(new IdleCheckHandler(60, 30, 0));
                 //服务器连接处理器
                 ch.pipeline().addLast(new ClientHandler());
-                ch.pipeline().addLast(new HttpRequestDecoder());
-                ch.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
-                ch.pipeline().addLast(new ChunkedWriteHandler());
-                ch.pipeline().addLast(new HttpHandler());
             }
         });
         Pair<NioEventLoopGroup, ScheduledFuture<?>> pair = new Pair<>(clientWorkerGroup, EXECUTOR.scheduleAtFixedRate(() -> {

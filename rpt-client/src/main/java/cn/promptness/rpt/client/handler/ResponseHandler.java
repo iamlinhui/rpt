@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class ReceiveHandler extends SimpleChannelInboundHandler<FullHttpResponse> {
+public class ResponseHandler extends SimpleChannelInboundHandler<FullHttpResponse> {
 
     /**
      * 301 302 303 307 308
@@ -31,7 +31,7 @@ public class ReceiveHandler extends SimpleChannelInboundHandler<FullHttpResponse
     private final Channel clientChannel;
     private final ClientConfig clientConfig;
 
-    public ReceiveHandler(Channel clientChannel, ClientConfig clientConfig) {
+    public ResponseHandler(Channel clientChannel, ClientConfig clientConfig) {
         this.clientChannel = clientChannel;
         this.clientConfig = clientConfig;
     }
