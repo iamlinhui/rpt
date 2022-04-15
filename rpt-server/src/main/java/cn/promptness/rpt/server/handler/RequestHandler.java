@@ -18,6 +18,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaderValues;
+import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.internal.EmptyArrays;
 
@@ -25,9 +27,6 @@ import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * request处理器
- */
 public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
     private final Queue<FullHttpRequest> requestMessage = new LinkedBlockingQueue<>();
@@ -110,8 +109,9 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             ctx.channel().config().setAutoRead(false);
             send(serverChannel, ctx, domain, MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES);
         }
-        fullHttpRequest.headers().set(Constants.REQUEST_CHANNEL_ID, ctx.channel().id().asLongText());
-
+        // 限制请求级别
+        fullHttpRequest.setProtocolVersion(HttpVersion.HTTP_1_1);
+        fullHttpRequest.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
         if (!connected.get()) {
             synchronized (connected) {
                 if (!connected.get()) {
@@ -152,5 +152,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         serverChannel.writeAndFlush(message);
     }
 
-
+    public String getDomain() {
+        return domain;
+    }
 }

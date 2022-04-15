@@ -18,6 +18,9 @@ import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpResponseDecoder;
+import io.netty.handler.codec.http.websocketx.WebSocketClientProtocolHandler;
+import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.util.internal.EmptyArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,11 +94,13 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
                 }
                 break;
             case HTTP:
-                // 向下传递
-                byte[] data = message.getData();
-                ByteBuf buffer = context.alloc().buffer(data.length);
-                buffer.writeBytes(data);
-                context.fireChannelRead(buffer);
+                Channel httpChannel = ClientChannelCache.getLocalHttpChannelMap().get(clientConfig.getChannelId());
+                if (httpChannel != null) {
+                    byte[] data = message.getData();
+                    ByteBuf buffer = context.alloc().buffer(data.length);
+                    buffer.writeBytes(data);
+                    httpChannel.writeAndFlush(buffer);
+                }
                 break;
             default:
         }
@@ -188,7 +193,8 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
             public void initChannel(SocketChannel channel) throws Exception {
                 channel.pipeline().addLast(new HttpResponseDecoder());
                 channel.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
-                channel.pipeline().addLast(new ReceiveHandler(context.channel(), clientConfig));
+                channel.pipeline().addLast(new ChunkedWriteHandler());
+                channel.pipeline().addLast(new ResponseHandler(context.channel(), clientConfig));
             }
         });
         localBootstrap.connect(httpConfig.getLocalIp(), httpConfig.getLocalPort()).addListener((ChannelFutureListener) future -> {

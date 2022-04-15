@@ -18,6 +18,7 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
+import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -78,11 +79,11 @@ public class ServerApplication {
         startHttp(serverBossGroup, serverWorkerGroup, globalTrafficShapingHandler);
     }
 
-    private static void startHttp(NioEventLoopGroup serverBossGroup, NioEventLoopGroup serverWorkerGroup, GlobalTrafficShapingHandler globalTrafficShapingHandler) throws SSLException {
+    private static void startHttp(NioEventLoopGroup serverBossGroup, NioEventLoopGroup serverWorkerGroup, GlobalTrafficShapingHandler globalTrafficShapingHandler) {
         ServerConfig serverConfig = Config.getServerConfig();
 
-        ServerBootstrap httpsBootstrap = new ServerBootstrap();
-        httpsBootstrap.group(serverBossGroup, serverWorkerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
+        ServerBootstrap httpBootstrap = new ServerBootstrap();
+        httpBootstrap.group(serverBossGroup, serverWorkerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
 
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
@@ -91,12 +92,13 @@ public class ServerApplication {
                 ch.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
                 ch.pipeline().addLast(new ChunkedWriteHandler());
                 ch.pipeline().addLast(new RequestHandler());
+                ch.pipeline().addLast(new WebSocketServerProtocolHandler("/"));
                 ServerChannelCache.getServerHttpChannelMap().put(ch.id().asLongText(), ch);
             }
         });
 
         try {
-            httpsBootstrap.bind(serverConfig.getServerIp(), serverConfig.getHttpPort()).sync();
+            httpBootstrap.bind(serverConfig.getServerIp(), serverConfig.getHttpPort()).sync();
             logger.info("服务端启动成功,本机绑定IP:{},Http端口:{}", serverConfig.getServerIp(), serverConfig.getHttpPort());
         } catch (Exception exception) {
             logger.info("服务端启动失败,本机绑定IP:{},Http端口:{},原因:{}", serverConfig.getServerIp(), serverConfig.getHttpPort(), exception.getCause().getMessage());
