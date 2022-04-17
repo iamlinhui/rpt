@@ -1,31 +1,22 @@
 package cn.promptness.rpt.server.cache;
 
-import cn.promptness.rpt.base.coder.HttpEncoder;
 import cn.promptness.rpt.base.utils.Constants;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.*;
-import io.netty.util.ReferenceCountUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
 public class DispatcherCache {
 
-    private static final Logger logger = LoggerFactory.getLogger(DispatcherCache.class);
-
     private static final Map<String, BiConsumer<ChannelHandlerContext, FullHttpRequest>> HANDLE_MAP = new HashMap<String, BiConsumer<ChannelHandlerContext, FullHttpRequest>>() {{
         put("/favicon.ico", DispatcherCache::favicon);
         put("/", DispatcherCache::index);
         put("/index.html", DispatcherCache::index);
-        put("/404", DispatcherCache::notFound);
     }};
 
     public static void doDispatch(FullHttpRequest fullHttpRequest, ChannelHandlerContext ctx) {
@@ -65,20 +56,9 @@ public class DispatcherCache {
     }
 
     private static void handle(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, FullHttpResponse fullHttpResponse) {
-        List<Object> encode = new ArrayList<>();
-        try {
-            new HttpEncoder.ResponseEncoder().encode(ctx, fullHttpResponse, encode);
-            for (Object obj : encode) {
-                ChannelFuture future = ctx.writeAndFlush(obj);
-                if (!HttpUtil.isKeepAlive(fullHttpRequest)) {
-                    future.addListener(ChannelFutureListener.CLOSE);
-                }
-            }
-        } catch (Exception e) {
-            logger.error(e.getMessage());
-        } finally {
-            // 释放缓冲区内存
-            ReferenceCountUtil.release(fullHttpResponse);
+        ChannelFuture future = ctx.writeAndFlush(fullHttpResponse);
+        if (!HttpUtil.isKeepAlive(fullHttpRequest)) {
+            future.addListener(ChannelFutureListener.CLOSE);
         }
     }
 

@@ -18,6 +18,7 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
+import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -88,6 +89,7 @@ public class ServerApplication {
             public void initChannel(SocketChannel ch) throws Exception {
                 ch.pipeline().addLast(globalTrafficShapingHandler);
                 ch.pipeline().addLast(new HttpRequestDecoder());
+                ch.pipeline().addLast(new HttpResponseEncoder());
                 ch.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
                 ch.pipeline().addLast(new ChunkedWriteHandler());
                 ch.pipeline().addLast(new RequestHandler());
