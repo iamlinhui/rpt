@@ -16,9 +16,10 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.http.*;
-import io.netty.handler.codec.http.websocketx.WebSocketFrameEncoder;
-import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpResponseEncoder;
+import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.internal.EmptyArrays;
 
@@ -31,7 +32,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private final Queue<FullHttpRequest> requestMessage = new LinkedBlockingQueue<>();
 
     private final AtomicBoolean connected = new AtomicBoolean(false);
-    private final AtomicBoolean websocket = new AtomicBoolean(false);
 
     private final HttpEncoder.RequestEncoder requestEncoder = new HttpEncoder.RequestEncoder();
 
@@ -79,11 +79,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (serverChannel == null) {
             return;
         }
-        if (websocket.get()) {
-            // ctx.pipeline().remove(WebSocketFrameEncoder.class);
-        } else {
-            ctx.pipeline().remove(HttpResponseEncoder.class);
-        }
+        ctx.pipeline().remove(HttpResponseEncoder.class);
         connected.set(true);
         if (!requestMessage.isEmpty()) {
             synchronized (connected) {
@@ -110,13 +106,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             DispatcherCache.doDispatch(fullHttpRequest, ctx);
             return;
         }
-        if (fullHttpRequest.headers().contains(HttpHeaderNames.UPGRADE, HttpHeaderValues.WEBSOCKET, true) && fullHttpRequest.headers().contains(HttpHeaderNames.CONNECTION, HttpHeaderValues.UPGRADE, true)) {
-            websocket.set(true);
-            if (ctx.pipeline().get(WebSocketServerProtocolHandler.class) == null) {
-                ctx.pipeline().addLast(new WebSocketServerProtocolHandler(fullHttpRequest.uri()));
-                ctx.pipeline().addLast(new WebSocketHandler(domain, fullHttpRequest.headers().get(HttpHeaderNames.SEC_WEBSOCKET_VERSION)));
-            }
-        }
         if (!connected.get()) {
             ctx.channel().config().setAutoRead(false);
             send(serverChannel, ctx, domain, MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES);
@@ -134,9 +123,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     }
 
     private void handle(Channel serverChannel, ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
-        if (websocket.get()) {
-            ctx.pipeline().fireChannelRead(fullHttpRequest.retain());
-        }
         List<Object> encode = new ArrayList<>();
         requestEncoder.encode(ctx, fullHttpRequest, encode);
         for (Object obj : encode) {
