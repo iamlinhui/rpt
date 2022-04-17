@@ -78,7 +78,7 @@ public class ClientApplication {
                     logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), exception.getCause().getMessage());
                 }
             }
-        }, 0, 1, TimeUnit.MINUTES));
+        }, 0, 3, TimeUnit.SECONDS));
         if (!QUEUE.offer(pair)) {
             pair.getValue().cancel(true);
             clientWorkerGroup.shutdownGracefully();
