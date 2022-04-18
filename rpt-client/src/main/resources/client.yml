@@ -1,5 +1,6 @@
 serverIp: 127.0.0.1
 serverPort: 6167
+clientLimit: 1048576
 clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
 
 # TCP时domain可不填写  HTTP时remotePort可不填写

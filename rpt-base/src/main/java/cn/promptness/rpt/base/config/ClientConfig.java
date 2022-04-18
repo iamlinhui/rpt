@@ -14,6 +14,7 @@ public class ClientConfig implements Serializable {
 
     private String serverIp;
     private int serverPort;
+    private int clientLimit;
     private String clientKey;
     private boolean connection;
     private String channelId;
@@ -162,4 +163,11 @@ public class ClientConfig implements Serializable {
         return null;
     }
 
+    public int getClientLimit() {
+        return clientLimit;
+    }
+
+    public void setClientLimit(int clientLimit) {
+        this.clientLimit = clientLimit;
+    }
 }

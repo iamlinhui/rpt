@@ -21,6 +21,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
 import io.netty.handler.stream.ChunkedWriteHandler;
+import io.netty.handler.traffic.GlobalTrafficShapingHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +48,7 @@ public class ClientApplication {
         SslContext sslContext = SslContextBuilder.forClient().keyManager(certChainFile, keyFile).trustManager(rootFile).sslProvider(SslProvider.OPENSSL).build();
 
         NioEventLoopGroup clientWorkerGroup = new NioEventLoopGroup();
+        GlobalTrafficShapingHandler globalTrafficShapingHandler = new GlobalTrafficShapingHandler(clientWorkerGroup, 0, clientConfig.getClientLimit());
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(clientWorkerGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
             @Override
@@ -62,7 +64,7 @@ public class ClientApplication {
                 ch.pipeline().addLast(new MessageEncoder());
                 ch.pipeline().addLast(new IdleCheckHandler(60, 30, 0));
                 //服务器连接处理器
-                ch.pipeline().addLast(new ClientHandler());
+                ch.pipeline().addLast(new ClientHandler(globalTrafficShapingHandler));
             }
         });
         Pair<NioEventLoopGroup, ScheduledFuture<?>> pair = new Pair<>(clientWorkerGroup, EXECUTOR.scheduleAtFixedRate(() -> {
