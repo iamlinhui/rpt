@@ -42,7 +42,7 @@ serverIp: 0.0.0.0
 serverPort: 6167
 #服务端暴露的HTTP复用端口
 httpPort: 80
-#服务端的传输速度限制 单位bytes/s 为0则不限制
+#服务端的传输速度限制 单位bytes/s 为0则不限制 1048576bytes/s=1m/s
 serverLimit: 1048576
 #授权给客户端的秘钥
 clientKey:
@@ -57,6 +57,8 @@ clientKey:
 serverIp: 127.0.0.1
 #服务端与客户端通讯端口
 serverPort: 6167
+#客户端的传输速度限制 单位bytes/s 为0则不限制 1048576bytes/s=1m/s
+clientLimit: 1048576
 #授权给客户端的秘钥
 clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
 
