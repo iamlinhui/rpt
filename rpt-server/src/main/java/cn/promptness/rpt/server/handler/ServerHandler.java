@@ -254,7 +254,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                         channel.pipeline().addLast(new ByteArrayDecoder());
                         channel.pipeline().addLast(new ByteArrayEncoder());
                         channel.pipeline().addLast(new ChunkedWriteHandler());
-                        channel.pipeline().addLast(new ByteIdleCheckHandler(30, 20, 0));
+                        channel.pipeline().addLast(new ByteIdleCheckHandler(0, 30, 0));
                         channel.pipeline().addLast(new RemoteHandler(context.channel(), remoteConfig));
                         remoteChannelMap.put(channel.id().asLongText(), channel);
                     }

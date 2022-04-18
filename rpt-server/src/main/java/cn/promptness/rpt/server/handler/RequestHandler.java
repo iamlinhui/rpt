@@ -82,7 +82,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (serverChannel == null) {
             return;
         }
-        ctx.pipeline().addFirst(new ByteArrayDecoder(), new ByteArrayEncoder(), new ByteIdleCheckHandler(30, 20, 0));
+        ctx.pipeline().addFirst(new ByteArrayDecoder(), new ByteArrayEncoder(), new ByteIdleCheckHandler(0, 30, 0));
         ctx.pipeline().remove(HttpServerCodec.class);
         ctx.pipeline().remove(HttpObjectAggregator.class);
         connected.set(true);

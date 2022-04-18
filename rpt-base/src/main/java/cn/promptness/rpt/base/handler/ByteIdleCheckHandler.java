@@ -22,9 +22,6 @@ public class ByteIdleCheckHandler extends IdleStateHandler {
         if (IdleStateEvent.FIRST_WRITER_IDLE_STATE_EVENT == evt) {
             logger.debug("{}秒未传输数据,发送心跳包", TimeUnit.MILLISECONDS.toSeconds(super.getWriterIdleTimeInMillis()));
             ctx.channel().writeAndFlush(EmptyArrays.EMPTY_BYTES);
-        } else if (IdleStateEvent.FIRST_READER_IDLE_STATE_EVENT == evt) {
-            logger.debug("{}秒未收到数据,发送心跳包", TimeUnit.MILLISECONDS.toSeconds(super.getReaderIdleTimeInMillis()));
-            ctx.channel().writeAndFlush(EmptyArrays.EMPTY_BYTES);
         }
         super.channelIdle(ctx, evt);
     }
