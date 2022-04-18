@@ -1,5 +1,6 @@
 package cn.promptness.rpt.client.handler;
 
+import cn.promptness.rpt.base.coder.ByteArrayCodec;
 import cn.promptness.rpt.base.config.ClientConfig;
 import cn.promptness.rpt.base.config.Config;
 import cn.promptness.rpt.base.config.RemoteConfig;
@@ -14,8 +15,6 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.bytes.ByteArrayDecoder;
-import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.util.internal.EmptyArrays;
 import org.slf4j.Logger;
@@ -119,8 +118,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         localBootstrap.group(localGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel channel) throws Exception {
-                channel.pipeline().addLast(new ByteArrayDecoder());
-                channel.pipeline().addLast(new ByteArrayEncoder());
+                channel.pipeline().addLast(new ByteArrayCodec());
                 channel.pipeline().addLast(new ChunkedWriteHandler());
                 channel.pipeline().addLast(new ByteIdleCheckHandler(0, 30, 0));
                 channel.pipeline().addLast(new LocalHandler(context.channel(), clientConfig));
