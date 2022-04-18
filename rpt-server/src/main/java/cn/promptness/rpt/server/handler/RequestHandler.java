@@ -16,10 +16,10 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpResponseEncoder;
-import io.netty.handler.codec.http.HttpVersion;
+import io.netty.handler.codec.bytes.ByteArrayDecoder;
+import io.netty.handler.codec.bytes.ByteArrayEncoder;
+import io.netty.handler.codec.http.*;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.internal.EmptyArrays;
 
@@ -68,7 +68,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        if (!(evt instanceof ProxyType)) {
+        if (!Objects.equals(ProxyType.HTTP, evt)) {
             ctx.fireUserEventTriggered(evt);
             return;
         }
@@ -79,7 +79,11 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (serverChannel == null) {
             return;
         }
+        ctx.pipeline().addFirst(new ByteArrayDecoder(), new ByteArrayEncoder());
+        ctx.pipeline().remove(HttpRequestDecoder.class);
         ctx.pipeline().remove(HttpResponseEncoder.class);
+        ctx.pipeline().remove(HttpObjectAggregator.class);
+        ctx.pipeline().remove(ChunkedWriteHandler.class);
         connected.set(true);
         if (!requestMessage.isEmpty()) {
             synchronized (connected) {
@@ -91,6 +95,23 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             }
         }
         ctx.channel().config().setAutoRead(true);
+    }
+
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        if (msg instanceof FullHttpRequest) {
+            super.channelRead(ctx, msg);
+            return;
+        }
+        if (msg instanceof byte[]) {
+            byte[] message = (byte[]) msg;
+            Channel serverChannel = ServerChannelCache.getServerDomainChannelMap().get(domain);
+            if (serverChannel != null) {
+                send(serverChannel, ctx, domain, MessageType.TYPE_DATA, message);
+            }
+            return;
+        }
+        ctx.fireChannelRead(msg);
     }
 
     @Override
@@ -110,7 +131,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             ctx.channel().config().setAutoRead(false);
             send(serverChannel, ctx, domain, MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES);
         }
-        fullHttpRequest.setProtocolVersion(HttpVersion.HTTP_1_1);
         if (!connected.get()) {
             synchronized (connected) {
                 if (!connected.get()) {
