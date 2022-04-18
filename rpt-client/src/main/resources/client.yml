@@ -11,7 +11,7 @@ config:
     description: rdp
   - proxyType: TCP
     localIp: 127.0.0.1
-    localPort: 6399
+    localPort: 6379
     remotePort: 7379
     description: redis
   - proxyType: HTTP

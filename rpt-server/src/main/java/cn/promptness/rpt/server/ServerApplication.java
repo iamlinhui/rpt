@@ -17,8 +17,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpRequestDecoder;
-import io.netty.handler.codec.http.HttpResponseEncoder;
+import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -58,6 +57,7 @@ public class ServerApplication {
                 // 固定帧长解码器
                 ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4));
                 ch.pipeline().addLast(new LengthFieldPrepender(4));
+                ch.pipeline().addLast(new ChunkedWriteHandler());
                 // 自定义协议解码器
                 ch.pipeline().addLast(new MessageDecoder());
                 // 自定义协议编码器
@@ -89,8 +89,7 @@ public class ServerApplication {
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
                 ch.pipeline().addLast(globalTrafficShapingHandler);
-                ch.pipeline().addLast(new HttpRequestDecoder());
-                ch.pipeline().addLast(new HttpResponseEncoder());
+                ch.pipeline().addLast(new HttpServerCodec());
                 ch.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
                 ch.pipeline().addLast(new ChunkedWriteHandler());
                 ch.pipeline().addLast(new RequestHandler());
