@@ -18,12 +18,11 @@ public class ClientConfigCache {
 
     private static final Logger log = LoggerFactory.getLogger(ClientConfigCache.class);
 
-    private static final String CONFIG_FILE = "client.dat";
+    private static final File CONFIG_FILE = new File("client.dat");
 
     public static void read() {
-        File account = new File(CONFIG_FILE);
-        if (account.exists()) {
-            try (ObjectInputStream ois = new ObjectInputStream(Files.newInputStream(account.toPath()))) {
+        if (CONFIG_FILE.exists()) {
+            try (ObjectInputStream ois = new ObjectInputStream(Files.newInputStream(CONFIG_FILE.toPath()))) {
                 Object object;
                 while ((object = ois.readObject()) != null) {
                     ClientConfig clientConfig = (ClientConfig) object;
@@ -36,8 +35,7 @@ public class ClientConfigCache {
     }
 
     public static void cache() {
-        File account = new File(CONFIG_FILE);
-        try (ObjectOutputStream oos = new ObjectOutputStream(Files.newOutputStream(account.toPath()))) {
+        try (ObjectOutputStream oos = new ObjectOutputStream(Files.newOutputStream(CONFIG_FILE.toPath()))) {
             oos.writeObject(Config.getClientConfig());
             oos.writeObject(null);
             oos.flush();
