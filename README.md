@@ -4,7 +4,7 @@
 
 > 支持任何TCP上层协议，可用于远程桌面、访问内网网站、SSH访问、远程连接打印机、本地支付接口调试、微信小程序调试...
 
-> 支持HTTP端口复用，可用于内网反向代理，共用服务端80/443端口。
+> 支持HTTP端口复用，可用于内网反向代理，共用服务端80/443端口。支持HTTP请求升级为WebSocket，HTTP2。
 
 > SSL双端验证，数据加密传输。
 
@@ -75,7 +75,7 @@ config:
     
   - proxyType: TCP
     localIp: 127.0.0.1
-    localPort: 6399
+    localPort: 6379
     remotePort: 7379
     description: redis
     
