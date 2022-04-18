@@ -16,6 +16,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.traffic.GlobalTrafficShapingHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -251,6 +252,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                         channel.pipeline().addLast(globalTrafficShapingHandler);
                         channel.pipeline().addLast(new ByteArrayDecoder());
                         channel.pipeline().addLast(new ByteArrayEncoder());
+                        channel.pipeline().addLast(new ChunkedWriteHandler());
                         channel.pipeline().addLast(new RemoteHandler(context.channel(), remoteConfig));
                         remoteChannelMap.put(channel.id().asLongText(), channel);
                     }

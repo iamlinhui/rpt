@@ -18,8 +18,10 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
-import io.netty.handler.codec.http.*;
-import io.netty.handler.stream.ChunkedWriteHandler;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.internal.EmptyArrays;
 
@@ -80,10 +82,8 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             return;
         }
         ctx.pipeline().addFirst(new ByteArrayDecoder(), new ByteArrayEncoder());
-        ctx.pipeline().remove(HttpRequestDecoder.class);
-        ctx.pipeline().remove(HttpResponseEncoder.class);
+        ctx.pipeline().remove(HttpServerCodec.class);
         ctx.pipeline().remove(HttpObjectAggregator.class);
-        ctx.pipeline().remove(ChunkedWriteHandler.class);
         connected.set(true);
         if (!requestMessage.isEmpty()) {
             synchronized (connected) {

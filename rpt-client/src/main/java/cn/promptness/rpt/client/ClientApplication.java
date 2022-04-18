@@ -20,6 +20,7 @@ import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +55,7 @@ public class ClientApplication {
                 //固定帧长解码器
                 ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4));
                 ch.pipeline().addLast(new LengthFieldPrepender(4));
+                ch.pipeline().addLast(new ChunkedWriteHandler());
                 //自定义协议解码器
                 ch.pipeline().addLast(new MessageDecoder());
                 //自定义协议编码器
