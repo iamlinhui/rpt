@@ -3,6 +3,7 @@ package cn.promptness.rpt.client.handler;
 import cn.promptness.rpt.base.config.ClientConfig;
 import cn.promptness.rpt.base.config.Config;
 import cn.promptness.rpt.base.config.RemoteConfig;
+import cn.promptness.rpt.base.handler.ByteIdleCheckHandler;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.protocol.ProxyType;
@@ -121,6 +122,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
                 channel.pipeline().addLast(new ByteArrayDecoder());
                 channel.pipeline().addLast(new ByteArrayEncoder());
                 channel.pipeline().addLast(new ChunkedWriteHandler());
+                channel.pipeline().addLast(new ByteIdleCheckHandler(30, 20, 0));
                 channel.pipeline().addLast(new LocalHandler(context.channel(), clientConfig));
             }
         });
