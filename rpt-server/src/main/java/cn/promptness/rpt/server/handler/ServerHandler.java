@@ -1,5 +1,6 @@
 package cn.promptness.rpt.server.handler;
 
+import cn.promptness.rpt.base.coder.ByteArrayCodec;
 import cn.promptness.rpt.base.config.ClientConfig;
 import cn.promptness.rpt.base.config.Config;
 import cn.promptness.rpt.base.config.RemoteConfig;
@@ -15,8 +16,6 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.bytes.ByteArrayDecoder;
-import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.traffic.GlobalTrafficShapingHandler;
 import org.slf4j.Logger;
@@ -251,8 +250,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                     @Override
                     public void initChannel(SocketChannel channel) throws Exception {
                         channel.pipeline().addLast(globalTrafficShapingHandler);
-                        channel.pipeline().addLast(new ByteArrayDecoder());
-                        channel.pipeline().addLast(new ByteArrayEncoder());
+                        channel.pipeline().addLast(new ByteArrayCodec());
                         channel.pipeline().addLast(new ChunkedWriteHandler());
                         channel.pipeline().addLast(new ByteIdleCheckHandler(0, 30, 0));
                         channel.pipeline().addLast(new RemoteHandler(context.channel(), remoteConfig));

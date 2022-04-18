@@ -1,5 +1,6 @@
 package cn.promptness.rpt.server.handler;
 
+import cn.promptness.rpt.base.coder.ByteArrayCodec;
 import cn.promptness.rpt.base.coder.HttpEncoder;
 import cn.promptness.rpt.base.config.ClientConfig;
 import cn.promptness.rpt.base.config.RemoteConfig;
@@ -17,8 +18,6 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.bytes.ByteArrayDecoder;
-import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpObjectAggregator;
@@ -82,9 +81,8 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (serverChannel == null) {
             return;
         }
-        ctx.pipeline().addFirst(new ByteArrayDecoder(), new ByteArrayEncoder(), new ByteIdleCheckHandler(0, 30, 0));
-        ctx.pipeline().remove(HttpServerCodec.class);
-        ctx.pipeline().remove(HttpObjectAggregator.class);
+        ctx.pipeline().replace(HttpServerCodec.class, ByteArrayCodec.class.getName(), new ByteArrayCodec());
+        ctx.pipeline().replace(HttpObjectAggregator.class, ByteIdleCheckHandler.class.getName(), new ByteIdleCheckHandler(0, 30, 0));
         connected.set(true);
         if (!requestMessage.isEmpty()) {
             synchronized (connected) {
