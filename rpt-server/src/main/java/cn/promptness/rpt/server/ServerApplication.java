@@ -75,6 +75,7 @@ public class ServerApplication {
             logger.info("服务端启动失败,本机绑定IP:{},服务端口:{},原因:{}", serverConfig.getServerIp(), serverConfig.getServerPort(), exception.getCause().getMessage());
             serverBossGroup.shutdownGracefully();
             serverWorkerGroup.shutdownGracefully();
+            Thread.currentThread().interrupt();
         }
         startHttp(serverBossGroup, serverWorkerGroup, globalTrafficShapingHandler);
     }

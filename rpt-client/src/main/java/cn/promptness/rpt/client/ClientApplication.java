@@ -67,18 +67,20 @@ public class ClientApplication {
             if (ClientChannelCache.getConnect()) {
                 return;
             }
-            synchronized (ClientApplication.class) {
+            synchronized (QUEUE) {
                 if (ClientChannelCache.getConnect()) {
                     return;
                 }
                 try {
+                    logger.info("客户端开始连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
                     bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).sync();
                     logger.info("客户端成功连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
                 } catch (Exception exception) {
                     logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), exception.getCause().getMessage());
+                    Thread.currentThread().interrupt();
                 }
             }
-        }, 0, 3, TimeUnit.SECONDS));
+        }, 0, 1, TimeUnit.MINUTES));
         if (!QUEUE.offer(pair)) {
             pair.getValue().cancel(true);
             clientWorkerGroup.shutdownGracefully();
