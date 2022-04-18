@@ -9,7 +9,6 @@ import cn.promptness.rpt.base.protocol.ProxyType;
 import cn.promptness.rpt.base.utils.StringUtils;
 import cn.promptness.rpt.server.cache.ServerChannelCache;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -87,7 +86,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                 register(context, message);
                 break;
             case TYPE_DATA:
-                transfer(context, message);
+                transfer(message);
                 break;
             case TYPE_CONNECTED:
                 connected(message);
@@ -154,7 +153,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     }
 
 
-    private void transfer(ChannelHandlerContext context, Message message) {
+    private void transfer(Message message) {
         RemoteConfig remoteConfig = message.getClientConfig().getConfig().get(0);
         ProxyType proxyType = remoteConfig.getProxyType();
         if (proxyType == null) {
@@ -168,10 +167,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                 String channelId = message.getClientConfig().getChannelId();
                 Channel channel = ServerChannelCache.getServerHttpChannelMap().get(channelId);
                 if (channel != null) {
-                    byte[] data = message.getData();
-                    ByteBuf buffer = context.alloc().buffer(data.length);
-                    buffer.writeBytes(data);
-                    channel.writeAndFlush(buffer);
+                    channel.writeAndFlush(message.getData());
                 }
                 break;
             default:
