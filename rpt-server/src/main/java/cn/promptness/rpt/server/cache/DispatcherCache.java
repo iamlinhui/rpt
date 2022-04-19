@@ -28,7 +28,7 @@ public class DispatcherCache {
         byte[] result = Constants.page("page/favicon.ico");
         FullHttpResponse response = buildResponse(ctx, HttpResponseStatus.OK, result);
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, "image/x-icon");
-        response.headers().set("Cache-Control", "max-age=86400");
+        response.headers().set(HttpHeaderNames.CACHE_CONTROL, "max-age=86400");
         handle(ctx, fullHttpRequest, response);
     }
 
