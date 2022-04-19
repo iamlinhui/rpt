@@ -264,6 +264,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         } catch (Exception exception) {
             logger.info("服务端失败建立本地端口绑定[{}], {}", remoteConfig.getRemotePort(), exception.getCause().getMessage());
             remoteResult.add(String.format("服务端绑定端口[%s]失败,原因:%s", remoteConfig.getRemotePort(), exception.getCause().getMessage()));
+            Thread.currentThread().interrupt();
         }
     }
 }
