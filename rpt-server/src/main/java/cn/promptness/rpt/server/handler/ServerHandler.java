@@ -113,7 +113,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             Message res = new Message();
             res.setType(MessageType.TYPE_AUTH);
             res.setMeta(meta.setConnection(false));
-            context.writeAndFlush(res);
+            context.writeAndFlush(res).addListener(ChannelFutureListener.CLOSE);
             return;
         }
         List<String> remoteResult = new ArrayList<>();
