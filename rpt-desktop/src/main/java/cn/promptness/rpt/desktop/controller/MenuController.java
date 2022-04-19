@@ -1,6 +1,6 @@
 package cn.promptness.rpt.desktop.controller;
 
-import cn.promptness.rpt.base.config.Config;
+import cn.promptness.rpt.base.utils.Config;
 import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.client.ClientApplication;

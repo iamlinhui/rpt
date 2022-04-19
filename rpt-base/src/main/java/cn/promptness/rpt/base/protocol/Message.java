@@ -1,17 +1,14 @@
 package cn.promptness.rpt.base.protocol;
 
-import cn.promptness.rpt.base.config.ClientConfig;
-
 /**
  * 客户端-服务器自定义通信协议
  */
-
 public class Message {
 
     /**
      * 元数据
      */
-    private ClientConfig clientConfig;
+    private Meta meta;
     /**
      * 消息内容
      */
@@ -22,12 +19,12 @@ public class Message {
      */
     private MessageType type;
 
-    public ClientConfig getClientConfig() {
-        return clientConfig;
+    public Meta getMeta() {
+        return meta;
     }
 
-    public void setClientConfig(ClientConfig clientConfig) {
-        this.clientConfig = clientConfig;
+    public void setMeta(Meta meta) {
+        this.meta = meta;
     }
 
     public byte[] getData() {

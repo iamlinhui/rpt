@@ -1,17 +1,16 @@
 package cn.promptness.rpt.server.handler;
 
-import cn.promptness.rpt.base.config.ClientConfig;
-import cn.promptness.rpt.base.config.Config;
 import cn.promptness.rpt.base.config.RemoteConfig;
-import cn.promptness.rpt.base.config.ServerConfig;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
+import cn.promptness.rpt.base.protocol.Meta;
+import cn.promptness.rpt.base.config.ProxyType;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.internal.EmptyArrays;
 
-import java.util.Collections;
+import java.util.Objects;
 
 /**
  * 处理服务器接收到的外部请求
@@ -26,6 +25,14 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
         this.remoteConfig = remoteConfig;
     }
 
+    @Override
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+        if (!Objects.equals(ProxyType.TCP, evt)) {
+            ctx.fireUserEventTriggered(evt);
+            return;
+        }
+        ctx.channel().config().setAutoRead(true);
+    }
 
     /**
      * 连接初始化，建立连接
@@ -63,20 +70,11 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
      * 发送数据到内网客户端流程封装
      **/
     public void send(MessageType type, byte[] data, ChannelHandlerContext ctx) {
-
-        ServerConfig serverConfig = Config.getServerConfig();
-        ClientConfig clientConfig = new ClientConfig();
-        clientConfig.setServerIp(serverConfig.getServerIp());
-        clientConfig.setServerPort(serverConfig.getServerPort());
-        clientConfig.setConfig(Collections.singletonList(remoteConfig));
-        clientConfig.setConnection(true);
-        clientConfig.setChannelId(ctx.channel().id().asLongText());
-
+        Meta meta = new Meta(ctx.channel().id().asLongText(), remoteConfig);
         Message message = new Message();
         message.setType(type);
-        message.setClientConfig(clientConfig);
+        message.setMeta(meta);
         message.setData(data);
-
         channel.writeAndFlush(message);
     }
 }

@@ -2,12 +2,12 @@ package cn.promptness.rpt.server.handler;
 
 import cn.promptness.rpt.base.coder.ByteArrayCodec;
 import cn.promptness.rpt.base.coder.HttpEncoder;
-import cn.promptness.rpt.base.config.ClientConfig;
 import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.handler.ByteIdleCheckHandler;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
-import cn.promptness.rpt.base.protocol.ProxyType;
+import cn.promptness.rpt.base.protocol.Meta;
+import cn.promptness.rpt.base.config.ProxyType;
 import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.base.utils.StringUtils;
 import cn.promptness.rpt.server.cache.DispatcherCache;
@@ -153,18 +153,13 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         }
     }
 
-
     private void send(Channel serverChannel, ChannelHandlerContext ctx, String domain, MessageType typeConnect, byte[] data) {
         RemoteConfig remoteConfig = new RemoteConfig();
         remoteConfig.setProxyType(ProxyType.HTTP);
         remoteConfig.setDomain(domain);
 
-        ClientConfig clientConfig = new ClientConfig();
-        clientConfig.setConfig(Collections.singletonList(remoteConfig));
-        clientConfig.setChannelId(ctx.channel().id().asLongText());
-
         Message message = new Message();
-        message.setClientConfig(clientConfig);
+        message.setMeta(new Meta(ctx.channel().id().asLongText(), remoteConfig));
         message.setData(data);
         message.setType(typeConnect);
         serverChannel.writeAndFlush(message);

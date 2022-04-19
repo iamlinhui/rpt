@@ -1,9 +1,9 @@
 package cn.promptness.rpt.base.coder;
 
-import cn.promptness.rpt.base.config.ClientConfig;
-import cn.promptness.rpt.base.config.ClientConfigProto;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
+import cn.promptness.rpt.base.protocol.Meta;
+import cn.promptness.rpt.base.utils.MetaUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.ChannelHandlerContext;
@@ -22,18 +22,15 @@ public class MessageDecoder extends MessageToMessageDecoder<ByteBuf> {
 
         int protobufLength = byteBuf.readInt();
         if (protobufLength > 0) {
-            byte[] clientConfigByte = new byte[protobufLength];
-            byteBuf.readBytes(clientConfigByte);
-            ClientConfigProto.ClientConfig clientConfig = ClientConfigProto.ClientConfig.parseFrom(clientConfigByte);
-            proxyMessage.setClientConfig(new ClientConfig().fromProtobuf(clientConfig));
+            byte[] metaByte = new byte[protobufLength];
+            byteBuf.readBytes(metaByte);
+            Meta meta = MetaUtils.deserialize(metaByte);
+            proxyMessage.setMeta(meta);
         }
-
-        byte[] data = null;
         if (byteBuf.isReadable()) {
-            data = ByteBufUtil.getBytes(byteBuf);
+            byte[] data = ByteBufUtil.getBytes(byteBuf);
+            proxyMessage.setData(data);
         }
-        proxyMessage.setData(data);
-
         list.add(proxyMessage);
     }
 }

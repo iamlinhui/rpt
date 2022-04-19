@@ -3,12 +3,11 @@ package cn.promptness.rpt.client;
 import cn.promptness.rpt.base.coder.MessageDecoder;
 import cn.promptness.rpt.base.coder.MessageEncoder;
 import cn.promptness.rpt.base.config.ClientConfig;
-import cn.promptness.rpt.base.config.Config;
 import cn.promptness.rpt.base.handler.IdleCheckHandler;
+import cn.promptness.rpt.base.utils.Config;
 import cn.promptness.rpt.base.utils.Pair;
 import cn.promptness.rpt.base.utils.ScheduledThreadFactory;
 import cn.promptness.rpt.client.handler.ClientHandler;
-import cn.promptness.rpt.client.handler.cache.ClientChannelCache;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -31,13 +30,14 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ClientApplication {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientApplication.class);
 
     private static final ScheduledThreadPoolExecutor EXECUTOR = new ScheduledThreadPoolExecutor(1, ScheduledThreadFactory.create("client", false));
-
+    private static final AtomicBoolean CONNECT = new AtomicBoolean(false);
     private static final ArrayBlockingQueue<Pair<NioEventLoopGroup, ScheduledFuture<?>>> QUEUE = new ArrayBlockingQueue<>(1);
 
     public static void main(String[] args) throws SSLException {
@@ -64,15 +64,15 @@ public class ClientApplication {
                 ch.pipeline().addLast(new MessageEncoder());
                 ch.pipeline().addLast(new IdleCheckHandler(60, 30, 0));
                 //服务器连接处理器
-                ch.pipeline().addLast(new ClientHandler(globalTrafficShapingHandler));
+                ch.pipeline().addLast(new ClientHandler(globalTrafficShapingHandler, CONNECT));
             }
         });
         Pair<NioEventLoopGroup, ScheduledFuture<?>> pair = new Pair<>(clientWorkerGroup, EXECUTOR.scheduleAtFixedRate(() -> {
-            if (ClientChannelCache.getConnect()) {
+            if (CONNECT.get()) {
                 return;
             }
-            synchronized (QUEUE) {
-                if (ClientChannelCache.getConnect()) {
+            synchronized (CONNECT) {
+                if (CONNECT.get()) {
                     return;
                 }
                 try {

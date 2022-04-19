@@ -1,4 +1,4 @@
-package cn.promptness.rpt.base.protocol;
+package cn.promptness.rpt.base.config;
 
 import java.util.Locale;
 import java.util.Objects;

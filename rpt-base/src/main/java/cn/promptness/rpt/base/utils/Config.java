@@ -1,5 +1,7 @@
-package cn.promptness.rpt.base.config;
+package cn.promptness.rpt.base.utils;
 
+import cn.promptness.rpt.base.config.ClientConfig;
+import cn.promptness.rpt.base.config.ServerConfig;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.InputStream;

@@ -1,7 +1,7 @@
 package cn.promptness.rpt.desktop.cache;
 
 import cn.promptness.rpt.base.config.ClientConfig;
-import cn.promptness.rpt.base.config.Config;
+import cn.promptness.rpt.base.utils.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,8 +1,8 @@
 package cn.promptness.rpt.client.handler;
 
-import cn.promptness.rpt.base.config.ClientConfig;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
+import cn.promptness.rpt.base.protocol.Meta;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -14,11 +14,11 @@ import io.netty.util.internal.EmptyArrays;
 public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
 
     private final Channel channel;
-    private final ClientConfig clientConfig;
+    private final Meta meta;
 
-    public LocalHandler(Channel channel, ClientConfig clientConfig) {
+    public LocalHandler(Channel channel, Meta meta) {
         this.channel = channel;
-        this.clientConfig = clientConfig;
+        this.meta = meta;
     }
 
     @Override
@@ -55,7 +55,7 @@ public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
     private void send(MessageType type, byte[] data) {
         Message message = new Message();
         message.setType(type);
-        message.setClientConfig(clientConfig);
+        message.setMeta(meta);
         message.setData(data);
         // 收到内网服务器响应后返回给服务器端
         channel.writeAndFlush(message);

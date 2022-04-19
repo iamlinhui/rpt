@@ -2,7 +2,7 @@ package cn.promptness.rpt.server;
 
 import cn.promptness.rpt.base.coder.MessageDecoder;
 import cn.promptness.rpt.base.coder.MessageEncoder;
-import cn.promptness.rpt.base.config.Config;
+import cn.promptness.rpt.base.utils.Config;
 import cn.promptness.rpt.base.config.ServerConfig;
 import cn.promptness.rpt.base.handler.IdleCheckHandler;
 import cn.promptness.rpt.server.cache.ServerChannelCache;
