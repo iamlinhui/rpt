@@ -1,14 +1,13 @@
 package cn.promptness.rpt.client.handler;
 
 import cn.promptness.rpt.base.coder.ByteArrayCodec;
-import cn.promptness.rpt.base.config.ClientConfig;
-import cn.promptness.rpt.base.config.Config;
+import cn.promptness.rpt.base.config.ProxyType;
 import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.handler.ByteIdleCheckHandler;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
-import cn.promptness.rpt.base.protocol.ProxyType;
-import cn.promptness.rpt.client.handler.cache.ClientChannelCache;
+import cn.promptness.rpt.base.protocol.Meta;
+import cn.promptness.rpt.base.utils.Config;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
@@ -22,10 +21,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 服务器连接处理器
@@ -40,8 +39,11 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
      */
     private final Map<String, Channel> localChannelMap = new ConcurrentHashMap<>();
     private final GlobalTrafficShapingHandler globalTrafficShapingHandler;
-    public ClientHandler(GlobalTrafficShapingHandler globalTrafficShapingHandler) {
+    private final AtomicBoolean connect;
+
+    public ClientHandler(GlobalTrafficShapingHandler globalTrafficShapingHandler, AtomicBoolean connect) {
         this.globalTrafficShapingHandler = globalTrafficShapingHandler;
+        this.connect = connect;
     }
 
     @Override
@@ -49,7 +51,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         //连接建立成功，发送注册请求
         Message message = new Message();
         message.setType(MessageType.TYPE_REGISTER);
-        message.setClientConfig(Config.getClientConfig());
+        message.setMeta(new Meta(Config.getClientConfig().getClientKey(), Config.getClientConfig().getConfig()));
         ctx.writeAndFlush(message);
     }
 
@@ -57,15 +59,15 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
     protected void channelRead0(ChannelHandlerContext context, Message message) throws Exception {
         switch (message.getType()) {
             case TYPE_AUTH:
-                boolean connection = message.getClientConfig().isConnection();
-                ClientChannelCache.setConnect(connection);
+                boolean connection = message.getMeta().isConnection();
+                connect.set(connection);
                 if (connection) {
-                    logger.info("授权连接成功,clientKey:{}", message.getClientConfig().getClientKey());
-                    for (String remoteResult : message.getClientConfig().getRemoteResult()) {
+                    logger.info("授权连接成功,clientKey:{}", message.getMeta().getClientKey());
+                    for (String remoteResult : message.getMeta().getRemoteResult()) {
                         logger.info(remoteResult);
                     }
                 } else {
-                    logger.info("授权连接失败,clientKey:{}", message.getClientConfig().getClientKey());
+                    logger.info("授权连接失败,clientKey:{}", message.getMeta().getClientKey());
                 }
                 break;
             case TYPE_CONNECTED:
@@ -87,38 +89,42 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         if (message.getData() == null) {
             return;
         }
-        ClientConfig clientConfig = message.getClientConfig();
-        Channel tcpChannel = localChannelMap.get(clientConfig.getChannelId());
+        String channelId = message.getMeta().getChannelId();
+        Channel tcpChannel = localChannelMap.get(channelId);
         if (tcpChannel != null) {
             tcpChannel.writeAndFlush(message.getData());
         }
     }
 
     private void disconnected(Message message) {
-        ClientConfig clientConfig = message.getClientConfig();
-        Channel tcpChannel = localChannelMap.remove(clientConfig.getChannelId());
+        String channelId = message.getMeta().getChannelId();
+        Channel tcpChannel = localChannelMap.remove(channelId);
         if (tcpChannel != null) {
             tcpChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         }
     }
 
     private void connected(ChannelHandlerContext context, Message message) {
-        ClientConfig clientConfig = message.getClientConfig();
-        List<RemoteConfig> remoteConfigList = clientConfig.getConfig();
-        if (remoteConfigList == null || remoteConfigList.isEmpty()) {
+        Meta meta = message.getMeta();
+        RemoteConfig remoteConfig = meta.getRemoteConfig();
+        if (remoteConfig == null) {
             return;
         }
-        ProxyType proxyType = remoteConfigList.get(0).getProxyType();
+        ProxyType proxyType = remoteConfig.getProxyType();
         if (Objects.equals(ProxyType.HTTP, proxyType)) {
-            String domain = clientConfig.getConfig().get(0).getDomain();
+            String domain = remoteConfig.getDomain();
+            // 补全配置信息
             RemoteConfig httpConfig = Config.getClientConfig().getHttpConfig(domain);
-            clientConfig.setConfig(Collections.singletonList(httpConfig));
+            if (httpConfig == null) {
+                return;
+            }
+            meta.setRemoteConfigList(Collections.singletonList(httpConfig));
         }
-        connectedTcp(context, clientConfig);
+        connectedTcp(context, meta);
     }
 
-    private void connectedTcp(ChannelHandlerContext context, ClientConfig clientConfig) {
-        RemoteConfig remoteConfig = clientConfig.getConfig().get(0);
+    private void connectedTcp(ChannelHandlerContext context, Meta meta) {
+        RemoteConfig remoteConfig = meta.getRemoteConfig();
         Bootstrap localBootstrap = new Bootstrap();
         localBootstrap.group(localGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
             @Override
@@ -127,17 +133,17 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
                 channel.pipeline().addLast(new ByteArrayCodec());
                 channel.pipeline().addLast(new ChunkedWriteHandler());
                 channel.pipeline().addLast(new ByteIdleCheckHandler(0, 30, 0));
-                channel.pipeline().addLast(new LocalHandler(context.channel(), clientConfig));
+                channel.pipeline().addLast(new LocalHandler(context.channel(), meta));
             }
         });
         localBootstrap.connect(remoteConfig.getLocalIp(), remoteConfig.getLocalPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
-                localChannelMap.put(clientConfig.getChannelId(), future.channel());
+                localChannelMap.put(meta.getChannelId(), future.channel());
             } else {
                 Message message = new Message();
                 message.setType(MessageType.TYPE_DISCONNECTED);
                 message.setData(EmptyArrays.EMPTY_BYTES);
-                message.setClientConfig(clientConfig);
+                message.setMeta(meta);
                 context.channel().writeAndFlush(message);
             }
         });
@@ -151,7 +157,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         }
         localChannelMap.clear();
         localGroup.shutdownGracefully();
-        ClientChannelCache.setConnect(false);
+        connect.set(false);
     }
 
     @Override

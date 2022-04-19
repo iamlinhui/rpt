@@ -1,8 +1,9 @@
 package cn.promptness.rpt.base.coder;
 
-import cn.promptness.rpt.base.config.ClientConfig;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
+import cn.promptness.rpt.base.protocol.Meta;
+import cn.promptness.rpt.base.utils.MetaUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
@@ -16,8 +17,8 @@ public class MessageEncoder extends MessageToByteEncoder<Message> {
         MessageType type = message.getType();
         out.writeInt(type.getCode());
 
-        ClientConfig clientConfig = message.getClientConfig();
-        byte[] protobuf = clientConfig == null ? EmptyArrays.EMPTY_BYTES : clientConfig.toProtobuf();
+        Meta meta = message.getMeta();
+        byte[] protobuf = meta == null ? EmptyArrays.EMPTY_BYTES : MetaUtils.serialize(meta);
         out.writeInt(protobuf.length);
         out.writeBytes(protobuf);
 

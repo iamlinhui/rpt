@@ -2,16 +2,13 @@ package cn.promptness.rpt.desktop.controller;
 
 import cn.promptness.rpt.base.config.ClientConfig;
 import cn.promptness.rpt.base.config.RemoteConfig;
-import cn.promptness.rpt.base.protocol.ProxyType;
+import cn.promptness.rpt.base.config.ProxyType;
 import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.base.utils.StringUtils;
 import cn.promptness.rpt.desktop.utils.SystemTrayUtil;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Dialog;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.Text;
 import javafx.util.Pair;
@@ -49,6 +46,7 @@ public class ConfigController {
         });
 
         TextField domain = new TextField(remoteConfig.getDomain());
+        domain.setPrefWidth(300);
 
         TextField remotePort = new TextField(String.valueOf(remoteConfig.getRemotePort()));
         remotePort.textProperty().addListener((observable, oldValue, newValue) -> {
@@ -107,7 +105,14 @@ public class ConfigController {
                 serverPort.setText(REPLACE_REGEX.matcher(newValue).replaceAll(""));
             }
         });
+        TextField clientLimit = new TextField(String.valueOf(clientConfig.getClientLimit()));
+        clientLimit.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!CHECK_REGEX.matcher(newValue).matches()) {
+                clientLimit.setText(REPLACE_REGEX.matcher(newValue).replaceAll(""));
+            }
+        });
         TextField clientKey = new TextField(clientConfig.getClientKey());
+        clientKey.setPrefWidth(300);
 
         GridPane grid = new GridPane();
         grid.setMinWidth(300);
@@ -120,8 +125,11 @@ public class ConfigController {
         grid.add(new Text("服务端端口"), 0, 1);
         grid.add(serverPort, 1, 1);
 
-        grid.add(new Text("连接秘钥"), 0, 2);
-        grid.add(clientKey, 1, 2);
+        grid.add(new Text("客户端限速"), 0, 2);
+        grid.add(clientLimit, 1, 2);
+
+        grid.add(new Text("连接秘钥"), 0, 3);
+        grid.add(clientKey, 1, 3);
 
         pair.getValue().getDialogPane().setContent(grid);
 
@@ -129,6 +137,7 @@ public class ConfigController {
         if (Objects.equals(pair.getKey(), buttonType)) {
             clientConfig.setServerIp(serverIp.getText());
             clientConfig.setServerPort(StringUtils.hasText(serverPort.getText()) ? Integer.parseInt(serverPort.getText()) : 0);
+            clientConfig.setClientLimit(StringUtils.hasText(clientLimit.getText()) ? Integer.parseInt(clientLimit.getText()) : 0);
             clientConfig.setClientKey(clientKey.getText());
             return clientConfig;
         }

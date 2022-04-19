@@ -1,7 +1,5 @@
 package cn.promptness.rpt.base.config;
 
-import cn.promptness.rpt.base.protocol.ProxyType;
-
 import java.io.Serializable;
 
 public class RemoteConfig implements Serializable {

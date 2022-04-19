@@ -1,13 +1,13 @@
 package cn.promptness.rpt.server.handler;
 
 import cn.promptness.rpt.base.coder.ByteArrayCodec;
-import cn.promptness.rpt.base.config.ClientConfig;
-import cn.promptness.rpt.base.config.Config;
+import cn.promptness.rpt.base.utils.Config;
 import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.handler.ByteIdleCheckHandler;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
-import cn.promptness.rpt.base.protocol.ProxyType;
+import cn.promptness.rpt.base.protocol.Meta;
+import cn.promptness.rpt.base.config.ProxyType;
 import cn.promptness.rpt.base.utils.StringUtils;
 import cn.promptness.rpt.server.cache.ServerChannelCache;
 import io.netty.bootstrap.ServerBootstrap;
@@ -24,8 +24,11 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 
 /**
  * 处理服务器接收到的客户端连接
@@ -79,6 +82,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         domainList.clear();
     }
 
+
     @Override
     protected void channelRead0(ChannelHandlerContext context, Message message) throws Exception {
         MessageType type = message.getType();
@@ -87,124 +91,34 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                 register(context, message);
                 break;
             case TYPE_DATA:
-                transfer(message);
+                dispatch(message, (proxyType, channelId) -> getChannelMap(proxyType).get(channelId), (proxyType, channel) -> channel.writeAndFlush(message.getData()));
                 break;
             case TYPE_CONNECTED:
-                connected(message);
+                dispatch(message, (proxyType, channelId) -> getChannelMap(proxyType).get(channelId), (proxyType, channel) -> channel.pipeline().fireUserEventTriggered(proxyType));
                 break;
             case TYPE_DISCONNECTED:
-                disconnected(message);
+                // 数据发送完成后再关闭连
+                dispatch(message, (proxyType, channelId) -> getChannelMap(proxyType).remove(channelId), (proxyType, channel) -> channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE));
                 break;
             case TYPE_KEEPALIVE:
             default:
         }
     }
 
-    private void connected(Message message) {
-        ClientConfig clientConfig = message.getClientConfig();
-        RemoteConfig remoteConfig = clientConfig.getConfig().get(0);
-        ProxyType proxyType = remoteConfig.getProxyType();
-        if (proxyType == null) {
-            return;
-        }
-        String channelId = message.getClientConfig().getChannelId();
-
-        switch (proxyType) {
-            case TCP:
-                Channel remoteChannel = remoteChannelMap.get(channelId);
-                if (remoteChannel != null) {
-                    remoteChannel.config().setAutoRead(true);
-                }
-                break;
-            case HTTP:
-                Channel httpChannel = ServerChannelCache.getServerHttpChannelMap().get(channelId);
-                if (httpChannel != null) {
-                    httpChannel.pipeline().fireUserEventTriggered(ProxyType.HTTP);
-                }
-                break;
-            default:
-        }
-    }
-
-    private void disconnected(Message message) {
-        ClientConfig clientConfig = message.getClientConfig();
-        RemoteConfig remoteConfig = message.getClientConfig().getConfig().get(0);
-        ProxyType proxyType = remoteConfig.getProxyType();
-        if (proxyType == null) {
-            return;
-        }
-        switch (proxyType) {
-            case TCP:
-                Channel remoteChannel = remoteChannelMap.remove(clientConfig.getChannelId());
-                if (remoteChannel == null) {
-                    return;
-                }
-                // 数据发送完成后再关闭连 解决http1.0数据传输问题
-                remoteChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
-                break;
-            case HTTP:
-                Channel httpChannel = ServerChannelCache.getServerHttpChannelMap().remove(clientConfig.getChannelId());
-                if (httpChannel == null) {
-                    return;
-                }
-                httpChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
-                break;
-            default:
-        }
-    }
-
-
-    private void transfer(Message message) {
-        RemoteConfig remoteConfig = message.getClientConfig().getConfig().get(0);
-        ProxyType proxyType = remoteConfig.getProxyType();
-        if (proxyType == null) {
-            return;
-        }
-        switch (proxyType) {
-            case TCP:
-                transferTcp(message);
-                break;
-            case HTTP:
-                String channelId = message.getClientConfig().getChannelId();
-                Channel channel = ServerChannelCache.getServerHttpChannelMap().get(channelId);
-                if (channel != null) {
-                    channel.writeAndFlush(message.getData());
-                }
-                break;
-            default:
-        }
-    }
-
-    private void transferTcp(Message message) {
-        ClientConfig clientConfig = message.getClientConfig();
-        Channel channel = remoteChannelMap.get(clientConfig.getChannelId());
-        if (channel == null) {
-            return;
-        }
-        channel.writeAndFlush(message.getData());
-    }
-
     private void register(ChannelHandlerContext context, Message message) {
-        ClientConfig clientConfig = message.getClientConfig();
-        clientKey = clientConfig.getClientKey();
+        Meta meta = message.getMeta();
+        clientKey = meta.getClientKey();
         if (!Config.getServerConfig().getClientKey().contains(clientKey)) {
             logger.info("授权连接失败,clientKey:{}", clientKey);
             Message res = new Message();
             res.setType(MessageType.TYPE_AUTH);
-            res.setClientConfig(clientConfig.setConnection(false));
+            res.setMeta(meta.setConnection(false));
             context.writeAndFlush(res);
             return;
         }
         List<String> remoteResult = new ArrayList<>();
-        for (RemoteConfig remoteConfig : clientConfig.getConfig()) {
-            ProxyType proxyType = remoteConfig.getProxyType();
-            if (proxyType == null) {
-                Message res = new Message();
-                res.setType(MessageType.TYPE_AUTH);
-                res.setClientConfig(clientConfig.setConnection(false));
-                context.writeAndFlush(res);
-                return;
-            }
+        for (RemoteConfig remoteConfig : meta.getRemoteConfigList()) {
+            ProxyType proxyType = Optional.ofNullable(remoteConfig.getProxyType()).orElse(ProxyType.TCP);
             switch (proxyType) {
                 case TCP:
                     registerTcp(context, remoteResult, remoteConfig);
@@ -217,10 +131,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         }
         Message res = new Message();
         res.setType(MessageType.TYPE_AUTH);
-        res.setClientConfig(clientConfig.setConnection(true).setRemoteResult(remoteResult));
+        res.setMeta(meta.setConnection(true).setRemoteResult(remoteResult));
         context.writeAndFlush(res);
     }
-
 
     private void registerHttp(ChannelHandlerContext context, List<String> remoteResult, RemoteConfig remoteConfig) {
         if (!StringUtils.hasText(remoteConfig.getDomain())) {
@@ -266,5 +179,24 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             remoteResult.add(String.format("服务端绑定端口[%s]失败,原因:%s", remoteConfig.getRemotePort(), exception.getCause().getMessage()));
             Thread.currentThread().interrupt();
         }
+    }
+
+    private Map<String, Channel> getChannelMap(ProxyType proxyType) {
+        return ProxyType.HTTP.equals(proxyType) ? ServerChannelCache.getServerHttpChannelMap() : remoteChannelMap;
+    }
+
+    private void dispatch(Message message, BiFunction<ProxyType, String, Channel> function, BiConsumer<ProxyType, Channel> consumer) {
+        Meta meta = message.getMeta();
+        RemoteConfig remoteConfig = meta.getRemoteConfig();
+        if (remoteConfig == null) {
+            return;
+        }
+        ProxyType proxyType = Optional.ofNullable(remoteConfig.getProxyType()).orElse(ProxyType.TCP);
+        String channelId = meta.getChannelId();
+        Channel channel = function.apply(proxyType, channelId);
+        if (channel == null) {
+            return;
+        }
+        consumer.accept(proxyType, channel);
     }
 }
