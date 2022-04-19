@@ -1,13 +1,13 @@
 package cn.promptness.rpt.server.handler;
 
 import cn.promptness.rpt.base.coder.ByteArrayCodec;
-import cn.promptness.rpt.base.utils.Config;
+import cn.promptness.rpt.base.config.ProxyType;
 import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.handler.ByteIdleCheckHandler;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.protocol.Meta;
-import cn.promptness.rpt.base.config.ProxyType;
+import cn.promptness.rpt.base.utils.Config;
 import cn.promptness.rpt.base.utils.StringUtils;
 import cn.promptness.rpt.server.cache.ServerChannelCache;
 import io.netty.bootstrap.ServerBootstrap;
@@ -18,13 +18,11 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.traffic.GlobalTrafficShapingHandler;
+import io.netty.util.internal.EmptyArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
@@ -91,7 +89,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                 register(context, message);
                 break;
             case TYPE_DATA:
-                dispatch(message, (proxyType, channelId) -> getChannelMap(proxyType).get(channelId), (proxyType, channel) -> channel.writeAndFlush(message.getData()));
+                dispatch(message, (proxyType, channelId) -> getChannelMap(proxyType).get(channelId), (proxyType, channel) -> channel.writeAndFlush(Optional.ofNullable(message.getData()).orElse(EmptyArrays.EMPTY_BYTES)));
                 break;
             case TYPE_CONNECTED:
                 dispatch(message, (proxyType, channelId) -> getChannelMap(proxyType).get(channelId), (proxyType, channel) -> channel.pipeline().fireUserEventTriggered(proxyType));
@@ -117,7 +115,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             return;
         }
         List<String> remoteResult = new ArrayList<>();
-        for (RemoteConfig remoteConfig : meta.getRemoteConfigList()) {
+        for (RemoteConfig remoteConfig : Optional.ofNullable(meta.getRemoteConfigList()).orElse(Collections.emptyList())) {
             ProxyType proxyType = Optional.ofNullable(remoteConfig.getProxyType()).orElse(ProxyType.TCP);
             switch (proxyType) {
                 case TCP:

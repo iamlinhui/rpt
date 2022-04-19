@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -63,7 +64,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
                 connect.set(connection);
                 if (connection) {
                     logger.info("授权连接成功,clientKey:{}", message.getMeta().getClientKey());
-                    for (String remoteResult : message.getMeta().getRemoteResult()) {
+                    for (String remoteResult : Optional.ofNullable(message.getMeta().getRemoteResult()).orElse(Collections.emptyList())) {
                         logger.info(remoteResult);
                     }
                 } else {
