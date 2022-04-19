@@ -52,8 +52,8 @@ public class ServerApplication {
 
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
-                ch.pipeline().addLast(sslContext.newHandler(ch.alloc()));
                 ch.pipeline().addLast(globalTrafficShapingHandler);
+                ch.pipeline().addLast(sslContext.newHandler(ch.alloc()));
                 // 固定帧长解码器
                 ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4));
                 ch.pipeline().addLast(new LengthFieldPrepender(4));
