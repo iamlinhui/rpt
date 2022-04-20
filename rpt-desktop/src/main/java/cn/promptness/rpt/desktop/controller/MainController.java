@@ -1,7 +1,7 @@
 package cn.promptness.rpt.desktop.controller;
 
-import cn.promptness.rpt.base.utils.Config;
 import cn.promptness.rpt.base.config.RemoteConfig;
+import cn.promptness.rpt.base.utils.Config;
 import cn.promptness.rpt.client.ClientApplication;
 import cn.promptness.rpt.desktop.utils.TooltipUtil;
 import javafx.beans.property.ReadOnlyDoubleProperty;
@@ -13,13 +13,14 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
 
+import java.awt.event.MouseEvent;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
+
 
 public class MainController {
 
@@ -92,11 +93,11 @@ public class MainController {
             remoteConfigTableRow.setOnMousePressed(event -> {
                 MouseButton button = event.getButton();
                 //左键双击操作
-                if (button == MouseButton.PRIMARY && event.getClickCount() == 2) {
+                if (button == MouseButton.PRIMARY && event.getClickCount() == MouseEvent.BUTTON2) {
                     update(remoteConfigTableRow);
                 }
                 // 右键点击
-                if (button == MouseButton.SECONDARY) {
+                if (button == MouseButton.SECONDARY && event.getClickCount() == MouseEvent.BUTTON1) {
                     remove(remoteConfigTableRow);
                 }
             });
