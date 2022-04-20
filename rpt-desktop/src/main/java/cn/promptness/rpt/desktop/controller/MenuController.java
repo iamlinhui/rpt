@@ -3,7 +3,6 @@ package cn.promptness.rpt.desktop.controller;
 import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.utils.Config;
 import cn.promptness.rpt.base.utils.Constants;
-import cn.promptness.rpt.base.utils.Pair;
 import cn.promptness.rpt.client.ClientApplication;
 import cn.promptness.rpt.desktop.utils.SystemTrayUtil;
 import cn.promptness.rpt.desktop.utils.TooltipUtil;
@@ -15,11 +14,10 @@ import javafx.scene.control.MenuItem;
 
 import javax.net.ssl.SSLException;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ScheduledFuture;
 
 public class MenuController {
 
-    private static final ArrayBlockingQueue<Pair<NioEventLoopGroup, ScheduledFuture<?>>> QUEUE = new ArrayBlockingQueue<>(1);
+    private static final ArrayBlockingQueue<NioEventLoopGroup> QUEUE = new ArrayBlockingQueue<>(1);
 
     @FXML
     public MenuItem startText;
@@ -75,7 +73,7 @@ public class MenuController {
 
 
     @FXML
-    public void start() throws SSLException {
+    public void start() {
         if (QUEUE.isEmpty()) {
             if (connect()) {
                 TooltipUtil.show("开启成功!");
@@ -100,12 +98,11 @@ public class MenuController {
         if (!QUEUE.isEmpty()) {
             synchronized (QUEUE) {
                 if (!QUEUE.isEmpty()) {
-                    Pair<NioEventLoopGroup, ScheduledFuture<?>> pair = QUEUE.poll();
-                    if (pair == null) {
+                    NioEventLoopGroup nioEventLoopGroup = QUEUE.poll();
+                    if (nioEventLoopGroup == null) {
                         return false;
                     }
-                    pair.getValue().cancel(true);
-                    pair.getKey().shutdownGracefully();
+                    nioEventLoopGroup.shutdownGracefully();
                     return true;
                 }
             }
@@ -113,16 +110,24 @@ public class MenuController {
         return false;
     }
 
-    private static boolean connect() throws SSLException {
+    private static boolean connect() {
         if (QUEUE.isEmpty()) {
             synchronized (QUEUE) {
                 if (QUEUE.isEmpty()) {
-                    Pair<NioEventLoopGroup, ScheduledFuture<?>> pair = ClientApplication.start();
-                    if (!QUEUE.offer(pair)) {
-                        pair.getValue().cancel(true);
-                        pair.getKey().shutdownGracefully();
-                    } else {
-                        return true;
+                    NioEventLoopGroup nioEventLoopGroup = new NioEventLoopGroup();
+                    try {
+                        boolean start = ClientApplication.start(nioEventLoopGroup);
+                        if (!start) {
+                            nioEventLoopGroup.shutdownGracefully();
+                            return false;
+                        }
+                        if (!QUEUE.offer(nioEventLoopGroup)) {
+                            nioEventLoopGroup.shutdownGracefully();
+                        } else {
+                            return true;
+                        }
+                    } catch (Exception e) {
+                        nioEventLoopGroup.shutdownGracefully();
                     }
                 }
             }
