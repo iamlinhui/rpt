@@ -13,6 +13,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -88,7 +89,7 @@ public class MainController {
 
         tableView.setRowFactory(param -> {
             TableRow<RemoteConfig> remoteConfigTableRow = new TableRow<>();
-            remoteConfigTableRow.setOnMouseClicked(event -> {
+            remoteConfigTableRow.setOnMousePressed(event -> {
                 MouseButton button = event.getButton();
                 //左键双击操作
                 if (button == MouseButton.PRIMARY && event.getClickCount() == 2) {
