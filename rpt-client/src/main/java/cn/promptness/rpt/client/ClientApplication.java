@@ -26,7 +26,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLException;
 import java.io.InputStream;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -38,9 +37,12 @@ public class ClientApplication {
 
     private static final ScheduledThreadPoolExecutor EXECUTOR = new ScheduledThreadPoolExecutor(1, ScheduledThreadFactory.create("client", false));
     private static final AtomicBoolean CONNECT = new AtomicBoolean(false);
-    private static final ArrayBlockingQueue<Pair<NioEventLoopGroup, ScheduledFuture<?>>> QUEUE = new ArrayBlockingQueue<>(1);
 
     public static void main(String[] args) throws SSLException {
+        start();
+    }
+
+    public static Pair<NioEventLoopGroup, ScheduledFuture<?>> start() throws SSLException {
         ClientConfig clientConfig = Config.getClientConfig();
         InputStream certChainFile = ClassLoader.getSystemResourceAsStream("client.crt");
         InputStream keyFile = ClassLoader.getSystemResourceAsStream("pkcs8_client.key");
@@ -67,7 +69,7 @@ public class ClientApplication {
                 ch.pipeline().addLast(new ClientHandler(globalTrafficShapingHandler, CONNECT));
             }
         });
-        Pair<NioEventLoopGroup, ScheduledFuture<?>> pair = new Pair<>(clientWorkerGroup, EXECUTOR.scheduleAtFixedRate(() -> {
+        ScheduledFuture<?> scheduledFuture = EXECUTOR.scheduleAtFixedRate(() -> {
             if (CONNECT.get()) {
                 return;
             }
@@ -78,29 +80,12 @@ public class ClientApplication {
                 try {
                     logger.info("客户端开始连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
                     bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).sync();
-                    logger.info("客户端成功连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
                 } catch (Exception exception) {
                     logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), exception.getCause().getMessage());
                     Thread.currentThread().interrupt();
                 }
             }
-        }, 0, 1, TimeUnit.MINUTES));
-        if (!QUEUE.offer(pair)) {
-            pair.getValue().cancel(true);
-            clientWorkerGroup.shutdownGracefully();
-        }
-    }
-
-    public static void stop() {
-        Pair<NioEventLoopGroup, ScheduledFuture<?>> pair = QUEUE.poll();
-        if (pair == null) {
-            return;
-        }
-        pair.getValue().cancel(true);
-        pair.getKey().shutdownGracefully();
-    }
-
-    public static boolean isStart() {
-        return !QUEUE.isEmpty();
+        }, 0, 1, TimeUnit.MINUTES);
+        return new Pair<>(clientWorkerGroup, scheduledFuture);
     }
 }

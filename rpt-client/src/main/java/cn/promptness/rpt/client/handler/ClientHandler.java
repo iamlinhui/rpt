@@ -50,6 +50,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         //连接建立成功，发送注册请求
+        connect.set(true);
         Message message = new Message();
         message.setType(MessageType.TYPE_REGISTER);
         message.setMeta(new Meta(Config.getClientConfig().getClientKey(), Config.getClientConfig().getConfig()));
@@ -61,7 +62,6 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         switch (message.getType()) {
             case TYPE_AUTH:
                 boolean connection = message.getMeta().isConnection();
-                connect.set(connection);
                 if (connection) {
                     logger.info("授权连接成功,clientKey:{}", message.getMeta().getClientKey());
                     for (String remoteResult : Optional.ofNullable(message.getMeta().getRemoteResult()).orElse(Collections.emptyList())) {

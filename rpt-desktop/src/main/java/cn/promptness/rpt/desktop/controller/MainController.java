@@ -2,7 +2,6 @@ package cn.promptness.rpt.desktop.controller;
 
 import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.utils.Config;
-import cn.promptness.rpt.client.ClientApplication;
 import cn.promptness.rpt.desktop.utils.TooltipUtil;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.collections.FXCollections;
@@ -110,7 +109,7 @@ public class MainController {
         if (remoteConfig == null) {
             return;
         }
-        if (ClientApplication.isStart()) {
+        if (MenuController.isStart()) {
             TooltipUtil.show("请先关闭连接!");
             return;
         }
@@ -128,7 +127,7 @@ public class MainController {
         if (remoteConfig == null) {
             return;
         }
-        if (ClientApplication.isStart()) {
+        if (MenuController.isStart()) {
             TooltipUtil.show("请先关闭连接!");
             return;
         }
