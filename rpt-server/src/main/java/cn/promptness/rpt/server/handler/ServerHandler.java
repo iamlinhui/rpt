@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
@@ -103,7 +104,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         }
     }
 
-    private void register(ChannelHandlerContext context, Message message) {
+    private void register(ChannelHandlerContext context, Message message) throws InterruptedException {
         Meta meta = message.getMeta();
         clientKey = meta.getClientKey();
         if (!Config.getServerConfig().getClientKey().contains(clientKey)) {
@@ -114,26 +115,37 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             context.writeAndFlush(res).addListener(ChannelFutureListener.CLOSE);
             return;
         }
-        List<String> remoteResult = new ArrayList<>();
-        for (RemoteConfig remoteConfig : Optional.ofNullable(meta.getRemoteConfigList()).orElse(Collections.emptyList())) {
-            ProxyType proxyType = Optional.ofNullable(remoteConfig.getProxyType()).orElse(ProxyType.TCP);
-            switch (proxyType) {
-                case TCP:
-                    registerTcp(context, remoteResult, remoteConfig);
-                    break;
-                case HTTP:
-                    registerHttp(context, remoteResult, remoteConfig);
-                    break;
-                default:
-            }
-        }
+        List<String> remoteResult = getRemoteResult(context, meta);
         Message res = new Message();
         res.setType(MessageType.TYPE_AUTH);
         res.setMeta(meta.setConnection(true).setRemoteResult(remoteResult));
         context.writeAndFlush(res);
     }
 
-    private void registerHttp(ChannelHandlerContext context, List<String> remoteResult, RemoteConfig remoteConfig) {
+    private List<String> getRemoteResult(ChannelHandlerContext context, Meta meta) throws InterruptedException {
+        List<String> remoteResult = new ArrayList<>();
+        List<RemoteConfig> remoteConfigList = Optional.ofNullable(meta.getRemoteConfigList()).orElse(Collections.emptyList());
+        if (remoteConfigList.isEmpty()) {
+            return remoteResult;
+        }
+        CountDownLatch countDownLatch = new CountDownLatch(remoteConfigList.size());
+        for (RemoteConfig remoteConfig : remoteConfigList) {
+            ProxyType proxyType = Optional.ofNullable(remoteConfig.getProxyType()).orElse(ProxyType.TCP);
+            switch (proxyType) {
+                case TCP:
+                    registerTcp(context, remoteResult, remoteConfig, countDownLatch);
+                    break;
+                case HTTP:
+                    registerHttp(context, remoteResult, remoteConfig, countDownLatch);
+                    break;
+                default:
+            }
+        }
+        countDownLatch.await();
+        return remoteResult;
+    }
+
+    private void registerHttp(ChannelHandlerContext context, List<String> remoteResult, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {
         if (!StringUtils.hasText(remoteConfig.getDomain())) {
             remoteResult.add(String.format("需要绑定域名[%s]不合法", remoteConfig.getDomain()));
             return;
@@ -148,9 +160,10 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             remoteResult.add(String.format("服务端绑定域名成功%s", domain));
             return context.channel();
         });
+        countDownLatch.countDown();
     }
 
-    private void registerTcp(ChannelHandlerContext context, List<String> remoteResult, RemoteConfig remoteConfig) {
+    private void registerTcp(ChannelHandlerContext context, List<String> remoteResult, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {
         if (remoteConfig.getRemotePort() == 0 || remoteConfig.getRemotePort() == Config.getServerConfig().getServerPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getHttpPort()) {
             remoteResult.add(String.format("需要绑定的端口[%s]不合法", remoteConfig.getRemotePort()));
             return;
@@ -168,15 +181,17 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                         remoteChannelMap.put(channel.id().asLongText(), channel);
                     }
                 });
-        try {
-            logger.info("服务端开始建立本地端口绑定[{}]", remoteConfig.getRemotePort());
-            remoteBootstrap.bind(Config.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).get();
-            remoteResult.add(String.format("服务端绑定端口[%s]成功", remoteConfig.getRemotePort()));
-        } catch (Exception exception) {
-            logger.info("服务端失败建立本地端口绑定[{}], {}", remoteConfig.getRemotePort(), exception.getCause().getMessage());
-            remoteResult.add(String.format("服务端绑定端口[%s]失败,原因:%s", remoteConfig.getRemotePort(), exception.getCause().getMessage()));
-            Thread.currentThread().interrupt();
-        }
+
+        logger.info("服务端开始建立本地端口绑定[{}]", remoteConfig.getRemotePort());
+        remoteBootstrap.bind(Config.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).addListener((ChannelFutureListener) channelFuture -> {
+            if (channelFuture.isSuccess()) {
+                remoteResult.add(String.format("服务端绑定端口[%s]成功", remoteConfig.getRemotePort()));
+            } else {
+                logger.info("服务端失败建立本地端口绑定[{}], {}", remoteConfig.getRemotePort(), channelFuture.cause().getMessage());
+                remoteResult.add(String.format("服务端绑定端口[%s]失败,原因:%s", remoteConfig.getRemotePort(), channelFuture.cause().getMessage()));
+            }
+            countDownLatch.countDown();
+        });
     }
 
     private Map<String, Channel> getChannelMap(ProxyType proxyType) {

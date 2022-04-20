@@ -5,10 +5,9 @@ import cn.promptness.rpt.base.coder.MessageEncoder;
 import cn.promptness.rpt.base.config.ClientConfig;
 import cn.promptness.rpt.base.handler.IdleCheckHandler;
 import cn.promptness.rpt.base.utils.Config;
-import cn.promptness.rpt.base.utils.Pair;
-import cn.promptness.rpt.base.utils.ScheduledThreadFactory;
 import cn.promptness.rpt.client.handler.ClientHandler;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -26,8 +25,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLException;
 import java.io.InputStream;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -35,21 +32,17 @@ public class ClientApplication {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientApplication.class);
 
-    private static final ScheduledThreadPoolExecutor EXECUTOR = new ScheduledThreadPoolExecutor(1, ScheduledThreadFactory.create("client", false));
-    private static final AtomicBoolean CONNECT = new AtomicBoolean(false);
-
     public static void main(String[] args) throws SSLException {
-        start();
+        start(new NioEventLoopGroup());
     }
 
-    public static Pair<NioEventLoopGroup, ScheduledFuture<?>> start() throws SSLException {
+    public static boolean start(NioEventLoopGroup clientWorkerGroup) throws SSLException {
         ClientConfig clientConfig = Config.getClientConfig();
         InputStream certChainFile = ClassLoader.getSystemResourceAsStream("client.crt");
         InputStream keyFile = ClassLoader.getSystemResourceAsStream("pkcs8_client.key");
         InputStream rootFile = ClassLoader.getSystemResourceAsStream("ca.crt");
         SslContext sslContext = SslContextBuilder.forClient().keyManager(certChainFile, keyFile).trustManager(rootFile).sslProvider(SslProvider.OPENSSL).build();
-
-        NioEventLoopGroup clientWorkerGroup = new NioEventLoopGroup();
+        AtomicBoolean connect = new AtomicBoolean(false);
         GlobalTrafficShapingHandler globalTrafficShapingHandler = new GlobalTrafficShapingHandler(clientWorkerGroup, 0, clientConfig.getClientLimit());
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(clientWorkerGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
@@ -66,26 +59,25 @@ public class ClientApplication {
                 ch.pipeline().addLast(new MessageEncoder());
                 ch.pipeline().addLast(new IdleCheckHandler(60, 30, 0));
                 //服务器连接处理器
-                ch.pipeline().addLast(new ClientHandler(globalTrafficShapingHandler, CONNECT));
+                ch.pipeline().addLast(new ClientHandler(globalTrafficShapingHandler, connect));
             }
         });
-        ScheduledFuture<?> scheduledFuture = EXECUTOR.scheduleAtFixedRate(() -> {
-            if (CONNECT.get()) {
+        clientWorkerGroup.scheduleAtFixedRate(() -> {
+            if (connect.get()) {
                 return;
             }
-            synchronized (CONNECT) {
-                if (CONNECT.get()) {
+            synchronized (connect) {
+                if (connect.get()) {
                     return;
                 }
-                try {
-                    logger.info("客户端开始连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
-                    bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).sync();
-                } catch (Exception exception) {
-                    logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), exception.getCause().getMessage());
-                    Thread.currentThread().interrupt();
-                }
+                logger.info("客户端开始连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
+                bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).addListener((ChannelFutureListener) channelFuture -> {
+                    if (!channelFuture.isSuccess()) {
+                        logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), channelFuture.cause().getMessage());
+                    }
+                });
             }
         }, 0, 1, TimeUnit.MINUTES);
-        return new Pair<>(clientWorkerGroup, scheduledFuture);
+        return true;
     }
 }
