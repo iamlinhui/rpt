@@ -63,12 +63,12 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
             case TYPE_AUTH:
                 boolean connection = message.getMeta().isConnection();
                 if (connection) {
-                    logger.info("授权连接成功,clientKey:{}", message.getMeta().getClientKey());
+                    logger.info("授权成功,当前秘钥:{}", message.getMeta().getClientKey());
                     for (String remoteResult : Optional.ofNullable(message.getMeta().getRemoteResult()).orElse(Collections.emptyList())) {
                         logger.info(remoteResult);
                     }
                 } else {
-                    logger.info("授权连接失败,clientKey:{}", message.getMeta().getClientKey());
+                    logger.info("授权失败,当前秘钥:{}", message.getMeta().getClientKey());
                 }
                 break;
             case TYPE_CONNECTED:
