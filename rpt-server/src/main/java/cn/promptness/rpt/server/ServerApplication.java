@@ -2,13 +2,14 @@ package cn.promptness.rpt.server;
 
 import cn.promptness.rpt.base.coder.MessageDecoder;
 import cn.promptness.rpt.base.coder.MessageEncoder;
-import cn.promptness.rpt.base.utils.Config;
 import cn.promptness.rpt.base.config.ServerConfig;
 import cn.promptness.rpt.base.handler.IdleCheckHandler;
+import cn.promptness.rpt.base.utils.Config;
 import cn.promptness.rpt.server.cache.ServerChannelCache;
 import cn.promptness.rpt.server.handler.RequestHandler;
 import cn.promptness.rpt.server.handler.ServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -67,22 +68,20 @@ public class ServerApplication {
                 ch.pipeline().addLast(new ServerHandler(globalTrafficShapingHandler));
             }
         });
-
-        try {
-            bootstrap.bind(serverConfig.getServerIp(), serverConfig.getServerPort()).sync();
-            logger.info("服务端启动成功,本机绑定IP:{},服务端口:{}", serverConfig.getServerIp(), serverConfig.getServerPort());
-        } catch (Exception exception) {
-            logger.info("服务端启动失败,本机绑定IP:{},服务端口:{},原因:{}", serverConfig.getServerIp(), serverConfig.getServerPort(), exception.getCause().getMessage());
-            serverBossGroup.shutdownGracefully();
-            serverWorkerGroup.shutdownGracefully();
-            Thread.currentThread().interrupt();
-        }
-        startHttp(serverBossGroup, serverWorkerGroup, globalTrafficShapingHandler);
+        bootstrap.bind(serverConfig.getServerIp(), serverConfig.getServerPort()).addListener((ChannelFutureListener) future -> {
+            if (future.isSuccess()) {
+                logger.info("服务端启动成功,本机绑定IP:{},服务端口:{}", serverConfig.getServerIp(), serverConfig.getServerPort());
+                startHttp(serverBossGroup, serverWorkerGroup, globalTrafficShapingHandler);
+            } else {
+                logger.info("服务端启动失败,本机绑定IP:{},服务端口:{},原因:{}", serverConfig.getServerIp(), serverConfig.getServerPort(), future.cause().getMessage());
+                serverBossGroup.shutdownGracefully();
+                serverWorkerGroup.shutdownGracefully();
+            }
+        });
     }
 
     private static void startHttp(NioEventLoopGroup serverBossGroup, NioEventLoopGroup serverWorkerGroup, GlobalTrafficShapingHandler globalTrafficShapingHandler) {
         ServerConfig serverConfig = Config.getServerConfig();
-
         ServerBootstrap httpBootstrap = new ServerBootstrap();
         httpBootstrap.group(serverBossGroup, serverWorkerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
 
@@ -96,15 +95,14 @@ public class ServerApplication {
                 ServerChannelCache.getServerHttpChannelMap().put(ch.id().asLongText(), ch);
             }
         });
-
-        try {
-            httpBootstrap.bind(serverConfig.getServerIp(), serverConfig.getHttpPort()).sync();
-            logger.info("服务端启动成功,本机绑定IP:{},Http端口:{}", serverConfig.getServerIp(), serverConfig.getHttpPort());
-        } catch (Exception exception) {
-            logger.info("服务端启动失败,本机绑定IP:{},Http端口:{},原因:{}", serverConfig.getServerIp(), serverConfig.getHttpPort(), exception.getCause().getMessage());
-            serverBossGroup.shutdownGracefully();
-            serverWorkerGroup.shutdownGracefully();
-            Thread.currentThread().interrupt();
-        }
+        httpBootstrap.bind(serverConfig.getServerIp(), serverConfig.getHttpPort()).addListener((ChannelFutureListener) future -> {
+            if (future.isSuccess()) {
+                logger.info("服务端启动成功,本机绑定IP:{},Http端口:{}", serverConfig.getServerIp(), serverConfig.getHttpPort());
+            } else {
+                logger.info("服务端启动失败,本机绑定IP:{},Http端口:{},原因:{}", serverConfig.getServerIp(), serverConfig.getHttpPort(), future.cause().getMessage());
+                serverBossGroup.shutdownGracefully();
+                serverWorkerGroup.shutdownGracefully();
+            }
+        });
     }
 }
