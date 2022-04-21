@@ -148,6 +148,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     private void registerHttp(ChannelHandlerContext context, List<String> remoteResult, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {
         if (!StringUtils.hasText(remoteConfig.getDomain())) {
             remoteResult.add(String.format("需要绑定域名[%s]不合法", remoteConfig.getDomain()));
+            countDownLatch.countDown();
             return;
         }
         logger.info("服务端开始绑定域名[{}]", remoteConfig.getDomain());
@@ -166,6 +167,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     private void registerTcp(ChannelHandlerContext context, List<String> remoteResult, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {
         if (remoteConfig.getRemotePort() == 0 || remoteConfig.getRemotePort() == Config.getServerConfig().getServerPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getHttpPort()) {
             remoteResult.add(String.format("需要绑定的端口[%s]不合法", remoteConfig.getRemotePort()));
+            countDownLatch.countDown();
             return;
         }
         ServerBootstrap remoteBootstrap = new ServerBootstrap();
