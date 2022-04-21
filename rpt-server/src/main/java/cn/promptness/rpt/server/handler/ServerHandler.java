@@ -108,7 +108,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         Meta meta = message.getMeta();
         clientKey = meta.getClientKey();
         if (!Config.getServerConfig().getClientKey().contains(clientKey)) {
-            logger.info("授权连接失败,clientKey:{}", clientKey);
+            logger.info("授权失败,客户端使用的秘钥:{}", clientKey);
             Message res = new Message();
             res.setType(MessageType.TYPE_AUTH);
             res.setMeta(meta.setConnection(false));
@@ -147,18 +147,18 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     private void registerHttp(ChannelHandlerContext context, List<String> remoteResult, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {
         if (!StringUtils.hasText(remoteConfig.getDomain())) {
-            remoteResult.add(String.format("需要绑定域名[%s]不合法", remoteConfig.getDomain()));
+            remoteResult.add(String.format("服务端绑定域名[%s]不合法", remoteConfig.getDomain()));
             countDownLatch.countDown();
             return;
         }
         logger.info("服务端开始绑定域名[{}]", remoteConfig.getDomain());
         ServerChannelCache.getServerDomainChannelMap().compute(remoteConfig.getDomain(), (domain, channel) -> {
             if (channel != null) {
-                remoteResult.add(String.format("服务端绑定域名重复%s", domain));
+                remoteResult.add(String.format("服务端绑定域名[%s]重复", domain));
                 return channel;
             }
             domainList.add(domain);
-            remoteResult.add(String.format("服务端绑定域名成功%s", domain));
+            remoteResult.add(String.format("服务端绑定域名[%s]成功", domain));
             return context.channel();
         });
         countDownLatch.countDown();
