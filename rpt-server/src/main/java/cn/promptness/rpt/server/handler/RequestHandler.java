@@ -8,7 +8,6 @@ import cn.promptness.rpt.base.handler.ByteIdleCheckHandler;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.protocol.Meta;
-import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.base.utils.StringUtils;
 import cn.promptness.rpt.server.cache.DispatcherCache;
 import cn.promptness.rpt.server.cache.ServerChannelCache;
@@ -28,8 +27,11 @@ import io.netty.util.internal.EmptyArrays;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
 
 public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
+
+    private static final Pattern PATTERN = Pattern.compile(":");
 
     private final Queue<FullHttpRequest> requestMessage = new LinkedBlockingQueue<>();
 
@@ -130,7 +132,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
 
-        domain = Optional.ofNullable(domain).orElse(Constants.PATTERN.split(fullHttpRequest.headers().get(HttpHeaderNames.HOST))[0]);
+        domain = Optional.ofNullable(domain).orElse(PATTERN.split(fullHttpRequest.headers().get(HttpHeaderNames.HOST))[0]);
         if (!StringUtils.hasText(domain)) {
             DispatcherCache.doDispatch(fullHttpRequest, ctx);
             return;

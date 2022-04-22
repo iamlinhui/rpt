@@ -2,8 +2,8 @@ package cn.promptness.rpt.desktop.controller;
 
 import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.utils.Config;
-import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.client.ClientApplication;
+import cn.promptness.rpt.desktop.utils.Constants;
 import cn.promptness.rpt.desktop.utils.SystemTrayUtil;
 import cn.promptness.rpt.desktop.utils.TooltipUtil;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -12,7 +12,6 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.MenuItem;
 
-import javax.net.ssl.SSLException;
 import java.util.concurrent.ArrayBlockingQueue;
 
 public class MenuController {
@@ -32,7 +31,7 @@ public class MenuController {
         Alert alert = new Alert(Alert.AlertType.NONE);
         alert.setTitle(Constants.TITLE);
         alert.setHeaderText("关于");
-        alert.setContentText("Version 2.2.0\nPowered By Lynn\nhttps://github.com/iamlinhui/rpt");
+        alert.setContentText(String.format("Version %s\nPowered By Lynn\nhttps://github.com/iamlinhui/rpt", Constants.VERSION));
         alert.initOwner(SystemTrayUtil.getPrimaryStage());
         alert.getButtonTypes().add(ButtonType.CLOSE);
         alert.showAndWait();

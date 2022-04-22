@@ -1,6 +1,5 @@
 package cn.promptness.rpt.desktop.utils;
 
-import cn.promptness.rpt.base.utils.Constants;
 import javafx.application.Platform;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
