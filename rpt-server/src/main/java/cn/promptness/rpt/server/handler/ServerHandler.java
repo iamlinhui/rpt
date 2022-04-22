@@ -17,7 +17,6 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.stream.ChunkedWriteHandler;
-import io.netty.handler.traffic.GlobalTrafficShapingHandler;
 import io.netty.util.internal.EmptyArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,20 +41,22 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     private final EventLoopGroup remoteBossGroup = new NioEventLoopGroup();
     private final EventLoopGroup remoteWorkerGroup = new NioEventLoopGroup();
     private final List<String> domainList = new CopyOnWriteArrayList<>();
-
-    /**
-     * 全局服务器读限速器
-     */
-    private final GlobalTrafficShapingHandler globalTrafficShapingHandler;
     private String clientKey;
-
-    public ServerHandler(GlobalTrafficShapingHandler globalTrafficShapingHandler) {
-        this.globalTrafficShapingHandler = globalTrafficShapingHandler;
-    }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         ctx.channel().close();
+    }
+
+    @Override
+    public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
+        for (Channel channel : remoteChannelMap.values()) {
+            channel.config().setAutoRead(ctx.channel().isWritable());
+        }
+        for (Channel channel : ServerChannelCache.getServerHttpChannelMap().values()) {
+            channel.config().setAutoRead(ctx.channel().isWritable());
+        }
+        super.channelWritabilityChanged(ctx);
     }
 
     /**
@@ -175,7 +176,6 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     public void initChannel(SocketChannel channel) throws Exception {
-                        channel.pipeline().addLast(globalTrafficShapingHandler);
                         channel.pipeline().addLast(new ByteArrayCodec());
                         channel.pipeline().addLast(new ChunkedWriteHandler());
                         channel.pipeline().addLast(new ByteIdleCheckHandler(0, 30, 0));

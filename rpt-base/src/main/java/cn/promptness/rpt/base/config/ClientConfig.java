@@ -10,7 +10,6 @@ public class ClientConfig implements Serializable {
 
     private String serverIp;
     private int serverPort;
-    private int clientLimit;
     private String clientKey;
     private List<RemoteConfig> config;
 
@@ -41,14 +40,6 @@ public class ClientConfig implements Serializable {
 
     public void setServerPort(int serverPort) {
         this.serverPort = serverPort;
-    }
-
-    public int getClientLimit() {
-        return clientLimit;
-    }
-
-    public void setClientLimit(int clientLimit) {
-        this.clientLimit = clientLimit;
     }
 
     public String getClientKey() {

@@ -15,7 +15,6 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.stream.ChunkedWriteHandler;
-import io.netty.handler.traffic.GlobalTrafficShapingHandler;
 import io.netty.util.internal.EmptyArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,12 +38,18 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
      * remoteChannelId/requestChannelId --> localChannel
      */
     private final Map<String, Channel> localChannelMap = new ConcurrentHashMap<>();
-    private final GlobalTrafficShapingHandler globalTrafficShapingHandler;
     private final AtomicBoolean connect;
 
-    public ClientHandler(GlobalTrafficShapingHandler globalTrafficShapingHandler, AtomicBoolean connect) {
-        this.globalTrafficShapingHandler = globalTrafficShapingHandler;
+    public ClientHandler(AtomicBoolean connect) {
         this.connect = connect;
+    }
+
+    @Override
+    public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
+        for (Channel channel : localChannelMap.values()) {
+            channel.config().setAutoRead(ctx.channel().isWritable());
+        }
+        super.channelWritabilityChanged(ctx);
     }
 
     @Override
@@ -130,7 +135,6 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         localBootstrap.group(localGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel channel) throws Exception {
-                channel.pipeline().addLast(globalTrafficShapingHandler);
                 channel.pipeline().addLast(new ByteArrayCodec());
                 channel.pipeline().addLast(new ChunkedWriteHandler());
                 channel.pipeline().addLast(new ByteIdleCheckHandler(0, 30, 0));

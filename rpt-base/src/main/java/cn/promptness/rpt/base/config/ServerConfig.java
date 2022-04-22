@@ -6,17 +6,8 @@ public class ServerConfig {
 
     private String serverIp;
     private int serverPort;
-    private long serverLimit;
     private int httpPort;
     private List<String> clientKey;
-
-    public long getServerLimit() {
-        return serverLimit;
-    }
-
-    public void setServerLimit(long serverLimit) {
-        this.serverLimit = serverLimit;
-    }
 
     public String getServerIp() {
         return serverIp;
