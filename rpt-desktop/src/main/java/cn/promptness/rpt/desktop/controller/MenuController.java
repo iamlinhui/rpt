@@ -31,7 +31,7 @@ public class MenuController {
         Alert alert = new Alert(Alert.AlertType.NONE);
         alert.setTitle(Constants.TITLE);
         alert.setHeaderText("关于");
-        alert.setContentText(String.format("Version %s\nPowered By Lynn\nhttps://github.com/iamlinhui/rpt", Constants.VERSION));
+        alert.setContentText(String.format(" Version %s %n Powered By Lynn %n https://github.com/iamlinhui/rpt", Constants.VERSION));
         alert.initOwner(SystemTrayUtil.getPrimaryStage());
         alert.getButtonTypes().add(ButtonType.CLOSE);
         alert.showAndWait();
