@@ -1,10 +1,10 @@
 package cn.promptness.rpt.server.handler;
 
+import cn.promptness.rpt.base.config.ProxyType;
 import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.protocol.Meta;
-import cn.promptness.rpt.base.config.ProxyType;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -23,6 +23,12 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
     public RemoteHandler(Channel channel, RemoteConfig remoteConfig) {
         this.channel = channel;
         this.remoteConfig = remoteConfig;
+    }
+
+    @Override
+    public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
+        channel.config().setAutoRead(ctx.channel().isWritable());
+        super.channelWritabilityChanged(ctx);
     }
 
     @Override

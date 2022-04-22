@@ -24,7 +24,6 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
 import io.netty.handler.stream.ChunkedWriteHandler;
-import io.netty.handler.traffic.GlobalTrafficShapingHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,13 +46,10 @@ public class ServerApplication {
         NioEventLoopGroup serverWorkerGroup = new NioEventLoopGroup();
 
         ServerBootstrap bootstrap = new ServerBootstrap();
-        // 服务上行带宽8Mbps 则限制数据流入速度1m/s
-        GlobalTrafficShapingHandler globalTrafficShapingHandler = new GlobalTrafficShapingHandler(serverBossGroup, 0, serverConfig.getServerLimit());
         bootstrap.group(serverBossGroup, serverWorkerGroup).channel(NioServerSocketChannel.class).childHandler(new ChannelInitializer<SocketChannel>() {
 
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
-                ch.pipeline().addLast(globalTrafficShapingHandler);
                 ch.pipeline().addLast(sslContext.newHandler(ch.alloc()));
                 // 固定帧长解码器
                 ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4));
@@ -65,13 +61,13 @@ public class ServerApplication {
                 ch.pipeline().addLast(new MessageEncoder());
                 ch.pipeline().addLast(new IdleCheckHandler(60, 40, 0));
                 // 代理客户端连接代理服务器处理器
-                ch.pipeline().addLast(new ServerHandler(globalTrafficShapingHandler));
+                ch.pipeline().addLast(new ServerHandler());
             }
         });
         bootstrap.bind(serverConfig.getServerIp(), serverConfig.getServerPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
                 logger.info("服务端启动成功,本机绑定IP:{},服务端口:{}", serverConfig.getServerIp(), serverConfig.getServerPort());
-                startHttp(serverBossGroup, serverWorkerGroup, globalTrafficShapingHandler);
+                startHttp(serverBossGroup, serverWorkerGroup);
             } else {
                 logger.info("服务端启动失败,本机绑定IP:{},服务端口:{},原因:{}", serverConfig.getServerIp(), serverConfig.getServerPort(), future.cause().getMessage());
                 serverBossGroup.shutdownGracefully();
@@ -80,14 +76,13 @@ public class ServerApplication {
         });
     }
 
-    private static void startHttp(NioEventLoopGroup serverBossGroup, NioEventLoopGroup serverWorkerGroup, GlobalTrafficShapingHandler globalTrafficShapingHandler) {
+    private static void startHttp(NioEventLoopGroup serverBossGroup, NioEventLoopGroup serverWorkerGroup) {
         ServerConfig serverConfig = Config.getServerConfig();
         ServerBootstrap httpBootstrap = new ServerBootstrap();
         httpBootstrap.group(serverBossGroup, serverWorkerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
 
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
-                ch.pipeline().addLast(globalTrafficShapingHandler);
                 ch.pipeline().addLast(new HttpServerCodec());
                 ch.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
                 ch.pipeline().addLast(new ChunkedWriteHandler());

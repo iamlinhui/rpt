@@ -40,6 +40,17 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private String domain;
 
     @Override
+    public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
+        if (domain != null) {
+            Channel serverChannel = ServerChannelCache.getServerDomainChannelMap().get(domain);
+            if (serverChannel != null) {
+                serverChannel.config().setAutoRead(ctx.channel().isWritable());
+            }
+        }
+        super.channelWritabilityChanged(ctx);
+    }
+
+    @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         ctx.channel().close();
     }

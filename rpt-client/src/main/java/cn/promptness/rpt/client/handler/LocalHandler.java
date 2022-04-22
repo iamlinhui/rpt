@@ -22,6 +22,12 @@ public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
     }
 
     @Override
+    public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
+        channel.config().setAutoRead(ctx.channel().isWritable());
+        super.channelWritabilityChanged(ctx);
+    }
+
+    @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         ctx.channel().config().setAutoRead(false);
         send(MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES);
