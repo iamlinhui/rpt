@@ -42,7 +42,7 @@ public class MainController {
     @FXML
     public TextArea textArea;
 
-    public void addLog(String message) {
+    public synchronized void addLog(String message) {
         textArea.appendText(LocalDateTime.now().toString());
         textArea.appendText(message);
         textArea.appendText("\n");
