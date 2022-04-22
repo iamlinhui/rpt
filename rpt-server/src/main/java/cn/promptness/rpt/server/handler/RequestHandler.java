@@ -2,12 +2,12 @@ package cn.promptness.rpt.server.handler;
 
 import cn.promptness.rpt.base.coder.ByteArrayCodec;
 import cn.promptness.rpt.base.coder.HttpEncoder;
+import cn.promptness.rpt.base.config.ProxyType;
 import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.handler.ByteIdleCheckHandler;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.protocol.Meta;
-import cn.promptness.rpt.base.config.ProxyType;
 import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.base.utils.StringUtils;
 import cn.promptness.rpt.server.cache.DispatcherCache;
@@ -103,6 +103,9 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             return;
         }
         if (msg instanceof byte[]) {
+            if (domain == null) {
+                return;
+            }
             byte[] message = (byte[]) msg;
             Channel serverChannel = ServerChannelCache.getServerDomainChannelMap().get(domain);
             if (serverChannel != null) {
