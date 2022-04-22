@@ -3,7 +3,7 @@ package cn.promptness.rpt.desktop.controller;
 import cn.promptness.rpt.base.config.ClientConfig;
 import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.config.ProxyType;
-import cn.promptness.rpt.base.utils.Constants;
+import cn.promptness.rpt.desktop.utils.Constants;
 import cn.promptness.rpt.base.utils.StringUtils;
 import cn.promptness.rpt.desktop.utils.SystemTrayUtil;
 import javafx.collections.FXCollections;
