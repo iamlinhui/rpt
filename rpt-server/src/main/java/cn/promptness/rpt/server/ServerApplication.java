@@ -109,8 +109,8 @@ public class ServerApplication {
 
     private static void startHttps(NioEventLoopGroup serverBossGroup, NioEventLoopGroup serverWorkerGroup) throws SSLException {
         ServerConfig serverConfig = Config.getServerConfig();
-        InputStream certChainFile = ClassLoader.getSystemResourceAsStream("holme.cn.crt");
-        InputStream keyFile = ClassLoader.getSystemResourceAsStream("holme.cn_pkcs8.key");
+        InputStream certChainFile = ClassLoader.getSystemResourceAsStream(serverConfig.getDomainCert());
+        InputStream keyFile = ClassLoader.getSystemResourceAsStream(serverConfig.getDomainKey());
         SslContext sslContext = SslContextBuilder.forServer(certChainFile, keyFile).clientAuth(ClientAuth.NONE).sslProvider(SslProvider.OPENSSL).build();
 
         ServerBootstrap httpsBootstrap = new ServerBootstrap();
