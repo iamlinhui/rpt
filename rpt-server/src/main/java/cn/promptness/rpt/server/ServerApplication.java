@@ -9,16 +9,13 @@ import cn.promptness.rpt.server.cache.ServerChannelCache;
 import cn.promptness.rpt.server.handler.RequestHandler;
 import cn.promptness.rpt.server.handler.ServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
-import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.codec.http.*;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -86,15 +83,54 @@ public class ServerApplication {
                 ch.pipeline().addLast(new HttpServerCodec());
                 ch.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
                 ch.pipeline().addLast(new ChunkedWriteHandler());
-                ch.pipeline().addLast(new RequestHandler());
-                ServerChannelCache.getServerHttpChannelMap().put(ch.id().asLongText(), ch);
+                ch.pipeline().addLast(new SimpleChannelInboundHandler<FullHttpRequest>() {
+                    @Override
+                    protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest msg) throws Exception {
+                        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.MOVED_PERMANENTLY);
+                        HttpHeaders headers = response.headers();
+                        headers.set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
+                        headers.set(HttpHeaderNames.LOCATION, HttpScheme.HTTPS + "://" + msg.headers().get(HttpHeaderNames.HOST) + msg.uri());
+                        ch.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+                    }
+                });
             }
         });
         httpBootstrap.bind(serverConfig.getServerIp(), serverConfig.getHttpPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
                 logger.info("服务端启动成功,本机绑定IP:{},Http端口:{}", serverConfig.getServerIp(), serverConfig.getHttpPort());
+                startHttps(serverBossGroup, serverWorkerGroup);
             } else {
                 logger.info("服务端启动失败,本机绑定IP:{},Http端口:{},原因:{}", serverConfig.getServerIp(), serverConfig.getHttpPort(), future.cause().getMessage());
+                serverBossGroup.shutdownGracefully();
+                serverWorkerGroup.shutdownGracefully();
+            }
+        });
+    }
+
+    private static void startHttps(NioEventLoopGroup serverBossGroup, NioEventLoopGroup serverWorkerGroup) throws SSLException {
+        ServerConfig serverConfig = Config.getServerConfig();
+        InputStream certChainFile = ClassLoader.getSystemResourceAsStream("holme.cn.crt");
+        InputStream keyFile = ClassLoader.getSystemResourceAsStream("holme.cn_pkcs8.key");
+        SslContext sslContext = SslContextBuilder.forServer(certChainFile, keyFile).clientAuth(ClientAuth.NONE).sslProvider(SslProvider.OPENSSL).build();
+
+        ServerBootstrap httpsBootstrap = new ServerBootstrap();
+        httpsBootstrap.group(serverBossGroup, serverWorkerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
+
+            @Override
+            public void initChannel(SocketChannel ch) throws Exception {
+                ch.pipeline().addLast(sslContext.newHandler(ch.alloc()));
+                ch.pipeline().addLast(new HttpServerCodec());
+                ch.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
+                ch.pipeline().addLast(new ChunkedWriteHandler());
+                ch.pipeline().addLast(new RequestHandler());
+                ServerChannelCache.getServerHttpChannelMap().put(ch.id().asLongText(), ch);
+            }
+        });
+        httpsBootstrap.bind(serverConfig.getServerIp(), serverConfig.getHttpsPort()).addListener((ChannelFutureListener) future -> {
+            if (future.isSuccess()) {
+                logger.info("服务端启动成功,本机绑定IP:{},Https端口:{}", serverConfig.getServerIp(), serverConfig.getHttpsPort());
+            } else {
+                logger.info("服务端启动失败,本机绑定IP:{},Https端口:{},原因:{}", serverConfig.getServerIp(), serverConfig.getHttpsPort(), future.cause().getMessage());
                 serverBossGroup.shutdownGracefully();
                 serverWorkerGroup.shutdownGracefully();
             }

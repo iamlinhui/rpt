@@ -7,6 +7,7 @@ public class ServerConfig {
     private String serverIp;
     private int serverPort;
     private int httpPort;
+    private int httpsPort;
     private List<String> clientKey;
 
     public String getServerIp() {
@@ -39,5 +40,13 @@ public class ServerConfig {
 
     public void setHttpPort(int httpPort) {
         this.httpPort = httpPort;
+    }
+
+    public int getHttpsPort() {
+        return httpsPort;
+    }
+
+    public void setHttpsPort(int httpsPort) {
+        this.httpsPort = httpsPort;
     }
 }
