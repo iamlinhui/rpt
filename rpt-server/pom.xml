@@ -25,6 +25,10 @@
             <artifactId>rpt-base</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec-http</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

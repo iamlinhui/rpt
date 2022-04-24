@@ -1,7 +1,6 @@
 package cn.promptness.rpt.server.handler;
 
 import cn.promptness.rpt.base.coder.ByteArrayCodec;
-import cn.promptness.rpt.base.coder.HttpEncoder;
 import cn.promptness.rpt.base.config.ProxyType;
 import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.handler.ByteIdleCheckHandler;
@@ -11,6 +10,7 @@ import cn.promptness.rpt.base.protocol.Meta;
 import cn.promptness.rpt.base.utils.StringUtils;
 import cn.promptness.rpt.server.cache.DispatcherCache;
 import cn.promptness.rpt.server.cache.ServerChannelCache;
+import cn.promptness.rpt.server.coder.HttpEncoder;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;

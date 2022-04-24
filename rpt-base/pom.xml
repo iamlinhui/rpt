@@ -20,7 +20,7 @@
     <dependencies>
         <dependency>
             <groupId>io.netty</groupId>
-            <artifactId>netty-codec-http</artifactId>
+            <artifactId>netty-handler</artifactId>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
