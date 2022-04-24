@@ -1,4 +1,4 @@
-package cn.promptness.rpt.base.coder;
+package cn.promptness.rpt.server.coder;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpRequestEncoder;
