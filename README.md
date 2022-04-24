@@ -152,3 +152,7 @@ Java命令行添加外部文件到classpath，从而实现读取外部配置文�
 （4）文件路径之间使用分隔符（win下为分号，linux下为冒号）
 ```
 
+Javafx硬件渲染会有控件变黑问题
+```text
+Javafx启用软件渲染 -Dprism.order=sw
+```
