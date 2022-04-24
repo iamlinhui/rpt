@@ -61,6 +61,7 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         ctx.channel().config().setAutoRead(true);
+        channel.config().setAutoRead(true);
         send(MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES, ctx);
     }
 

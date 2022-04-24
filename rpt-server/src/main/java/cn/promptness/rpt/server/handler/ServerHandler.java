@@ -80,6 +80,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             }
         }
         domainList.clear();
+        for (Channel channel : ServerChannelCache.getServerHttpChannelMap().values()) {
+            channel.config().setAutoRead(true);
+        }
     }
 
 
