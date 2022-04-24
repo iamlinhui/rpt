@@ -40,8 +40,14 @@
 serverIp: 0.0.0.0
 #服务端与客户端通讯端口
 serverPort: 6167
-#服务端暴露的HTTP复用端口
+#服务端暴露的HTTP重定向端口
 httpPort: 80
+#服务端暴露的HTTPS复用端口
+httpsPort: 443
+# 域名证书公钥(需替换)
+domainCert: server.crt
+# 域名证书私钥(需替换)
+domainKey: pkcs8_server.key
 #授权给客户端的秘钥
 clientKey:
   - b0cc39c7-1b78-4ff6-9486-020399f569e9
@@ -70,13 +76,13 @@ config:
     remotePort: 4389
     # 描述
     description: rdp
-    
+
   - proxyType: TCP
     localIp: 127.0.0.1
     localPort: 6379
     remotePort: 7379
     description: redis
-    
+
   - proxyType: HTTP
     localIp: 127.0.0.1
     localPort: 8080
@@ -153,6 +159,7 @@ Java命令行添加外部文件到classpath，从而实现读取外部配置文�
 ```
 
 Javafx硬件渲染会有控件变黑问题
+
 ```text
 Javafx启用软件渲染 -Dprism.order=sw
 ```

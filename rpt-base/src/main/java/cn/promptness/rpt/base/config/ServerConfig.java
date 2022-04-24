@@ -8,6 +8,8 @@ public class ServerConfig {
     private int serverPort;
     private int httpPort;
     private int httpsPort;
+    private String domainCert;
+    private String domainKey;
     private List<String> clientKey;
 
     public String getServerIp() {
@@ -48,5 +50,21 @@ public class ServerConfig {
 
     public void setHttpsPort(int httpsPort) {
         this.httpsPort = httpsPort;
+    }
+
+    public String getDomainCert() {
+        return domainCert;
+    }
+
+    public void setDomainCert(String domainCert) {
+        this.domainCert = domainCert;
+    }
+
+    public String getDomainKey() {
+        return domainKey;
+    }
+
+    public void setDomainKey(String domainKey) {
+        this.domainKey = domainKey;
     }
 }
