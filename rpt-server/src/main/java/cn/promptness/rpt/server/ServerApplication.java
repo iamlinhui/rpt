@@ -9,6 +9,7 @@ import cn.promptness.rpt.server.cache.ServerChannelCache;
 import cn.promptness.rpt.server.handler.RequestHandler;
 import cn.promptness.rpt.server.handler.ServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -84,6 +85,10 @@ public class ServerApplication {
                 ch.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
                 ch.pipeline().addLast(new ChunkedWriteHandler());
                 ch.pipeline().addLast(new SimpleChannelInboundHandler<FullHttpRequest>() {
+                    @Override
+                    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+                        ctx.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
+                    }
                     @Override
                     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest msg) throws Exception {
                         FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.MOVED_PERMANENTLY);
