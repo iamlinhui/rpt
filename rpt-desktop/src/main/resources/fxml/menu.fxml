@@ -8,11 +8,11 @@
         <MenuItem text="退出" onAction="#close" accelerator="Shortcut+Q"/>
     </Menu>
     <Menu text="帮助">
-        <MenuItem text="说明" onAction="#instruction"/>
-        <MenuItem text="关于" onAction="#about"/>
+        <MenuItem text="说明" onAction="#instruction" accelerator="Shortcut+I"/>
+        <MenuItem text="关于" onAction="#about" accelerator="Shortcut+B"/>
     </Menu>
     <Menu text="设置">
-        <MenuItem text="开启" fx:id="startText" onAction="#start"/>
-        <MenuItem text="配置" onAction="#account"/>
+        <MenuItem text="开启" fx:id="startText" onAction="#start" accelerator="Shortcut+S"/>
+        <MenuItem text="配置" onAction="#account" accelerator="Shortcut+C"/>
     </Menu>
 </MenuBar>

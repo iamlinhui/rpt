@@ -14,7 +14,7 @@ public class TooltipUtil {
     public static void show(String message) {
         Stage primaryStage = SystemTrayUtil.getPrimaryStage();
         Parent root = primaryStage.getScene().getRoot();
-        double x = getScreenX(root) + getWidth(root) / 5 * 2;
+        double x = getScreenX(root) + getWidth(root) / 2 - 50;
         double y = getScreenY(root) + getHeight(root) / 2;
         Tooltip tooltip = new Tooltip(message);
         tooltip.setAutoHide(true);
