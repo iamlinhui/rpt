@@ -169,7 +169,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     }
 
     private void registerTcp(ChannelHandlerContext context, List<String> remoteResult, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {
-        if (remoteConfig.getRemotePort() == 0 || remoteConfig.getRemotePort() == Config.getServerConfig().getServerPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getHttpPort()) {
+        if (remoteConfig.getRemotePort() == 0 || remoteConfig.getRemotePort() == Config.getServerConfig().getServerPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getHttpPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getHttpsPort()) {
             remoteResult.add(String.format("需要绑定的端口[%s]不合法", remoteConfig.getRemotePort()));
             countDownLatch.countDown();
             return;
