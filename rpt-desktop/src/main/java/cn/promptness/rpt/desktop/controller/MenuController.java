@@ -24,6 +24,10 @@ public class MenuController {
 
     @FXML
     public MenuItem startText;
+    @FXML
+    public MenuItem configText;
+    @FXML
+    public MenuItem addText;
 
 
     public void initialize() {
@@ -101,7 +105,12 @@ public class MenuController {
                 };
             }
         };
-        service.setOnSucceeded(event -> startText.setText(isStart() ? "关闭" : "开启"));
+        service.setOnSucceeded(event -> {
+            startText.setText(isStart() ? "关闭" : "开启");
+            MainController.INSTANCE.tableView.setDisable(isStart());
+            configText.setDisable(isStart());
+            addText.setDisable(isStart());
+        });
         ProgressUtil.of(SystemTrayUtil.getPrimaryStage(), service).show();
     }
 
