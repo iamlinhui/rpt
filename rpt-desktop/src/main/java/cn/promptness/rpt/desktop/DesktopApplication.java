@@ -10,15 +10,14 @@ import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
+import jfxtras.styles.jmetro.Style;
 
 import java.awt.*;
-import java.util.Objects;
 
 public class DesktopApplication extends Application {
 
 
     public static void main(String[] args) {
-        System.setProperty("java.awt.headless", "false");
         if (!SystemTray.isSupported()) {
             System.exit(1);
         }
@@ -37,7 +36,7 @@ public class DesktopApplication extends Application {
         Parent root = new FXMLLoader(this.getClass().getResource("/fxml/main.fxml")).load();
         Scene scene = new Scene(root);
         scene.setFill(Color.TRANSPARENT);
-        scene.getStylesheets().add(Objects.requireNonNull(this.getClass().getResource("/css/light_theme.css")).toExternalForm());
+        scene.getStylesheets().add(Style.LIGHT.getStyleStylesheetURL());
         primaryStage.setTitle(Constants.TITLE);
         primaryStage.getIcons().add(new Image("/icon.png"));
         primaryStage.setScene(scene);

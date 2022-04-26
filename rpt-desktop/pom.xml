@@ -19,6 +19,17 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.jfxtras</groupId>
+            <artifactId>jmetro</artifactId>
+            <version>8.6.14</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.controlsfx</groupId>
+                    <artifactId>controlsfx</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
             <groupId>cn.promptness</groupId>
             <artifactId>rpt-client</artifactId>
             <version>${project.parent.version}</version>

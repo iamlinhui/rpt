@@ -2,38 +2,30 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.TableView?>
-<?import javafx.scene.layout.*?>
 <?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.*?>
 <VBox fx:controller="cn.promptness.rpt.desktop.controller.MainController" maxHeight="-Infinity" maxWidth="-Infinity"
       minHeight="-Infinity" minWidth="-Infinity"
       xmlns="http://javafx.com/javafx/11.0.14-internal" xmlns:fx="http://javafx.com/fxml/1">
-    <children>
-        <HBox VBox.vgrow="NEVER">
-            <children>
-                <fx:include source="menu.fxml"/>
-            </children>
-            <padding>
-                <Insets/>
-            </padding>
-        </HBox>
-        <HBox VBox.vgrow="ALWAYS">
-            <children>
-                <TableView fx:id="tableView" prefWidth="750" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS"/>
-            </children>
-            <padding>
-                <Insets/>
-            </padding>
-        </HBox>
-        <HBox VBox.vgrow="ALWAYS">
-            <children>
-                <TextArea fx:id="textArea" prefWidth="750" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS"/>
-            </children>
-            <padding>
-                <Insets/>
-            </padding>
-        </HBox>
-    </children>
     <padding>
         <Insets/>
     </padding>
+    <HBox VBox.vgrow="NEVER">
+        <padding>
+            <Insets/>
+        </padding>
+        <fx:include source="menu.fxml" HBox.hgrow="ALWAYS"/>
+    </HBox>
+    <HBox VBox.vgrow="ALWAYS">
+        <padding>
+            <Insets/>
+        </padding>
+        <TableView fx:id="tableView" prefWidth="750" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS"/>
+    </HBox>
+    <HBox VBox.vgrow="ALWAYS">
+        <padding>
+            <Insets/>
+        </padding>
+        <TextArea fx:id="textArea" prefWidth="750" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS"/>
+    </HBox>
 </VBox>

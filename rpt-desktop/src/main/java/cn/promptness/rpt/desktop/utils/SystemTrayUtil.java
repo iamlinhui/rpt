@@ -27,34 +27,30 @@ public class SystemTrayUtil {
             return;
         }
         Platform.setImplicitExit(false);
-        MenuItem showItem = new MenuItem("打开");
-        MenuItem exitItem = new MenuItem("退出");
-
-        //设置悬停提示信息
-        Image trayIconImage = Toolkit.getDefaultToolkit().getImage(SystemTrayUtil.class.getResource("/icon.png"));
-        int trayIconWidth = new TrayIcon(trayIconImage).getSize().width;
-        trayIcon = new TrayIcon(trayIconImage.getScaledInstance(trayIconWidth, -1, Image.SCALE_SMOOTH));
-
-        //设置图标尺寸自动适应
-        trayIcon.setImageAutoSize(true);
+        trayIcon = getTrayIcon(toolTip);
         //系统托盘
         SystemTray tray = SystemTray.getSystemTray();
-        //弹出式菜单组件
-        final PopupMenu popup = new PopupMenu();
-        popup.add(showItem);
-        popup.add(exitItem);
-        trayIcon.setPopupMenu(popup);
-        //鼠标移到系统托盘,会显示提示文本
-        trayIcon.setToolTip(toolTip);
-
-        addShowListener(showItem);
-        addExitListener(exitItem);
-        addMouseListener(trayIcon);
         try {
             tray.add(trayIcon);
         } catch (Exception e) {
             log.info(e.getMessage());
         }
+    }
+
+    private static TrayIcon getTrayIcon(String toolTip) {
+        //弹出式菜单组件
+        PopupMenu popup = new PopupMenu();
+        popup.add(getShowMenuItem());
+        popup.add(getExitMenuItem());
+
+        //设置悬停提示信息
+        Image trayIconImage = Toolkit.getDefaultToolkit().getImage(SystemTrayUtil.class.getResource("/icon.png"));
+        int trayIconWidth = new TrayIcon(trayIconImage).getSize().width;
+        TrayIcon trayIcon = new TrayIcon(trayIconImage.getScaledInstance(trayIconWidth, -1, Image.SCALE_SMOOTH), toolTip, popup);
+        //设置图标尺寸自动适应
+        trayIcon.setImageAutoSize(true);
+        addMouseListener(trayIcon);
+        return trayIcon;
     }
 
     /**
@@ -66,11 +62,14 @@ public class SystemTrayUtil {
         trayIcon.displayMessage(Constants.TITLE, text, TrayIcon.MessageType.INFO);
     }
 
-    private static void addExitListener(MenuItem exitItem) {
+    private static MenuItem getExitMenuItem() {
+        MenuItem exitItem = new MenuItem("退出");
         exitItem.addActionListener(e -> System.exit(0));
+        return exitItem;
     }
 
-    private static void addShowListener(MenuItem showItem) {
+    private static MenuItem getShowMenuItem() {
+        MenuItem showItem = new MenuItem("打开");
         //给菜单项添加事件
         showItem.addActionListener(e -> Platform.runLater(() -> {
             if (primaryStage.isIconified()) {
@@ -81,6 +80,7 @@ public class SystemTrayUtil {
             }
             primaryStage.toFront();
         }));
+        return showItem;
     }
 
     private static void addMouseListener(TrayIcon trayIcon) {

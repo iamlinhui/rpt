@@ -4,9 +4,13 @@ import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.utils.Config;
 import cn.promptness.rpt.client.ClientApplication;
 import cn.promptness.rpt.desktop.utils.Constants;
+import cn.promptness.rpt.desktop.utils.ProgressUtil;
 import cn.promptness.rpt.desktop.utils.SystemTrayUtil;
 import cn.promptness.rpt.desktop.utils.TooltipUtil;
 import io.netty.channel.nio.NioEventLoopGroup;
+import javafx.application.Platform;
+import javafx.concurrent.Service;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
@@ -73,20 +77,32 @@ public class MenuController {
 
     @FXML
     public void start() {
-        if (QUEUE.isEmpty()) {
-            if (connect()) {
-                TooltipUtil.show("开启成功!");
-            } else {
-                TooltipUtil.show("开启失败!");
+        Service<Void> service = new Service<Void>() {
+            @Override
+            protected Task<Void> createTask() {
+                return new Task<Void>() {
+                    @Override
+                    protected Void call() throws Exception {
+                        if (QUEUE.isEmpty()) {
+                            if (connect()) {
+                                Platform.runLater(() -> TooltipUtil.show("开启成功!"));
+                            } else {
+                                Platform.runLater(() -> TooltipUtil.show("开启失败!"));
+                            }
+                        } else {
+                            if (stop()) {
+                                Platform.runLater(() -> TooltipUtil.show("关闭成功!"));
+                            } else {
+                                Platform.runLater(() -> TooltipUtil.show("关闭失败!"));
+                            }
+                        }
+                        return null;
+                    }
+                };
             }
-        } else {
-            if (stop()) {
-                TooltipUtil.show("关闭成功!");
-            } else {
-                TooltipUtil.show("关闭失败!");
-            }
-        }
-        startText.setText(isStart() ? "关闭" : "开启");
+        };
+        service.setOnSucceeded(event -> startText.setText(isStart() ? "关闭" : "开启"));
+        ProgressUtil.of(SystemTrayUtil.getPrimaryStage(), service).show();
     }
 
     public static boolean isStart() {
