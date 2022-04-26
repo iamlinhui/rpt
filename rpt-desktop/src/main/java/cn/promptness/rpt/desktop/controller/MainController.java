@@ -44,6 +44,7 @@ public class MainController {
 
     public synchronized void addLog(String message) {
         textArea.appendText(LocalDateTime.now().toString());
+        textArea.appendText("|");
         textArea.appendText(message);
         textArea.appendText("\n");
     }
