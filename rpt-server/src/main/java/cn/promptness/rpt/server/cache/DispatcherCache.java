@@ -1,5 +1,6 @@
 package cn.promptness.rpt.server.cache;
 
+import cn.promptness.rpt.base.utils.StringUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
@@ -11,9 +12,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiConsumer;
+import java.util.regex.Pattern;
 
 public class DispatcherCache {
 
@@ -67,7 +72,7 @@ public class DispatcherCache {
         }
     }
 
-    public static byte[] page(String page) {
+    private static byte[] page(String page) {
         try (InputStream resource = ClassLoader.getSystemResourceAsStream(page)) {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             if (resource != null) {
@@ -84,4 +89,24 @@ public class DispatcherCache {
         return EmptyArrays.EMPTY_BYTES;
     }
 
+    private static final Pattern PATTERN = Pattern.compile(":");
+    private static final Pattern BLANK = Pattern.compile(" ");
+    private static final String USERNAME = "admin";
+    private static final String PASSWORD = "admin";
+
+    private static boolean check(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
+        String authorization = fullHttpRequest.headers().get(HttpHeaderNames.AUTHORIZATION);
+        if (StringUtils.hasText(authorization)) {
+            authorization = new String(Base64.getDecoder().decode(BLANK.split(authorization)[1]), StandardCharsets.UTF_8);
+            String[] split = PATTERN.split(authorization);
+            if (Objects.equals(USERNAME, split[0]) && Objects.equals(PASSWORD, split[1])) {
+                return true;
+            }
+        }
+        FullHttpResponse response = buildResponse(ctx, HttpResponseStatus.UNAUTHORIZED, page("page/401.html"));
+        response.headers().set(HttpHeaderNames.WWW_AUTHENTICATE, "Basic realm=\".\"");
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_HTML);
+        handle(ctx, fullHttpRequest, response);
+        return false;
+    }
 }
