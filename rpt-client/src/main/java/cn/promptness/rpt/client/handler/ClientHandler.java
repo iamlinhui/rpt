@@ -71,6 +71,10 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
                     logger.info("授权成功,当前秘钥:{}", message.getMeta().getClientKey());
                     for (String remoteResult : Optional.ofNullable(message.getMeta().getRemoteResult()).orElse(Collections.emptyList())) {
                         logger.info(remoteResult);
+                        if (!remoteResult.endsWith("成功")) {
+                            // 存在断线后 服务端端口还没释放 然后再次连接上 这时候虽然授权成功但是存在失败注册映射关系 逻辑调整为:有不成功的配置则处理为断线
+                            context.channel().close();
+                        }
                     }
                 } else {
                     logger.info("授权失败,当前秘钥:{}", message.getMeta().getClientKey());
