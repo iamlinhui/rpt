@@ -6,17 +6,20 @@ import cn.promptness.rpt.base.config.ServerConfig;
 import cn.promptness.rpt.base.handler.IdleCheckHandler;
 import cn.promptness.rpt.base.utils.Config;
 import cn.promptness.rpt.server.cache.ServerChannelCache;
+import cn.promptness.rpt.server.handler.RedirectHandler;
 import cn.promptness.rpt.server.handler.RequestHandler;
 import cn.promptness.rpt.server.handler.ServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.Unpooled;
-import io.netty.channel.*;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
-import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -84,20 +87,7 @@ public class ServerApplication {
                 ch.pipeline().addLast(new HttpServerCodec());
                 ch.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
                 ch.pipeline().addLast(new ChunkedWriteHandler());
-                ch.pipeline().addLast(new SimpleChannelInboundHandler<FullHttpRequest>() {
-                    @Override
-                    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-                        ctx.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
-                    }
-                    @Override
-                    protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest msg) throws Exception {
-                        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.MOVED_PERMANENTLY);
-                        HttpHeaders headers = response.headers();
-                        headers.set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
-                        headers.set(HttpHeaderNames.LOCATION, HttpScheme.HTTPS + "://" + msg.headers().get(HttpHeaderNames.HOST) + msg.uri());
-                        ch.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
-                    }
-                });
+                ch.pipeline().addLast(new RedirectHandler());
             }
         });
         httpBootstrap.bind(serverConfig.getServerIp(), serverConfig.getHttpPort()).addListener((ChannelFutureListener) future -> {
