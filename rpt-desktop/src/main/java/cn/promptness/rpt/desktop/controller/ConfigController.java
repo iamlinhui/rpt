@@ -6,6 +6,8 @@ import cn.promptness.rpt.base.config.ProxyType;
 import cn.promptness.rpt.desktop.utils.Constants;
 import cn.promptness.rpt.base.utils.StringUtils;
 import cn.promptness.rpt.desktop.utils.SystemTrayUtil;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
@@ -34,9 +36,6 @@ public class ConfigController {
     public static RemoteConfig buildDialog(String confirm, String headerTex, RemoteConfig remoteConfig) {
         Pair<ButtonType, Dialog<ButtonType>> pair = buildDialog(confirm, headerTex);
 
-        ComboBox<ProxyType> proxyType = new ComboBox<>(FXCollections.observableArrayList(ProxyType.values()));
-        proxyType.setValue(remoteConfig.getProxyType());
-
         TextField localIp = new TextField(remoteConfig.getLocalIp());
         TextField localPort = new TextField(String.valueOf(remoteConfig.getLocalPort()));
         localPort.textProperty().addListener((observable, oldValue, newValue) -> {
@@ -47,6 +46,8 @@ public class ConfigController {
 
         TextField domain = new TextField(remoteConfig.getDomain());
         domain.setPrefWidth(300);
+        TextField token = new TextField(remoteConfig.getToken());
+        token.setPrefWidth(300);
 
         TextField remotePort = new TextField(String.valueOf(remoteConfig.getRemotePort()));
         remotePort.textProperty().addListener((observable, oldValue, newValue) -> {
@@ -54,6 +55,24 @@ public class ConfigController {
                 remotePort.setText(REPLACE_REGEX.matcher(newValue).replaceAll(""));
             }
         });
+
+        ComboBox<ProxyType> proxyType = new ComboBox<>(FXCollections.observableArrayList(ProxyType.values()));
+        proxyType.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            domain.setDisable(false);
+            token.setDisable(false);
+            remotePort.setDisable(false);
+            if (Objects.equals(ProxyType.TCP, newValue)) {
+                domain.setDisable(true);
+                token.setDisable(true);
+                domain.setText("");
+                token.setText("");
+            }
+            if (Objects.equals(ProxyType.HTTP, newValue)) {
+                remotePort.setDisable(true);
+                remotePort.setText("");
+            }
+        });
+        proxyType.setValue(remoteConfig.getProxyType());
 
         TextField description = new TextField(remoteConfig.getDescription());
 
@@ -73,11 +92,14 @@ public class ConfigController {
         grid.add(new Text("暴露域名"), 0, 3);
         grid.add(domain, 1, 3);
 
-        grid.add(new Text("暴露端口"), 0, 4);
-        grid.add(remotePort, 1, 4);
+        grid.add(new Text("访问账户"), 0, 4);
+        grid.add(token, 1, 4);
 
-        grid.add(new Text("备注"), 0, 5);
-        grid.add(description, 1, 5);
+        grid.add(new Text("暴露端口"), 0, 5);
+        grid.add(remotePort, 1, 5);
+
+        grid.add(new Text("备注"), 0, 6);
+        grid.add(description, 1, 6);
 
         pair.getValue().getDialogPane().setContent(grid);
 
@@ -87,6 +109,7 @@ public class ConfigController {
             remoteConfig.setLocalIp(localIp.getText());
             remoteConfig.setLocalPort(StringUtils.hasText(localPort.getText()) ? Integer.parseInt(localPort.getText()) : 0);
             remoteConfig.setDomain(domain.getText());
+            remoteConfig.setToken(token.getText());
             remoteConfig.setRemotePort(StringUtils.hasText(remotePort.getText()) ? Integer.parseInt(remotePort.getText()) : 0);
             remoteConfig.setDescription(description.getText());
             return remoteConfig;
