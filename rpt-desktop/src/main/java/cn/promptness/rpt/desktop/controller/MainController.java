@@ -61,30 +61,34 @@ public class MainController {
         ReadOnlyDoubleProperty widthProperty = tableView.widthProperty();
         CONFIG.addAll(Optional.ofNullable(Config.getClientConfig().getConfig()).orElse(new ArrayList<>()));
         TableColumn<RemoteConfig, String> proxyType = new TableColumn<>("传输类型");
-        proxyType.prefWidthProperty().bind(widthProperty.multiply(.15));
+        proxyType.prefWidthProperty().bind(widthProperty.multiply(.14));
         proxyType.setCellValueFactory(new PropertyValueFactory<>("proxyType"));
 
         TableColumn<RemoteConfig, String> localIp = new TableColumn<>("本地地址");
-        localIp.prefWidthProperty().bind(widthProperty.multiply(.15));
+        localIp.prefWidthProperty().bind(widthProperty.multiply(.14));
         localIp.setCellValueFactory(new PropertyValueFactory<>("localIp"));
 
         TableColumn<RemoteConfig, Integer> localPort = new TableColumn<>("本地端口");
-        localPort.prefWidthProperty().bind(widthProperty.multiply(.15));
+        localPort.prefWidthProperty().bind(widthProperty.multiply(.14));
         localPort.setCellValueFactory(new PropertyValueFactory<>("localPort"));
 
         TableColumn<RemoteConfig, String> domain = new TableColumn<>("暴露域名");
-        domain.prefWidthProperty().bind(widthProperty.multiply(.15));
+        domain.prefWidthProperty().bind(widthProperty.multiply(.14));
         domain.setCellValueFactory(new PropertyValueFactory<>("domain"));
 
+        TableColumn<RemoteConfig, String> token = new TableColumn<>("访问账户");
+        token.prefWidthProperty().bind(widthProperty.multiply(.14));
+        token.setCellValueFactory(new PropertyValueFactory<>("token"));
+
         TableColumn<RemoteConfig, Integer> remotePort = new TableColumn<>("暴露端口");
-        remotePort.prefWidthProperty().bind(widthProperty.multiply(.15));
+        remotePort.prefWidthProperty().bind(widthProperty.multiply(.14));
         remotePort.setCellValueFactory(new PropertyValueFactory<>("remotePort"));
 
         TableColumn<RemoteConfig, String> description = new TableColumn<>("备注");
-        description.prefWidthProperty().bind(widthProperty.multiply(.15));
+        description.prefWidthProperty().bind(widthProperty.multiply(.14));
         description.setCellValueFactory(new PropertyValueFactory<>("description"));
 
-        tableView.getColumns().addAll(proxyType, localIp, localPort, domain, remotePort, description);
+        tableView.getColumns().addAll(proxyType, localIp, localPort, domain, token, remotePort, description);
 
         tableView.setItems(FXCollections.observableArrayList(CONFIG));
 
