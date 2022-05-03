@@ -89,17 +89,13 @@ public class DispatcherCache {
         return EmptyArrays.EMPTY_BYTES;
     }
 
-    private static final Pattern PATTERN = Pattern.compile(":");
     private static final Pattern BLANK = Pattern.compile(" ");
-    private static final String USERNAME = "admin";
-    private static final String PASSWORD = "admin";
 
-    private static boolean check(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
+    public static boolean check(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, String token) {
         String authorization = fullHttpRequest.headers().get(HttpHeaderNames.AUTHORIZATION);
         if (StringUtils.hasText(authorization)) {
             authorization = new String(Base64.getDecoder().decode(BLANK.split(authorization)[1]), StandardCharsets.UTF_8);
-            String[] split = PATTERN.split(authorization);
-            if (Objects.equals(USERNAME, split[0]) && Objects.equals(PASSWORD, split[1])) {
+            if (Objects.equals(token, authorization)) {
                 return true;
             }
         }

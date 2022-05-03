@@ -143,6 +143,12 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             DispatcherCache.doDispatch(fullHttpRequest, ctx);
             return;
         }
+
+        String token = ServerChannelCache.getServerDomainToken().get(domain);
+        if (token != null && !DispatcherCache.check(ctx, fullHttpRequest, token)) {
+            return;
+        }
+
         if (!connected.get()) {
             ctx.channel().config().setAutoRead(false);
             send(serverChannel, ctx, domain, MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES);

@@ -15,6 +15,7 @@ public class RemoteConfig implements Serializable {
      */
     private ProxyType proxyType;
     private String domain;
+    private String token;
 
     public int getRemotePort() {
         return remotePort;
@@ -62,5 +63,13 @@ public class RemoteConfig implements Serializable {
 
     public void setDomain(String domain) {
         this.domain = domain;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
     }
 }
