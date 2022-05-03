@@ -78,6 +78,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             if (remove != null) {
                 remove.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
             }
+            ServerChannelCache.getServerDomainToken().remove(domain);
         }
         domainList.clear();
         for (Channel channel : ServerChannelCache.getServerHttpChannelMap().values()) {
@@ -162,6 +163,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                 return channel;
             }
             domainList.add(domain);
+            if (StringUtils.hasText(remoteConfig.getToken())) {
+                ServerChannelCache.getServerDomainToken().put(domain, remoteConfig.getToken());
+            }
             remoteResult.add(String.format("服务端绑定域名[%s]成功", domain));
             return context.channel();
         });

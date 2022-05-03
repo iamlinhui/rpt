@@ -18,4 +18,5 @@ config:
     localIp: 127.0.0.1
     localPort: 8080
     domain: localhost
+    token: admin:admin
     description: tomcat
