@@ -5,7 +5,6 @@ import cn.promptness.rpt.base.coder.MessageEncoder;
 import cn.promptness.rpt.base.config.ServerConfig;
 import cn.promptness.rpt.base.handler.IdleCheckHandler;
 import cn.promptness.rpt.base.utils.Config;
-import cn.promptness.rpt.server.cache.ServerChannelCache;
 import cn.promptness.rpt.server.handler.RedirectHandler;
 import cn.promptness.rpt.server.handler.RequestHandler;
 import cn.promptness.rpt.server.handler.ServerHandler;
@@ -118,7 +117,6 @@ public class ServerApplication {
                 ch.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
                 ch.pipeline().addLast(new ChunkedWriteHandler());
                 ch.pipeline().addLast(new RequestHandler());
-                ServerChannelCache.getServerHttpChannelMap().put(ch.id().asLongText(), ch);
             }
         });
         httpsBootstrap.bind(serverConfig.getServerIp(), serverConfig.getHttpsPort()).addListener((ChannelFutureListener) future -> {

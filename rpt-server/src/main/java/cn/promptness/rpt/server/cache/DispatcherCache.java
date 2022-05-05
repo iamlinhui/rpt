@@ -24,15 +24,34 @@ public class DispatcherCache {
 
     private static final Logger logger = LoggerFactory.getLogger(DispatcherCache.class);
 
-    private static final Map<String, BiConsumer<ChannelHandlerContext, FullHttpRequest>> HANDLE_MAP = new HashMap<String, BiConsumer<ChannelHandlerContext, FullHttpRequest>>() {{
-        put("/favicon.ico", DispatcherCache::favicon);
-        put("/", DispatcherCache::index);
-        put("/index.html", DispatcherCache::index);
-    }};
+    private static final Pattern BLANK = Pattern.compile("\\s");
 
-    public static void doDispatch(FullHttpRequest fullHttpRequest, ChannelHandlerContext ctx) {
+    private static final Map<String, BiConsumer<ChannelHandlerContext, FullHttpRequest>> HANDLE_MAP = new HashMap<>();
+
+    static {
+        HANDLE_MAP.put("/favicon.ico", DispatcherCache::favicon);
+        HANDLE_MAP.put("/", DispatcherCache::index);
+        HANDLE_MAP.put("/index.html", DispatcherCache::index);
+    }
+
+    public static void dispatch(FullHttpRequest fullHttpRequest, ChannelHandlerContext ctx) {
         String uri = fullHttpRequest.uri();
         HANDLE_MAP.getOrDefault(uri, DispatcherCache::notFound).accept(ctx, fullHttpRequest);
+    }
+
+    public static boolean authorize(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, String token) {
+        String authorization = fullHttpRequest.headers().get(HttpHeaderNames.AUTHORIZATION);
+        if (StringUtils.hasText(authorization)) {
+            authorization = new String(Base64.getDecoder().decode(BLANK.split(authorization)[1]), StandardCharsets.UTF_8);
+            if (Objects.equals(token, authorization)) {
+                return true;
+            }
+        }
+        FullHttpResponse response = buildResponse(ctx, HttpResponseStatus.UNAUTHORIZED, page("page/401.html"));
+        response.headers().set(HttpHeaderNames.WWW_AUTHENTICATE, "Basic realm=\".\"");
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_HTML);
+        handle(ctx, fullHttpRequest, response);
+        return false;
     }
 
     private static void favicon(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
@@ -87,22 +106,5 @@ public class DispatcherCache {
             logger.error(e.getMessage());
         }
         return EmptyArrays.EMPTY_BYTES;
-    }
-
-    private static final Pattern BLANK = Pattern.compile(" ");
-
-    public static boolean check(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, String token) {
-        String authorization = fullHttpRequest.headers().get(HttpHeaderNames.AUTHORIZATION);
-        if (StringUtils.hasText(authorization)) {
-            authorization = new String(Base64.getDecoder().decode(BLANK.split(authorization)[1]), StandardCharsets.UTF_8);
-            if (Objects.equals(token, authorization)) {
-                return true;
-            }
-        }
-        FullHttpResponse response = buildResponse(ctx, HttpResponseStatus.UNAUTHORIZED, page("page/401.html"));
-        response.headers().set(HttpHeaderNames.WWW_AUTHENTICATE, "Basic realm=\".\"");
-        response.headers().set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_HTML);
-        handle(ctx, fullHttpRequest, response);
-        return false;
     }
 }

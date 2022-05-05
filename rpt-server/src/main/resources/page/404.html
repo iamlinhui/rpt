@@ -11,12 +11,13 @@
 </head>
 <body>
 <div class="main">
+    <div class="github"><a href="https://github.com/iamlinhui/rpt" target="_blank">Fork me on GitHub</a></div>
     <div class="title">
         <h1>404 Not Found</h1>
     </div>
     <div class="footer">
         <p><a href="https://beian.miit.gov.cn" target="_blank"></a></p>
-        <p><a href="https://github.com/iamlinhui/rpt" target="_blank">Copyright &copy; 2022 by Lynn. All Rights Reserved.</a></p>
+        <p>Copyright &copy; 2022 by Lynn. All Rights Reserved.</p>
     </div>
 </div>
 </body>
@@ -44,10 +45,82 @@
         border-width: 0 2em;
     }
 
-    .footer {
+    .content p {
+        word-break: break-all;
+        text-indent: 2em;
+        line-height: 2;
+        margin: 0 0 0;
+    }
+
+    .end p {
+        text-align: right;
+    }
+
+    .footer, .github {
         padding-top: 1em;
         padding-bottom: 1em;
         text-align: center;
+    }
+
+    .github a {
+        background: #000;
+        color: #fff;
+        text-decoration: none;
+        font-family: arial, sans-serif;
+        text-align: center;
+        font-weight: bold;
+        padding: 5px 40px;
+        font-size: 1rem;
+        line-height: 2rem;
+        position: relative;
+        transition: 0.5s;
+    }
+
+    .github a:hover {
+        background: #c11;
+        color: #fff;
+    }
+
+    .github a::before, .github a::after {
+        content: "";
+        width: 100%;
+        display: block;
+        position: absolute;
+        top: 1px;
+        left: 0;
+        height: 1px;
+        background: #fff;
+    }
+
+    .github a::after {
+        bottom: 1px;
+        top: auto;
+    }
+
+    @media screen and (min-width: 800px) {
+        .github {
+            position: fixed;
+            display: block;
+            top: 0;
+            right: 0;
+            width: 200px;
+            overflow: hidden;
+            height: 200px;
+            z-index: 9999;
+        }
+
+        .github a {
+            width: 200px;
+            position: absolute;
+            top: 60px;
+            right: -60px;
+            transform: rotate(45deg);
+            -webkit-transform: rotate(45deg);
+            -ms-transform: rotate(45deg);
+            -moz-transform: rotate(45deg);
+            -o-transform: rotate(45deg);
+            box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.8);
+        }
     }
 </style>
 </html>
