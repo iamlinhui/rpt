@@ -32,6 +32,7 @@ public class DispatcherCache {
         HANDLE_MAP.put("/favicon.ico", DispatcherCache::favicon);
         HANDLE_MAP.put("/", DispatcherCache::index);
         HANDLE_MAP.put("/index.html", DispatcherCache::index);
+        HANDLE_MAP.put("/static/base.css", DispatcherCache::css);
     }
 
     public static void dispatch(FullHttpRequest fullHttpRequest, ChannelHandlerContext ctx) {
@@ -47,7 +48,7 @@ public class DispatcherCache {
                 return true;
             }
         }
-        FullHttpResponse response = buildResponse(ctx, HttpResponseStatus.UNAUTHORIZED, page("page/401.html"));
+        FullHttpResponse response = buildResponse(ctx, HttpResponseStatus.UNAUTHORIZED, page("static/401.html"));
         response.headers().set(HttpHeaderNames.WWW_AUTHENTICATE, "Basic realm=\".\"");
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_HTML);
         handle(ctx, fullHttpRequest, response);
@@ -55,7 +56,7 @@ public class DispatcherCache {
     }
 
     private static void favicon(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
-        byte[] result = page("page/favicon.ico");
+        byte[] result = page("static/favicon.ico");
         FullHttpResponse response = buildResponse(ctx, HttpResponseStatus.OK, result);
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, "image/x-icon");
         response.headers().set(HttpHeaderNames.CACHE_CONTROL, "max-age=86400");
@@ -63,14 +64,22 @@ public class DispatcherCache {
     }
 
     private static void index(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
-        byte[] result = page("page/index.html");
+        byte[] result = page("static/index.html");
         FullHttpResponse response = buildResponse(ctx, HttpResponseStatus.OK, result);
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_HTML);
         handle(ctx, fullHttpRequest, response);
     }
 
+    private static void css(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
+        byte[] result = page("static/base.css");
+        FullHttpResponse response = buildResponse(ctx, HttpResponseStatus.OK, result);
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_CSS);
+        response.headers().set(HttpHeaderNames.CACHE_CONTROL, "max-age=86400");
+        handle(ctx, fullHttpRequest, response);
+    }
+
     private static void notFound(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
-        byte[] result = page("page/404.html");
+        byte[] result = page("static/404.html");
         FullHttpResponse response = buildResponse(ctx, HttpResponseStatus.NOT_FOUND, result);
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_HTML);
         handle(ctx, fullHttpRequest, response);
