@@ -86,7 +86,10 @@ config:
   - proxyType: HTTP
     localIp: 127.0.0.1
     localPort: 8080
+    # 访问域名(*.domain.com 用二级域名指向 eg:test.domain.com)
     domain: localhost
+    # 访问资源时登录的账号和密码(账号:密码) 非必填
+    token: admin:admin
     description: tomcat
 ```
 
