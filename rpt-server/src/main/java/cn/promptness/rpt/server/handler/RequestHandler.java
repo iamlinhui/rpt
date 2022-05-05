@@ -42,6 +42,12 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private String domain;
 
     @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        ServerChannelCache.getServerHttpChannelMap().put(ctx.channel().id().asLongText(), ctx.channel());
+        super.channelActive(ctx);
+    }
+
+    @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
         if (domain != null) {
             Channel serverChannel = ServerChannelCache.getServerDomainChannelMap().get(domain);
@@ -135,17 +141,17 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
         domain = Optional.ofNullable(domain).orElse(PATTERN.split(fullHttpRequest.headers().get(HttpHeaderNames.HOST))[0]);
         if (!StringUtils.hasText(domain)) {
-            DispatcherCache.doDispatch(fullHttpRequest, ctx);
+            DispatcherCache.dispatch(fullHttpRequest, ctx);
             return;
         }
         Channel serverChannel = ServerChannelCache.getServerDomainChannelMap().get(domain);
         if (serverChannel == null || !serverChannel.isOpen()) {
-            DispatcherCache.doDispatch(fullHttpRequest, ctx);
+            DispatcherCache.dispatch(fullHttpRequest, ctx);
             return;
         }
 
         String token = ServerChannelCache.getServerDomainToken().get(domain);
-        if (token != null && !DispatcherCache.check(ctx, fullHttpRequest, token)) {
+        if (token != null && !DispatcherCache.authorize(ctx, fullHttpRequest, token)) {
             return;
         }
 
