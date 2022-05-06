@@ -1,5 +1,6 @@
 package cn.promptness.rpt.server.handler;
 
+import cn.promptness.rpt.base.utils.Config;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
@@ -7,7 +8,11 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
 
+import java.util.regex.Pattern;
+
 public class RedirectHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
+
+    private static final Pattern PATTERN = Pattern.compile(":");
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
@@ -24,8 +29,8 @@ public class RedirectHandler extends SimpleChannelInboundHandler<FullHttpRequest
         FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.MOVED_PERMANENTLY);
         HttpHeaders headers = response.headers();
         headers.set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
-        headers.set(HttpHeaderNames.LOCATION, HttpScheme.HTTPS + "://" + msg.headers().get(HttpHeaderNames.HOST) + msg.uri());
-        ChannelFuture future = ctx.writeAndFlush(response);
+        String host = PATTERN.split(msg.headers().get(HttpHeaderNames.HOST))[0] + ":" + Config.getServerConfig().getHttpsPort();
+        headers.set(HttpHeaderNames.LOCATION, HttpScheme.HTTPS + "://" + host + msg.uri());        ChannelFuture future = ctx.writeAndFlush(response);
         if (!HttpUtil.isKeepAlive(msg)) {
             future.addListener(ChannelFutureListener.CLOSE);
         }
