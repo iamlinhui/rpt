@@ -10,9 +10,29 @@
 
 > 部署简单，提供桌面客户端。
 
-![img_1.png](doc/img_1.png)
-![img_2.png](doc/img_2.png)
-![img_3.png](doc/img_3.png)
+---
+
+- 主界面
+
+![img.png](doc/desktop/img.png)
+
+- 系统配置
+
+![img_1.png](doc/desktop/img_1.png)
+
+- TCP映射配置
+
+![img_2.png](doc/desktop/img_2.png)
+
+- HTTP映射配置
+
+![img_3.png](doc/desktop/img_3.png)
+
+- 控制台输出
+
+![img_4.png](doc/desktop/img_4.png)
+
+---
 
 > http代理、https代理(eg:本地支付接口调试,本地微信公众号调试)\
 > 远程桌面(eg:远程办公)\
@@ -31,7 +51,7 @@
 - RDP协议：远程桌面协议，是一个多通道的协议，让用户连上提供终端服务的电脑
 - SOCKS协议: 防火墙安全会话转换协议
 
-![img.png](doc/img.png)
+![img.png](doc/process.png)
 
 ## 服务端配置`server.yml`
 
