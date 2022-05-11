@@ -48,11 +48,11 @@ public class DispatcherCache {
             }
         }
         String uri = fullHttpRequest.uri();
-        if (WHITE_URI.contains(uri)) {
-            HANDLE_MAP.getOrDefault(uri, DispatcherCache::notFound).accept(ctx, fullHttpRequest);
-        } else {
+        if (!WHITE_URI.contains(uri)) {
             unauthorized(ctx, fullHttpRequest);
+            return false;
         }
+        dispatch(fullHttpRequest, ctx);
         return false;
     }
 
