@@ -13,10 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.regex.Pattern;
 
@@ -27,6 +24,8 @@ public class DispatcherCache {
     private static final Pattern BLANK = Pattern.compile("\\s");
 
     private static final Map<String, BiConsumer<ChannelHandlerContext, FullHttpRequest>> HANDLE_MAP = new HashMap<>();
+
+    private static final List<String> WHITE_URI = Arrays.asList("/favicon.ico", "/static/base.css");
 
     static {
         HANDLE_MAP.put("/favicon.ico", DispatcherCache::favicon);
@@ -48,11 +47,20 @@ public class DispatcherCache {
                 return true;
             }
         }
+        String uri = fullHttpRequest.uri();
+        if (WHITE_URI.contains(uri)) {
+            HANDLE_MAP.getOrDefault(uri, DispatcherCache::notFound).accept(ctx, fullHttpRequest);
+        } else {
+            unauthorized(ctx, fullHttpRequest);
+        }
+        return false;
+    }
+
+    private static void unauthorized(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
         FullHttpResponse response = buildResponse(ctx, HttpResponseStatus.UNAUTHORIZED, page("static/401.html"));
         response.headers().set(HttpHeaderNames.WWW_AUTHENTICATE, "Basic realm=\".\"");
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_HTML);
         handle(ctx, fullHttpRequest, response);
-        return false;
     }
 
     private static void favicon(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
