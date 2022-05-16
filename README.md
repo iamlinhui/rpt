@@ -69,9 +69,14 @@ domainCert: server.crt
 # 域名证书私钥(需替换)
 domainKey: pkcs8_server.key
 #授权给客户端的秘钥
-clientKey:
-  - b0cc39c7-1b78-4ff6-9486-020399f569e9
-  - 4befea7e-a61c-4979-b012-47659bab6f21
+token:
+  - clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
+    # 限制绑定端口范围 左右闭区间
+    minPort: 4000
+    maxPort: 8000
+  - clientKey: 4befea7e-a61c-4979-b012-47659bab6f21
+    minPort: 9000
+    maxPort: 9999
 ```
 
 ## 客户端配置`client.yml`
