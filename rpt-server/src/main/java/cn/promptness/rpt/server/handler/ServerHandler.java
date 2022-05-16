@@ -3,6 +3,7 @@ package cn.promptness.rpt.server.handler;
 import cn.promptness.rpt.base.coder.ByteArrayCodec;
 import cn.promptness.rpt.base.config.ProxyType;
 import cn.promptness.rpt.base.config.RemoteConfig;
+import cn.promptness.rpt.base.config.ServerToken;
 import cn.promptness.rpt.base.handler.ByteIdleCheckHandler;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
@@ -112,7 +113,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     private void register(ChannelHandlerContext context, Message message) throws InterruptedException {
         Meta meta = message.getMeta();
         clientKey = meta.getClientKey();
-        if (!Config.getServerConfig().getClientKey().contains(clientKey)) {
+        if (!Config.getServerConfig().authorize(clientKey)) {
             logger.info("授权失败,客户端使用的秘钥:{}", clientKey);
             Message res = new Message();
             res.setType(MessageType.TYPE_AUTH);
@@ -175,6 +176,12 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     private void registerTcp(ChannelHandlerContext context, List<String> remoteResult, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {
         if (remoteConfig.getRemotePort() == 0 || remoteConfig.getRemotePort() == Config.getServerConfig().getServerPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getHttpPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getHttpsPort()) {
             remoteResult.add(String.format("需要绑定的端口[%s]不合法", remoteConfig.getRemotePort()));
+            countDownLatch.countDown();
+            return;
+        }
+        ServerToken serverToken = Config.getServerConfig().getServerToken(clientKey);
+        if (!serverToken.authorize(remoteConfig.getRemotePort())) {
+            remoteResult.add(String.format("需要绑定的端口[%s]范围不合法", remoteConfig.getRemotePort()));
             countDownLatch.countDown();
             return;
         }

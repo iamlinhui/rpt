@@ -1,6 +1,7 @@
 package cn.promptness.rpt.base.config;
 
 import java.util.List;
+import java.util.Objects;
 
 public class ServerConfig {
 
@@ -10,7 +11,28 @@ public class ServerConfig {
     private int httpsPort;
     private String domainCert;
     private String domainKey;
-    private List<String> clientKey;
+    private List<ServerToken> token;
+
+    public boolean authorize(String clientKey) {
+        if (token == null || token.isEmpty()) {
+            return false;
+        }
+        for (ServerToken serverToken : token) {
+            if (Objects.equals(clientKey, serverToken.getClientKey())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public ServerToken getServerToken(String clientKey) {
+        for (ServerToken serverToken : token) {
+            if (Objects.equals(clientKey, serverToken.getClientKey())) {
+                return serverToken;
+            }
+        }
+        return null;
+    }
 
     public String getServerIp() {
         return serverIp;
@@ -28,12 +50,12 @@ public class ServerConfig {
         this.serverPort = serverPort;
     }
 
-    public List<String> getClientKey() {
-        return clientKey;
+    public List<ServerToken> getToken() {
+        return token;
     }
 
-    public void setClientKey(List<String> clientKey) {
-        this.clientKey = clientKey;
+    public void setToken(List<ServerToken> token) {
+        this.token = token;
     }
 
     public int getHttpPort() {
