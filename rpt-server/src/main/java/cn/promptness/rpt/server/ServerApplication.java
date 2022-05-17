@@ -1,7 +1,7 @@
 package cn.promptness.rpt.server;
 
-import cn.promptness.rpt.base.coder.MessageDecoder;
-import cn.promptness.rpt.base.coder.MessageEncoder;
+import cn.promptness.rpt.base.coder.GzipCodec;
+import cn.promptness.rpt.base.coder.MessageCodec;
 import cn.promptness.rpt.base.config.ServerConfig;
 import cn.promptness.rpt.base.handler.IdleCheckHandler;
 import cn.promptness.rpt.base.utils.Config;
@@ -17,8 +17,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
-import io.netty.handler.codec.compression.ZlibCodecFactory;
-import io.netty.handler.codec.compression.ZlibWrapper;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.ssl.ClientAuth;
@@ -53,16 +51,13 @@ public class ServerApplication {
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
                 ch.pipeline().addLast(sslContext.newHandler(ch.alloc()));
-                ch.pipeline().addLast(ZlibCodecFactory.newZlibDecoder(ZlibWrapper.GZIP));
-                ch.pipeline().addLast(ZlibCodecFactory.newZlibEncoder(ZlibWrapper.GZIP));
+                ch.pipeline().addLast(new GzipCodec());
                 // 固定帧长解码器
                 ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4));
                 ch.pipeline().addLast(new LengthFieldPrepender(4));
                 ch.pipeline().addLast(new ChunkedWriteHandler());
-                // 自定义协议解码器
-                ch.pipeline().addLast(new MessageDecoder());
-                // 自定义协议编码器
-                ch.pipeline().addLast(new MessageEncoder());
+                // 自定义协议编解码器
+                ch.pipeline().addLast(new MessageCodec());
                 ch.pipeline().addLast(new IdleCheckHandler(60, 40, 0));
                 // 代理客户端连接代理服务器处理器
                 ch.pipeline().addLast(new ServerHandler());
