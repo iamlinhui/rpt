@@ -80,4 +80,10 @@ public class Meta {
         return this;
     }
 
+    public Meta addRemoteResult(String remoteResult) {
+        if (this.remoteResult != null) {
+            this.remoteResult.add(remoteResult);
+        }
+        return this;
+    }
 }

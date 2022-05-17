@@ -117,71 +117,74 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             logger.info("授权失败,客户端使用的秘钥:{}", clientKey);
             Message res = new Message();
             res.setType(MessageType.TYPE_AUTH);
-            res.setMeta(meta.setConnection(false));
+            res.setMeta(meta.setConnection(false).setRemoteResult(Collections.singletonList("秘钥授权失败")));
             context.writeAndFlush(res).addListener(ChannelFutureListener.CLOSE);
             return;
         }
-        List<String> remoteResult = getRemoteResult(context, meta);
+        fillRemoteResult(context, meta);
         Message res = new Message();
         res.setType(MessageType.TYPE_AUTH);
-        res.setMeta(meta.setConnection(true).setRemoteResult(remoteResult));
-        context.writeAndFlush(res);
+        res.setMeta(meta);
+        ChannelFuture channelFuture = context.writeAndFlush(res);
+        if (!meta.isConnection()) {
+            channelFuture.addListener(ChannelFutureListener.CLOSE);
+        }
     }
 
-    private List<String> getRemoteResult(ChannelHandlerContext context, Meta meta) throws InterruptedException {
+    private void fillRemoteResult(ChannelHandlerContext context, Meta meta) throws InterruptedException {
         List<String> remoteResult = new ArrayList<>();
+        meta.setConnection(true).setRemoteResult(remoteResult);
         List<RemoteConfig> remoteConfigList = Optional.ofNullable(meta.getRemoteConfigList()).orElse(Collections.emptyList());
         if (remoteConfigList.isEmpty()) {
-            return remoteResult;
+            return;
         }
         CountDownLatch countDownLatch = new CountDownLatch(remoteConfigList.size());
         for (RemoteConfig remoteConfig : remoteConfigList) {
             ProxyType proxyType = Optional.ofNullable(remoteConfig.getProxyType()).orElse(ProxyType.TCP);
             switch (proxyType) {
                 case TCP:
-                    registerTcp(context, remoteResult, remoteConfig, countDownLatch);
+                    registerTcp(context, meta, remoteConfig, countDownLatch);
                     break;
                 case HTTP:
-                    registerHttp(context, remoteResult, remoteConfig, countDownLatch);
+                    registerHttp(context, meta, remoteConfig, countDownLatch);
                     break;
                 default:
             }
         }
         countDownLatch.await();
-        return remoteResult;
     }
 
-    private void registerHttp(ChannelHandlerContext context, List<String> remoteResult, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {
+    private void registerHttp(ChannelHandlerContext context, Meta meta, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {
         if (!StringUtils.hasText(remoteConfig.getDomain())) {
-            remoteResult.add(String.format("服务端绑定域名[%s]不合法", remoteConfig.getDomain()));
+            meta.setConnection(false).addRemoteResult(String.format("服务端绑定域名[%s]不合法", remoteConfig.getDomain()));
             countDownLatch.countDown();
             return;
         }
         logger.info("服务端开始绑定域名[{}]", remoteConfig.getDomain());
         ServerChannelCache.getServerDomainChannelMap().compute(remoteConfig.getDomain(), (domain, channel) -> {
             if (channel != null) {
-                remoteResult.add(String.format("服务端绑定域名[%s]重复", domain));
+                meta.setConnection(false).addRemoteResult(String.format("服务端绑定域名[%s]重复", domain));
                 return channel;
             }
             domainList.add(domain);
             if (StringUtils.hasText(remoteConfig.getToken())) {
                 ServerChannelCache.getServerDomainToken().put(domain, remoteConfig.getToken());
             }
-            remoteResult.add(String.format("服务端绑定域名[%s]成功", domain));
+            meta.addRemoteResult(String.format("服务端绑定域名[%s]成功", domain));
             return context.channel();
         });
         countDownLatch.countDown();
     }
 
-    private void registerTcp(ChannelHandlerContext context, List<String> remoteResult, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {
+    private void registerTcp(ChannelHandlerContext context, Meta meta, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {
         if (remoteConfig.getRemotePort() == 0 || remoteConfig.getRemotePort() == Config.getServerConfig().getServerPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getHttpPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getHttpsPort()) {
-            remoteResult.add(String.format("需要绑定的端口[%s]不合法", remoteConfig.getRemotePort()));
+            meta.setConnection(false).addRemoteResult(String.format("需要绑定的端口[%s]不合法", remoteConfig.getRemotePort()));
             countDownLatch.countDown();
             return;
         }
         ServerToken serverToken = Config.getServerConfig().getServerToken(clientKey);
         if (!serverToken.authorize(remoteConfig.getRemotePort())) {
-            remoteResult.add(String.format("需要绑定的端口[%s]范围不合法", remoteConfig.getRemotePort()));
+            meta.setConnection(false).addRemoteResult(String.format("需要绑定的端口[%s]范围不合法", remoteConfig.getRemotePort()));
             countDownLatch.countDown();
             return;
         }
@@ -201,10 +204,10 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         logger.info("服务端开始建立本地端口绑定[{}]", remoteConfig.getRemotePort());
         remoteBootstrap.bind(Config.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).addListener((ChannelFutureListener) channelFuture -> {
             if (channelFuture.isSuccess()) {
-                remoteResult.add(String.format("服务端绑定端口[%s]成功", remoteConfig.getRemotePort()));
+                meta.addRemoteResult(String.format("服务端绑定端口[%s]成功", remoteConfig.getRemotePort()));
             } else {
                 logger.info("服务端失败建立本地端口绑定[{}], {}", remoteConfig.getRemotePort(), channelFuture.cause().getMessage());
-                remoteResult.add(String.format("服务端绑定端口[%s]失败,原因:%s", remoteConfig.getRemotePort(), channelFuture.cause().getMessage()));
+                meta.setConnection(false).addRemoteResult(String.format("服务端绑定端口[%s]失败,原因:%s", remoteConfig.getRemotePort(), channelFuture.cause().getMessage()));
             }
             countDownLatch.countDown();
         });
