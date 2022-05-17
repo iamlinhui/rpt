@@ -30,7 +30,8 @@ public class RedirectHandler extends SimpleChannelInboundHandler<FullHttpRequest
         HttpHeaders headers = response.headers();
         headers.set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
         String host = PATTERN.split(msg.headers().get(HttpHeaderNames.HOST))[0] + ":" + Config.getServerConfig().getHttpsPort();
-        headers.set(HttpHeaderNames.LOCATION, HttpScheme.HTTPS + "://" + host + msg.uri());        ChannelFuture future = ctx.writeAndFlush(response);
+        headers.set(HttpHeaderNames.LOCATION, HttpScheme.HTTPS + "://" + host + msg.uri());
+        ChannelFuture future = ctx.writeAndFlush(response);
         if (!HttpUtil.isKeepAlive(msg)) {
             future.addListener(ChannelFutureListener.CLOSE);
         }
