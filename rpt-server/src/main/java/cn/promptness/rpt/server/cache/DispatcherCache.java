@@ -1,5 +1,6 @@
 package cn.promptness.rpt.server.cache;
 
+import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.base.utils.StringUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFuture;
@@ -15,13 +16,10 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiConsumer;
-import java.util.regex.Pattern;
 
 public class DispatcherCache {
 
     private static final Logger logger = LoggerFactory.getLogger(DispatcherCache.class);
-
-    private static final Pattern BLANK = Pattern.compile("\\s");
 
     private static final Map<String, BiConsumer<ChannelHandlerContext, FullHttpRequest>> HANDLE_MAP = new HashMap<>();
 
@@ -42,7 +40,7 @@ public class DispatcherCache {
     public static boolean authorize(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, String token) {
         String authorization = fullHttpRequest.headers().get(HttpHeaderNames.AUTHORIZATION);
         if (StringUtils.hasText(authorization)) {
-            authorization = new String(Base64.getDecoder().decode(BLANK.split(authorization)[1]), StandardCharsets.UTF_8);
+            authorization = new String(Base64.getDecoder().decode(Constants.BLANK.split(authorization)[1]), StandardCharsets.UTF_8);
             if (Objects.equals(token, authorization)) {
                 return true;
             }

@@ -8,6 +8,7 @@ import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.protocol.Meta;
 import cn.promptness.rpt.base.utils.Config;
+import cn.promptness.rpt.base.utils.Constants;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
@@ -20,7 +21,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,11 +33,6 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientHandler.class);
     private final EventLoopGroup localGroup = new NioEventLoopGroup();
-
-    /**
-     * remoteChannelId/requestChannelId --> localChannel
-     */
-    private final Map<String, Channel> localChannelMap = new ConcurrentHashMap<>();
     private final AtomicBoolean connect;
 
     public ClientHandler(AtomicBoolean connect) {
@@ -46,7 +41,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        for (Channel channel : localChannelMap.values()) {
+        for (Channel channel : ctx.channel().attr(Constants.CHANNELS).get().values()) {
             channel.config().setAutoRead(ctx.channel().isWritable());
         }
         super.channelWritabilityChanged(ctx);
@@ -72,6 +67,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
                 boolean connection = message.getMeta().isConnection();
                 if (connection) {
                     logger.info("连接成功,当前秘钥:{}", message.getMeta().getClientKey());
+                    context.channel().attr(Constants.CHANNELS).set(new ConcurrentHashMap<>(1024));
                 } else {
                     logger.info("连接失败,当前秘钥:{}", message.getMeta().getClientKey());
                 }
@@ -81,30 +77,30 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
                 connected(context, message);
                 break;
             case TYPE_DISCONNECTED:
-                disconnected(message);
+                disconnected(context, message);
                 break;
             case TYPE_DATA:
-                transfer(message);
+                transfer(context, message);
                 break;
             case TYPE_KEEPALIVE:
             default:
         }
     }
 
-    private void transfer(Message message) {
+    private void transfer(ChannelHandlerContext context, Message message) {
         if (message.getData() == null) {
             return;
         }
         String channelId = message.getMeta().getChannelId();
-        Channel tcpChannel = localChannelMap.get(channelId);
+        Channel tcpChannel = context.channel().attr(Constants.CHANNELS).get().get(channelId);
         if (tcpChannel != null) {
             tcpChannel.writeAndFlush(message.getData());
         }
     }
 
-    private void disconnected(Message message) {
+    private void disconnected(ChannelHandlerContext context, Message message) {
         String channelId = message.getMeta().getChannelId();
-        Channel tcpChannel = localChannelMap.remove(channelId);
+        Channel tcpChannel = context.channel().attr(Constants.CHANNELS).get().remove(channelId);
         if (tcpChannel != null) {
             tcpChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         }
@@ -142,9 +138,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
             }
         });
         localBootstrap.connect(remoteConfig.getLocalIp(), remoteConfig.getLocalPort()).addListener((ChannelFutureListener) future -> {
-            if (future.isSuccess()) {
-                localChannelMap.put(meta.getChannelId(), future.channel());
-            } else {
+            if (!future.isSuccess()) {
                 Message message = new Message();
                 message.setType(MessageType.TYPE_DISCONNECTED);
                 message.setData(EmptyArrays.EMPTY_BYTES);
@@ -157,10 +151,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         logger.info("客户端-服务端连接中断,{}:{}", Config.getClientConfig().getServerIp(), Config.getClientConfig().getServerPort());
-        for (Channel channel : localChannelMap.values()) {
+        for (Channel channel : Optional.ofNullable(ctx.channel().attr(Constants.CHANNELS).getAndSet(null)).orElse(Collections.emptyMap()).values()) {
             channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         }
-        localChannelMap.clear();
         localGroup.shutdownGracefully();
         connect.set(false);
     }
