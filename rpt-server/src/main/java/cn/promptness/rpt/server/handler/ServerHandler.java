@@ -9,6 +9,7 @@ import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.protocol.Meta;
 import cn.promptness.rpt.base.utils.Config;
+import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.base.utils.StringUtils;
 import cn.promptness.rpt.server.cache.ServerChannelCache;
 import io.netty.bootstrap.ServerBootstrap;
@@ -27,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * 处理服务器接收到的客户端连接
@@ -35,10 +36,6 @@ import java.util.function.BiFunction;
 public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     private static final Logger logger = LoggerFactory.getLogger(ServerHandler.class);
-    /**
-     * remoteChannelId --> remoteChannel
-     */
-    private final Map<String, Channel> remoteChannelMap = new ConcurrentHashMap<>();
     private final EventLoopGroup remoteBossGroup = new NioEventLoopGroup();
     private final EventLoopGroup remoteWorkerGroup = new NioEventLoopGroup();
     private final List<String> domainList = new CopyOnWriteArrayList<>();
@@ -51,10 +48,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        for (Channel channel : remoteChannelMap.values()) {
-            channel.config().setAutoRead(ctx.channel().isWritable());
-        }
-        for (Channel channel : ServerChannelCache.getServerHttpChannelMap().values()) {
+        for (Channel channel : ctx.channel().attr(Constants.CHANNELS).get().values()) {
             channel.config().setAutoRead(ctx.channel().isWritable());
         }
         super.channelWritabilityChanged(ctx);
@@ -66,14 +60,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         logger.info("服务端-客户端连接中断,{}", clientKey == null ? "未知连接" : clientKey);
-        for (Channel channel : remoteChannelMap.values()) {
+        for (Channel channel : Optional.ofNullable(ctx.channel().attr(Constants.CHANNELS).getAndSet(null)).orElse(Collections.emptyMap()).values()) {
             channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         }
-        remoteChannelMap.clear();
-        // 取消监听的端口 否则第二次连接时无法再次绑定端口
-        remoteBossGroup.shutdownGracefully();
-        remoteWorkerGroup.shutdownGracefully();
-
         for (String domain : domainList) {
             Channel remove = ServerChannelCache.getServerDomainChannelMap().remove(domain);
             if (remove != null) {
@@ -81,29 +70,29 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             }
             ServerChannelCache.getServerDomainToken().remove(domain);
         }
-        domainList.clear();
-        for (Channel channel : ServerChannelCache.getServerHttpChannelMap().values()) {
-            channel.config().setAutoRead(true);
-        }
+        // 取消监听的端口 否则第二次连接时无法再次绑定端口
+        remoteBossGroup.shutdownGracefully();
+        remoteWorkerGroup.shutdownGracefully();
     }
 
 
     @Override
     protected void channelRead0(ChannelHandlerContext context, Message message) throws Exception {
         MessageType type = message.getType();
+        Map<String, Channel> channelMap = context.channel().attr(Constants.CHANNELS).get();
         switch (type) {
             case TYPE_REGISTER:
                 register(context, message);
                 break;
             case TYPE_DATA:
-                dispatch(message, (proxyType, channelId) -> getChannelMap(proxyType).get(channelId), (proxyType, channel) -> channel.writeAndFlush(Optional.ofNullable(message.getData()).orElse(EmptyArrays.EMPTY_BYTES)));
+                dispatch(message, channelMap::get, (proxyType, channel) -> channel.writeAndFlush(Optional.ofNullable(message.getData()).orElse(EmptyArrays.EMPTY_BYTES)));
                 break;
             case TYPE_CONNECTED:
-                dispatch(message, (proxyType, channelId) -> getChannelMap(proxyType).get(channelId), (proxyType, channel) -> channel.pipeline().fireUserEventTriggered(proxyType));
+                dispatch(message, channelMap::get, (proxyType, channel) -> channel.pipeline().fireUserEventTriggered(proxyType));
                 break;
             case TYPE_DISCONNECTED:
                 // 数据发送完成后再关闭连
-                dispatch(message, (proxyType, channelId) -> getChannelMap(proxyType).remove(channelId), (proxyType, channel) -> channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE));
+                dispatch(message, channelMap::remove, (proxyType, channel) -> channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE));
                 break;
             case TYPE_KEEPALIVE:
             default:
@@ -128,7 +117,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         ChannelFuture channelFuture = context.writeAndFlush(res);
         if (!meta.isConnection()) {
             channelFuture.addListener(ChannelFutureListener.CLOSE);
+            return;
         }
+        context.channel().attr(Constants.CHANNELS).set(new ConcurrentHashMap<>(1024));
     }
 
     private void fillRemoteResult(ChannelHandlerContext context, Meta meta) throws InterruptedException {
@@ -197,7 +188,6 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                         channel.pipeline().addLast(new ChunkedWriteHandler());
                         channel.pipeline().addLast(new ByteIdleCheckHandler(0, 30, 0));
                         channel.pipeline().addLast(new RemoteHandler(context.channel(), remoteConfig));
-                        remoteChannelMap.put(channel.id().asLongText(), channel);
                     }
                 });
 
@@ -213,11 +203,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         });
     }
 
-    private Map<String, Channel> getChannelMap(ProxyType proxyType) {
-        return ProxyType.HTTP.equals(proxyType) ? ServerChannelCache.getServerHttpChannelMap() : remoteChannelMap;
-    }
-
-    private void dispatch(Message message, BiFunction<ProxyType, String, Channel> function, BiConsumer<ProxyType, Channel> consumer) {
+    private void dispatch(Message message, Function<String, Channel> function, BiConsumer<ProxyType, Channel> consumer) {
         Meta meta = message.getMeta();
         RemoteConfig remoteConfig = meta.getRemoteConfig();
         if (remoteConfig == null) {
@@ -225,7 +211,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         }
         ProxyType proxyType = Optional.ofNullable(remoteConfig.getProxyType()).orElse(ProxyType.TCP);
         String channelId = meta.getChannelId();
-        Channel channel = function.apply(proxyType, channelId);
+        Channel channel = function.apply(channelId);
         if (channel == null) {
             return;
         }

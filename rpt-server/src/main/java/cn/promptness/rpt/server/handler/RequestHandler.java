@@ -7,14 +7,13 @@ import cn.promptness.rpt.base.handler.ByteIdleCheckHandler;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.protocol.Meta;
+import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.base.utils.StringUtils;
 import cn.promptness.rpt.server.cache.DispatcherCache;
 import cn.promptness.rpt.server.cache.ServerChannelCache;
 import cn.promptness.rpt.server.coder.HttpEncoder;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpRequest;
@@ -27,11 +26,8 @@ import io.netty.util.internal.EmptyArrays;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.regex.Pattern;
 
 public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
-
-    private static final Pattern PATTERN = Pattern.compile(":");
 
     private final Queue<FullHttpRequest> requestMessage = new LinkedBlockingQueue<>();
 
@@ -40,12 +36,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private final HttpEncoder.RequestEncoder requestEncoder = new HttpEncoder.RequestEncoder();
 
     private String domain;
-
-    @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        ServerChannelCache.getServerHttpChannelMap().put(ctx.channel().id().asLongText(), ctx.channel());
-        super.channelActive(ctx);
-    }
 
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
@@ -69,10 +59,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         ctx.channel().config().setAutoRead(true);
-        Channel remove = ServerChannelCache.getServerHttpChannelMap().remove(ctx.channel().id().asLongText());
-        if (remove != null) {
-            remove.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
-        }
         FullHttpRequest request;
         while ((request = requestMessage.poll()) != null) {
             ReferenceCountUtil.release(request);
@@ -84,6 +70,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (serverChannel == null) {
             return;
         }
+        serverChannel.attr(Constants.CHANNELS).get().remove(ctx.channel().id().asLongText());
         serverChannel.config().setAutoRead(true);
         send(serverChannel, ctx, domain, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
     }
@@ -139,7 +126,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
 
-        domain = Optional.ofNullable(domain).orElse(PATTERN.split(fullHttpRequest.headers().get(HttpHeaderNames.HOST))[0]);
+        domain = Optional.ofNullable(domain).orElse(Constants.COLON.split(fullHttpRequest.headers().get(HttpHeaderNames.HOST))[0]);
         if (!StringUtils.hasText(domain)) {
             DispatcherCache.dispatch(fullHttpRequest, ctx);
             return;
@@ -157,6 +144,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
         if (!connected.get()) {
             ctx.channel().config().setAutoRead(false);
+            serverChannel.attr(Constants.CHANNELS).get().put(ctx.channel().id().asLongText(), ctx.channel());
             send(serverChannel, ctx, domain, MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES);
         }
         if (!connected.get()) {

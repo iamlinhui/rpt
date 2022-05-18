@@ -5,6 +5,7 @@ import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.protocol.Meta;
+import cn.promptness.rpt.base.utils.Constants;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -45,6 +46,7 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
      */
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        channel.attr(Constants.CHANNELS).get().put(ctx.channel().id().asLongText(), ctx.channel());
         ctx.channel().config().setAutoRead(false);
         send(MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES, ctx);
     }
@@ -60,6 +62,7 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        channel.attr(Constants.CHANNELS).get().remove(ctx.channel().id().asLongText());
         ctx.channel().config().setAutoRead(true);
         channel.config().setAutoRead(true);
         send(MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES, ctx);
