@@ -8,6 +8,10 @@ import java.util.regex.Pattern;
 
 public interface Constants {
 
+    String TITLE = "Reverse Proxy Tool";
+
+    String VERSION = "2.3.0";
+
     AttributeKey<Map<String, Channel>> CHANNELS = AttributeKey.newInstance("CHANNELS");
 
     Pattern COLON = Pattern.compile(":");

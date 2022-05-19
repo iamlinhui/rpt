@@ -1,16 +1,17 @@
 package cn.promptness.rpt.desktop.controller;
 
 import cn.promptness.rpt.base.config.ClientConfig;
-import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.config.ProxyType;
-import cn.promptness.rpt.desktop.utils.Constants;
+import cn.promptness.rpt.base.config.RemoteConfig;
+import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.base.utils.StringUtils;
 import cn.promptness.rpt.desktop.utils.SystemTrayUtil;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
-import javafx.scene.control.*;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.Text;
 import javafx.util.Pair;
@@ -21,7 +22,7 @@ import java.util.regex.Pattern;
 public class ConfigController {
 
     private static final Pattern CHECK_REGEX = Pattern.compile("\\d*");
-    private static final Pattern REPLACE_REGEX = Pattern.compile("[^\\d]");
+    private static final Pattern REPLACE_REGEX = Pattern.compile("\\D");
 
     public static Pair<ButtonType, Dialog<ButtonType>> buildDialog(String confirm, String headerTex) {
         ButtonType buttonType = new ButtonType(confirm);

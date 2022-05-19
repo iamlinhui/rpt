@@ -2,8 +2,8 @@ package cn.promptness.rpt.desktop.controller;
 
 import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.utils.Config;
+import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.client.ClientApplication;
-import cn.promptness.rpt.desktop.utils.Constants;
 import cn.promptness.rpt.desktop.utils.ProgressUtil;
 import cn.promptness.rpt.desktop.utils.SystemTrayUtil;
 import cn.promptness.rpt.desktop.utils.TooltipUtil;
