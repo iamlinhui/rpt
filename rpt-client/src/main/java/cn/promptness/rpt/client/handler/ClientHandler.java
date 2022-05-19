@@ -139,6 +139,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         });
         localBootstrap.connect(remoteConfig.getLocalIp(), remoteConfig.getLocalPort()).addListener((ChannelFutureListener) future -> {
             if (!future.isSuccess()) {
+                future.channel().close();
                 Message message = new Message();
                 message.setType(MessageType.TYPE_DISCONNECTED);
                 message.setData(EmptyArrays.EMPTY_BYTES);
