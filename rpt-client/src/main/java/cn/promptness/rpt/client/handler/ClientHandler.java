@@ -88,13 +88,10 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
     }
 
     private void transfer(ChannelHandlerContext context, Message message) {
-        if (message.getData() == null) {
-            return;
-        }
         String channelId = message.getMeta().getChannelId();
         Channel tcpChannel = context.channel().attr(Constants.CHANNELS).get().get(channelId);
         if (tcpChannel != null) {
-            tcpChannel.writeAndFlush(message.getData());
+            tcpChannel.writeAndFlush(Optional.ofNullable(message.getData()).orElse(EmptyArrays.EMPTY_BYTES));
         }
     }
 
