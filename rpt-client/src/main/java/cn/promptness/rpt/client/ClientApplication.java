@@ -68,8 +68,9 @@ public class ClientApplication {
                     return;
                 }
                 logger.info("客户端开始连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
-                bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).addListener((ChannelFutureListener) channelFuture -> {
-                    if (!channelFuture.isSuccess()) {
+                bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).addListener((ChannelFutureListener) future -> {
+                    if (!future.isSuccess()) {
+                        future.channel().close();
                         logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), channelFuture.cause().getMessage());
                     }
                 });
