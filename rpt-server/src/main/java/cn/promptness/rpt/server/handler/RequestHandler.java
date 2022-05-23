@@ -70,9 +70,11 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (serverChannel == null) {
             return;
         }
-        serverChannel.attr(Constants.CHANNELS).get().remove(ctx.channel().id().asLongText());
         serverChannel.config().setAutoRead(true);
-        send(serverChannel, ctx, domain, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
+        if (Objects.nonNull(serverChannel.attr(Constants.CHANNELS).get().get(ctx.channel().id().asLongText()))) {
+            serverChannel.attr(Constants.CHANNELS).get().remove(ctx.channel().id().asLongText());
+            send(serverChannel, ctx, domain, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
+        }
     }
 
     @Override

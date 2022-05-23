@@ -9,6 +9,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.internal.EmptyArrays;
 
+import java.util.Objects;
+
 /**
  * 实际内网连接处理器
  */
@@ -48,10 +50,12 @@ public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        channel.attr(Constants.CHANNELS).get().remove(meta.getChannelId());
         ctx.channel().config().setAutoRead(true);
         channel.config().setAutoRead(true);
-        send(MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
+        if (Objects.nonNull(channel.attr(Constants.CHANNELS).get().get(meta.getChannelId()))) {
+            channel.attr(Constants.CHANNELS).get().remove(meta.getChannelId());
+            send(MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
+        }
     }
 
     /**
