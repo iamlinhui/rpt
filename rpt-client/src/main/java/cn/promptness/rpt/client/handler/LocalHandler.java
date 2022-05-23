@@ -52,8 +52,7 @@ public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         ctx.channel().config().setAutoRead(true);
         channel.config().setAutoRead(true);
-        if (Objects.nonNull(channel.attr(Constants.CHANNELS).get().get(meta.getChannelId()))) {
-            channel.attr(Constants.CHANNELS).get().remove(meta.getChannelId());
+        if (Objects.nonNull(channel.attr(Constants.CHANNELS).get().remove(meta.getChannelId()))) {
             send(MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
         }
     }
