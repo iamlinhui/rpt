@@ -62,10 +62,12 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        channel.attr(Constants.CHANNELS).get().remove(ctx.channel().id().asLongText());
         ctx.channel().config().setAutoRead(true);
         channel.config().setAutoRead(true);
-        send(MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES, ctx);
+        if (Objects.nonNull(channel.attr(Constants.CHANNELS).get().get(ctx.channel().id().asLongText()))) {
+            channel.attr(Constants.CHANNELS).get().remove(ctx.channel().id().asLongText());
+            send(MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES, ctx);
+        }
     }
 
     /**
