@@ -71,8 +71,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             return;
         }
         serverChannel.config().setAutoRead(true);
-        if (Objects.nonNull(serverChannel.attr(Constants.CHANNELS).get().get(ctx.channel().id().asLongText()))) {
-            serverChannel.attr(Constants.CHANNELS).get().remove(ctx.channel().id().asLongText());
+        if (Objects.nonNull(serverChannel.attr(Constants.CHANNELS).get().remove(ctx.channel().id().asLongText()))) {
             send(serverChannel, ctx, domain, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
         }
     }
