@@ -3,7 +3,6 @@ package cn.promptness.rpt.server.handler;
 import cn.promptness.rpt.base.coder.ByteArrayCodec;
 import cn.promptness.rpt.base.config.ProxyType;
 import cn.promptness.rpt.base.config.RemoteConfig;
-import cn.promptness.rpt.base.handler.ByteIdleCheckHandler;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.protocol.Meta;
@@ -18,7 +17,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.internal.EmptyArrays;
@@ -71,7 +69,8 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             return;
         }
         serverChannel.config().setAutoRead(true);
-        if (Objects.nonNull(serverChannel.attr(Constants.CHANNELS).get().remove(ctx.channel().id().asLongText()))) {
+        Map<String, Channel> channelMap = serverChannel.attr(Constants.CHANNELS).get();
+        if (Objects.nonNull(channelMap) && Objects.nonNull(channelMap.remove(ctx.channel().id().asLongText()))) {
             send(serverChannel, ctx, domain, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
         }
     }
@@ -90,7 +89,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             return;
         }
         ctx.pipeline().replace(HttpServerCodec.class, ByteArrayCodec.class.getName(), new ByteArrayCodec());
-        ctx.pipeline().replace(HttpObjectAggregator.class, ByteIdleCheckHandler.class.getName(), new ByteIdleCheckHandler(0, 30, 0));
         connected.set(true);
         if (!requestMessage.isEmpty()) {
             synchronized (connected) {

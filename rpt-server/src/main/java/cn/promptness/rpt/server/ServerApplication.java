@@ -28,19 +28,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLException;
+import java.io.IOException;
 import java.io.InputStream;
 
 public class ServerApplication {
 
     private static final Logger logger = LoggerFactory.getLogger(ServerApplication.class);
 
-    public static void main(String[] args) throws SSLException {
+    public static void main(String[] args) throws IOException {
 
-        ServerConfig serverConfig = Config.getServerConfig();
-        InputStream certChainFile = ClassLoader.getSystemResourceAsStream("server.crt");
-        InputStream keyFile = ClassLoader.getSystemResourceAsStream("pkcs8_server.key");
-        InputStream rootFile = ClassLoader.getSystemResourceAsStream("ca.crt");
-        SslContext sslContext = SslContextBuilder.forServer(certChainFile, keyFile).trustManager(rootFile).clientAuth(ClientAuth.REQUIRE).sslProvider(SslProvider.OPENSSL).build();
+        SslContext sslContext = buildSslContext();
 
         NioEventLoopGroup serverBossGroup = new NioEventLoopGroup();
         NioEventLoopGroup serverWorkerGroup = new NioEventLoopGroup();
@@ -63,6 +60,8 @@ public class ServerApplication {
                 ch.pipeline().addLast(new ServerHandler());
             }
         });
+
+        ServerConfig serverConfig = Config.getServerConfig();
         bootstrap.bind(serverConfig.getServerIp(), serverConfig.getServerPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
                 logger.info("服务端启动成功,本机绑定IP:{},服务端口:{}", serverConfig.getServerIp(), serverConfig.getServerPort());
@@ -73,6 +72,14 @@ public class ServerApplication {
                 serverWorkerGroup.shutdownGracefully();
             }
         });
+    }
+
+    private static SslContext buildSslContext() throws IOException {
+        try (InputStream certChainFile = ClassLoader.getSystemResourceAsStream("server.crt");
+             InputStream keyFile = ClassLoader.getSystemResourceAsStream("pkcs8_server.key");
+             InputStream rootFile = ClassLoader.getSystemResourceAsStream("ca.crt")) {
+            return SslContextBuilder.forServer(certChainFile, keyFile).trustManager(rootFile).clientAuth(ClientAuth.REQUIRE).sslProvider(SslProvider.OPENSSL).build();
+        }
     }
 
     private static void startHttp(NioEventLoopGroup serverBossGroup, NioEventLoopGroup serverWorkerGroup) {

@@ -9,6 +9,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.internal.EmptyArrays;
 
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -52,7 +53,8 @@ public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         ctx.channel().config().setAutoRead(true);
         channel.config().setAutoRead(true);
-        if (Objects.nonNull(channel.attr(Constants.CHANNELS).get().remove(meta.getChannelId()))) {
+        Map<String, Channel> channelMap = channel.attr(Constants.CHANNELS).get();
+        if (Objects.nonNull(channelMap) && Objects.nonNull(channelMap.remove(meta.getChannelId()))) {
             send(MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
         }
     }
