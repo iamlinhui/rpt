@@ -4,7 +4,7 @@ import io.netty.channel.Channel;
 import io.netty.util.AttributeKey;
 
 import java.util.Map;
-import java.util.function.Supplier;
+import java.util.function.IntFunction;
 import java.util.regex.Pattern;
 
 public interface Constants {
@@ -17,7 +17,7 @@ public interface Constants {
 
     AttributeKey<String> CLIENT_KEY = AttributeKey.newInstance("CLIENT_KEY");
 
-    AttributeKey<Supplier<Boolean>> APPLICATION = AttributeKey.newInstance("APPLICATION");
+    AttributeKey<Application<Boolean>> APPLICATION = AttributeKey.newInstance("APPLICATION");
 
     Pattern COLON = Pattern.compile(":");
 
