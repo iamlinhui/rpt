@@ -75,7 +75,7 @@ public class ClientApplication implements Supplier<Boolean> {
                 future.channel().writeAndFlush(message);
             } else {
                 logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), future.cause().getMessage());
-                TimeUnit.MINUTES.sleep(1);
+                TimeUnit.SECONDS.sleep(1);
                 get();
             }
         });
