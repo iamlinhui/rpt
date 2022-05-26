@@ -11,7 +11,7 @@ public interface Constants {
 
     String TITLE = "Reverse Proxy Tool";
 
-    String VERSION = "2.3.0";
+    String VERSION = "2.3.5";
 
     AttributeKey<Map<String, Channel>> CHANNELS = AttributeKey.newInstance("CHANNELS");
 
