@@ -7,6 +7,7 @@ import cn.promptness.rpt.base.handler.IdleCheckHandler;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.protocol.Meta;
+import cn.promptness.rpt.base.utils.Application;
 import cn.promptness.rpt.base.utils.Config;
 import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.client.handler.ClientHandler;
@@ -29,15 +30,14 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
-public class ClientApplication implements Supplier<Boolean> {
+public class ClientApplication implements Application<Boolean> {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientApplication.class);
     private final Bootstrap bootstrap = new Bootstrap();
 
-    public static void main(String[] args) throws IOException {
-        new ClientApplication().buildBootstrap(new NioEventLoopGroup()).get();
+    public static void main(String[] args) throws Exception {
+        new ClientApplication().buildBootstrap(new NioEventLoopGroup()).start(0);
     }
 
     public ClientApplication buildBootstrap(NioEventLoopGroup clientWorkerGroup) throws IOException {
@@ -62,7 +62,11 @@ public class ClientApplication implements Supplier<Boolean> {
     }
 
     @Override
-    public Boolean get() {
+    public Boolean start(int seconds) throws Exception {
+        TimeUnit.SECONDS.sleep(seconds);
+        if (bootstrap.config().group().isShuttingDown() || bootstrap.config().group().isShutdown()) {
+            return false;
+        }
         ClientConfig clientConfig = Config.getClientConfig();
         logger.info("客户端开始连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
         bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).addListener((ChannelFutureListener) future -> {
@@ -75,8 +79,7 @@ public class ClientApplication implements Supplier<Boolean> {
                 future.channel().writeAndFlush(message);
             } else {
                 logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), future.cause().getMessage());
-                TimeUnit.SECONDS.sleep(1);
-                get();
+                start(1);
             }
         });
         return true;
@@ -87,5 +90,4 @@ public class ClientApplication implements Supplier<Boolean> {
             return SslContextBuilder.forClient().keyManager(certChainFile, keyFile).trustManager(rootFile).sslProvider(SslProvider.OPENSSL).build();
         }
     }
-
 }

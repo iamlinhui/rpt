@@ -134,7 +134,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
             channel.close();
         }
         localGroup.shutdownGracefully();
-        ctx.channel().attr(Constants.APPLICATION).getAndSet(null).get();
+        ctx.channel().attr(Constants.APPLICATION).getAndSet(null).start(1);
     }
 
     @Override

@@ -140,7 +140,7 @@ public class MenuController {
                 if (QUEUE.isEmpty()) {
                     NioEventLoopGroup nioEventLoopGroup = new NioEventLoopGroup();
                     try {
-                        boolean start = new ClientApplication().buildBootstrap(nioEventLoopGroup).get();
+                        boolean start = new ClientApplication().buildBootstrap(nioEventLoopGroup).start(0);
                         if (!start) {
                             nioEventLoopGroup.shutdownGracefully();
                             return false;
