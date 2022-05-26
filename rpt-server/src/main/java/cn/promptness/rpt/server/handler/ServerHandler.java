@@ -4,7 +4,6 @@ import cn.promptness.rpt.base.coder.ByteArrayCodec;
 import cn.promptness.rpt.base.config.ProxyType;
 import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.config.ServerToken;
-import cn.promptness.rpt.base.handler.ByteIdleCheckHandler;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.protocol.Meta;
@@ -39,7 +38,6 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     private final EventLoopGroup remoteBossGroup = new NioEventLoopGroup();
     private final EventLoopGroup remoteWorkerGroup = new NioEventLoopGroup();
     private final List<String> domainList = new CopyOnWriteArrayList<>();
-    private String clientKey;
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
@@ -59,15 +57,13 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        String clientKey = ctx.channel().attr(Constants.CLIENT_KEY).getAndSet(null);
         logger.info("服务端-客户端连接中断,{}", clientKey == null ? "未知连接" : clientKey);
         for (Channel channel : Optional.ofNullable(ctx.channel().attr(Constants.CHANNELS).getAndSet(null)).orElse(Collections.emptyMap()).values()) {
-            channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
+            channel.close();
         }
         for (String domain : domainList) {
-            Channel remove = ServerChannelCache.getServerDomainChannelMap().remove(domain);
-            if (remove != null) {
-                remove.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
-            }
+            ServerChannelCache.getServerDomainChannelMap().remove(domain);
             ServerChannelCache.getServerDomainToken().remove(domain);
         }
         // 取消监听的端口 否则第二次连接时无法再次绑定端口
@@ -101,9 +97,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     private void register(ChannelHandlerContext context, Message message) throws InterruptedException {
         Meta meta = message.getMeta();
-        clientKey = meta.getClientKey();
-        if (!Config.getServerConfig().authorize(clientKey)) {
-            logger.info("授权失败,客户端使用的秘钥:{}", clientKey);
+        if (!Config.getServerConfig().authorize(meta.getClientKey())) {
+            logger.info("授权失败,客户端使用的秘钥:{}", meta.getClientKey());
             Message res = new Message();
             res.setType(MessageType.TYPE_AUTH);
             res.setMeta(meta.setConnection(false).setRemoteResult(Collections.singletonList("秘钥授权失败")));
@@ -119,6 +114,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             channelFuture.addListener(ChannelFutureListener.CLOSE);
             return;
         }
+        context.channel().attr(Constants.CLIENT_KEY).set(meta.getClientKey());
         context.channel().attr(Constants.CHANNELS).set(new ConcurrentHashMap<>(1024));
     }
 
@@ -173,23 +169,21 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             countDownLatch.countDown();
             return;
         }
-        ServerToken serverToken = Config.getServerConfig().getServerToken(clientKey);
+        ServerToken serverToken = Config.getServerConfig().getServerToken(meta.getClientKey());
         if (!serverToken.authorize(remoteConfig.getRemotePort())) {
             meta.setConnection(false).addRemoteResult(String.format("需要绑定的端口[%s]范围不合法", remoteConfig.getRemotePort()));
             countDownLatch.countDown();
             return;
         }
         ServerBootstrap remoteBootstrap = new ServerBootstrap();
-        remoteBootstrap.group(remoteBossGroup, remoteWorkerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true)
-                .childHandler(new ChannelInitializer<SocketChannel>() {
-                    @Override
-                    public void initChannel(SocketChannel channel) throws Exception {
-                        channel.pipeline().addLast(new ByteArrayCodec());
-                        channel.pipeline().addLast(new ChunkedWriteHandler());
-                        channel.pipeline().addLast(new ByteIdleCheckHandler(0, 30, 0));
-                        channel.pipeline().addLast(new RemoteHandler(context.channel(), remoteConfig));
-                    }
-                });
+        remoteBootstrap.group(remoteBossGroup, remoteWorkerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
+            @Override
+            public void initChannel(SocketChannel channel) throws Exception {
+                channel.pipeline().addLast(new ByteArrayCodec());
+                channel.pipeline().addLast(new ChunkedWriteHandler());
+                channel.pipeline().addLast(new RemoteHandler(context.channel(), remoteConfig));
+            }
+        });
 
         logger.info("服务端开始建立本地端口绑定[{}]", remoteConfig.getRemotePort());
         remoteBootstrap.bind(Config.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).addListener((ChannelFutureListener) channelFuture -> {

@@ -11,6 +11,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.internal.EmptyArrays;
 
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -64,7 +65,8 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         ctx.channel().config().setAutoRead(true);
         channel.config().setAutoRead(true);
-        if (Objects.nonNull(channel.attr(Constants.CHANNELS).get().remove(ctx.channel().id().asLongText()))) {
+        Map<String, Channel> channelMap = channel.attr(Constants.CHANNELS).get();
+        if (Objects.nonNull(channelMap) && Objects.nonNull(channelMap.remove(ctx.channel().id().asLongText()))) {
             send(MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES, ctx);
         }
     }
