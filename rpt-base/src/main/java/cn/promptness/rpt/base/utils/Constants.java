@@ -4,7 +4,6 @@ import io.netty.channel.Channel;
 import io.netty.util.AttributeKey;
 
 import java.util.Map;
-import java.util.function.IntFunction;
 import java.util.regex.Pattern;
 
 public interface Constants {

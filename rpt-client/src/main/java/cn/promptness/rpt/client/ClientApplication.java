@@ -71,7 +71,7 @@ public class ClientApplication implements Application<Boolean> {
         logger.info("客户端开始连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
         bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
-                future.channel().attr(Constants.APPLICATION).set(ClientApplication.this);
+                future.channel().attr(Constants.APPLICATION).set(this);
                 //连接建立成功，发送注册请求
                 Message message = new Message();
                 message.setType(MessageType.TYPE_REGISTER);
@@ -79,7 +79,7 @@ public class ClientApplication implements Application<Boolean> {
                 future.channel().writeAndFlush(message);
             } else {
                 logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), future.cause().getMessage());
-                start(1);
+                this.start(1);
             }
         });
         return true;
