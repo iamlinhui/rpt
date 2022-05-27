@@ -51,15 +51,17 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         String clientKey = ctx.channel().attr(Constants.Server.CLIENT_KEY).getAndSet(null);
-        logger.info("服务端-客户端连接中断,{}", clientKey == null ? "未知连接/代理连接" : clientKey);
         // 代理连接/未知连接
         if (Objects.isNull(clientKey)) {
             Channel localChannel = ctx.channel().attr(Constants.LOCAL).get();
             if (Objects.nonNull(localChannel) && localChannel.isActive()) {
+                logger.info("服务端-客户端代理连接中断");
                 localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
             }
+            logger.info("服务端-客户端未知连接中断");
             return;
         }
+        logger.info("服务端-客户端连接中断,{}", clientKey);
         Optional.ofNullable(ctx.channel().attr(Constants.CHANNELS).getAndSet(null)).ifPresent(this::clear);
         Optional.ofNullable(ctx.channel().attr(Constants.Server.DOMAIN).getAndSet(null)).ifPresent(ServerChannelCache::remove);
         Optional.ofNullable(ctx.channel().attr(Constants.Server.REMOTE_BOSS_GROUP).getAndSet(null)).ifPresent(AbstractEventExecutorGroup::shutdownGracefully);
