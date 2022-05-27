@@ -6,18 +6,29 @@ package cn.promptness.rpt.base.protocol;
 public class Message {
 
     /**
+     * 消息类型
+     */
+    private MessageType type;
+
+    /**
      * 元数据
      */
     private Meta meta;
+
     /**
      * 消息内容
      */
     private byte[] data;
 
-    /**
-     * 消息类型
-     */
-    private MessageType type;
+    public Message() {
+
+    }
+
+    public Message(MessageType type, Meta meta, byte[] data) {
+        this.meta = meta;
+        this.data = data;
+        this.type = type;
+    }
 
     public Meta getMeta() {
         return meta;

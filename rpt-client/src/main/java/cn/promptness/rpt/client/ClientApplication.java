@@ -85,6 +85,11 @@ public class ClientApplication implements Application<Boolean> {
         return true;
     }
 
+    @Override
+    public Bootstrap bootstrap() {
+        return bootstrap;
+    }
+
     private SslContext buildSslContext() throws IOException {
         try (InputStream certChainFile = ClassLoader.getSystemResourceAsStream("client.crt"); InputStream keyFile = ClassLoader.getSystemResourceAsStream("pkcs8_client.key"); InputStream rootFile = ClassLoader.getSystemResourceAsStream("ca.crt")) {
             return SslContextBuilder.forClient().keyManager(certChainFile, keyFile).trustManager(rootFile).sslProvider(SslProvider.OPENSSL).build();

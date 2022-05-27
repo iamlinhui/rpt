@@ -37,18 +37,16 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        if (domain != null) {
-            Channel serverChannel = ServerChannelCache.getServerDomainChannelMap().get(domain);
-            if (serverChannel != null) {
-                serverChannel.config().setAutoRead(ctx.channel().isWritable());
-            }
+        Channel proxyChannel = ctx.channel().attr(Constants.PROXY).get();
+        if (Objects.nonNull(proxyChannel)) {
+            proxyChannel.config().setAutoRead(ctx.channel().isWritable());
         }
         super.channelWritabilityChanged(ctx);
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        ctx.channel().close();
+        ctx.close();
     }
 
     /**
@@ -68,11 +66,20 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (serverChannel == null) {
             return;
         }
-        serverChannel.config().setAutoRead(true);
-        Map<String, Channel> channelMap = serverChannel.attr(Constants.CHANNELS).get();
-        if (Objects.nonNull(channelMap) && Objects.nonNull(channelMap.remove(ctx.channel().id().asLongText()))) {
-            send(serverChannel, ctx, domain, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
+        Optional.ofNullable(serverChannel.attr(Constants.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(ctx.channel().id().asLongText()));
+        // 绑定代理连接断线
+        Channel proxyChannel = ctx.channel().attr(Constants.PROXY).getAndSet(null);
+        if (Objects.isNull(proxyChannel)) {
+            return;
         }
+        // 服务端通知断线
+        Channel localChannel = proxyChannel.attr(Constants.LOCAL).getAndSet(null);
+        if (Objects.isNull(localChannel)) {
+            return;
+        }
+        // 主动断线
+        proxyChannel.config().setAutoRead(true);
+        send(proxyChannel, ctx, domain, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
     }
 
     @Override
@@ -81,20 +88,14 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             ctx.fireUserEventTriggered(evt);
             return;
         }
-        if (domain == null) {
-            return;
-        }
-        Channel serverChannel = ServerChannelCache.getServerDomainChannelMap().get(domain);
-        if (serverChannel == null) {
-            return;
-        }
+        Channel proxyChannel = ctx.channel().attr(Constants.PROXY).get();
         ctx.pipeline().replace(HttpServerCodec.class, ByteArrayCodec.class.getName(), new ByteArrayCodec());
         connected.set(true);
         if (!requestMessage.isEmpty()) {
             synchronized (connected) {
                 FullHttpRequest request;
                 while ((request = requestMessage.poll()) != null) {
-                    handle(serverChannel, ctx, request);
+                    handle(proxyChannel, ctx, request);
                     ReferenceCountUtil.release(request);
                 }
             }
@@ -109,15 +110,13 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             return;
         }
         if (msg instanceof byte[]) {
-            if (domain == null) {
+            byte[] message = (byte[]) msg;
+            Channel proxyChannel = ctx.channel().attr(Constants.PROXY).get();
+            if (Objects.isNull(proxyChannel)) {
+                ctx.close();
                 return;
             }
-            byte[] message = (byte[]) msg;
-            Channel serverChannel = ServerChannelCache.getServerDomainChannelMap().get(domain);
-            if (serverChannel != null) {
-                send(serverChannel, ctx, domain, MessageType.TYPE_DATA, message);
-            }
-            return;
+            send(proxyChannel, ctx, domain, MessageType.TYPE_DATA, message);
         }
         ctx.fireChannelRead(msg);
     }
@@ -154,10 +153,15 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                 }
             }
         }
-        handle(serverChannel, ctx, fullHttpRequest);
+        Channel proxyChannel = ctx.channel().attr(Constants.PROXY).get();
+        if (Objects.isNull(proxyChannel)) {
+            ctx.close();
+            return;
+        }
+        handle(proxyChannel, ctx, fullHttpRequest);
     }
 
-    private void handle(Channel serverChannel, ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
+    private void handle(Channel proxyChannel, ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
         List<Object> encode = new ArrayList<>();
         requestEncoder.encode(ctx, fullHttpRequest, encode);
         for (Object obj : encode) {
@@ -165,19 +169,22 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             byte[] data = new byte[buf.readableBytes()];
             buf.readBytes(data);
             buf.release();
-            send(serverChannel, ctx, domain, MessageType.TYPE_DATA, data);
+            send(proxyChannel, ctx, domain, MessageType.TYPE_DATA, data);
         }
     }
 
-    private void send(Channel serverChannel, ChannelHandlerContext ctx, String domain, MessageType typeConnect, byte[] data) {
+    private void send(Channel complex, ChannelHandlerContext ctx, String domain, MessageType typeConnect, byte[] data) {
         RemoteConfig remoteConfig = new RemoteConfig();
         remoteConfig.setProxyType(ProxyType.HTTP);
         remoteConfig.setDomain(domain);
 
+        Meta meta = new Meta(ctx.channel().id().asLongText(), remoteConfig);
+        meta.setServerId(complex.id().asLongText());
+
         Message message = new Message();
-        message.setMeta(new Meta(ctx.channel().id().asLongText(), remoteConfig));
+        message.setMeta(meta);
         message.setData(data);
         message.setType(typeConnect);
-        serverChannel.writeAndFlush(message);
+        complex.writeAndFlush(message);
     }
 }

@@ -10,6 +10,7 @@ public class Meta {
     private String clientKey;
     private boolean connection;
     private String channelId;
+    private String serverId;
     private List<RemoteConfig> remoteConfigList;
     private List<String> remoteResult;
 
@@ -52,6 +53,15 @@ public class Meta {
 
     public Meta setChannelId(String channelId) {
         this.channelId = channelId;
+        return this;
+    }
+
+    public String getServerId() {
+        return serverId;
+    }
+
+    public Meta setServerId(String serverId) {
+        this.serverId = serverId;
         return this;
     }
 

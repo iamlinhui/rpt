@@ -14,6 +14,10 @@ public interface Constants {
 
     AttributeKey<Map<String, Channel>> CHANNELS = AttributeKey.newInstance("CHANNELS");
 
+    AttributeKey<Channel> PROXY = AttributeKey.newInstance("PROXY");
+
+    AttributeKey<Channel> LOCAL = AttributeKey.newInstance("LOCAL");
+
     AttributeKey<String> CLIENT_KEY = AttributeKey.newInstance("CLIENT_KEY");
 
     AttributeKey<Application<Boolean>> APPLICATION = AttributeKey.newInstance("APPLICATION");

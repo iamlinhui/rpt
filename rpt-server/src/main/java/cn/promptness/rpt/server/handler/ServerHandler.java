@@ -12,7 +12,6 @@ import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.base.utils.StringUtils;
 import cn.promptness.rpt.server.cache.ServerChannelCache;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -35,19 +34,21 @@ import java.util.function.Function;
 public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     private static final Logger logger = LoggerFactory.getLogger(ServerHandler.class);
-    private final EventLoopGroup remoteBossGroup = new NioEventLoopGroup();
-    private final EventLoopGroup remoteWorkerGroup = new NioEventLoopGroup();
+    private static final Map<String, Channel> SERVER_CHANNEL_MAP = new ConcurrentHashMap<>();
+    private static final EventLoopGroup REMOTE_BOSS_GROUP = new NioEventLoopGroup();
+    private static final EventLoopGroup REMOTE_WORKER_GROUP = new NioEventLoopGroup();
     private final List<String> domainList = new CopyOnWriteArrayList<>();
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        ctx.channel().close();
+        ctx.close();
     }
 
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        for (Channel channel : ctx.channel().attr(Constants.CHANNELS).get().values()) {
-            channel.config().setAutoRead(ctx.channel().isWritable());
+        Channel localChannel = ctx.channel().attr(Constants.LOCAL).get();
+        if (Objects.nonNull(localChannel)) {
+            localChannel.config().setAutoRead(ctx.channel().isWritable());
         }
         super.channelWritabilityChanged(ctx);
     }
@@ -58,37 +59,53 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         String clientKey = ctx.channel().attr(Constants.CLIENT_KEY).getAndSet(null);
-        logger.info("服务端-客户端连接中断,{}", clientKey == null ? "未知连接" : clientKey);
-        for (Channel channel : Optional.ofNullable(ctx.channel().attr(Constants.CHANNELS).getAndSet(null)).orElse(Collections.emptyMap()).values()) {
-            channel.close();
+        logger.info("服务端-客户端连接中断,{}", clientKey == null ? "未知连接/代理连接" : clientKey);
+        // 代理连接/未知连接
+        if (Objects.isNull(clientKey)) {
+            Channel localChannel = ctx.channel().attr(Constants.LOCAL).getAndSet(null);
+            if (Objects.nonNull(localChannel)) {
+                localChannel.attr(Constants.PROXY).set(null);
+                localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
+            }
+            return;
+        }
+        Optional.ofNullable(ctx.channel().attr(Constants.CHANNELS).getAndSet(null)).ifPresent(this::clear);
+    }
+
+    private void clear(Map<String, Channel> channelMap) {
+        for (Channel localChannel : channelMap.values()) {
+            localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
         }
         for (String domain : domainList) {
             ServerChannelCache.getServerDomainChannelMap().remove(domain);
             ServerChannelCache.getServerDomainToken().remove(domain);
         }
-        // 取消监听的端口 否则第二次连接时无法再次绑定端口
-        remoteBossGroup.shutdownGracefully();
-        remoteWorkerGroup.shutdownGracefully();
     }
 
 
     @Override
     protected void channelRead0(ChannelHandlerContext context, Message message) throws Exception {
         MessageType type = message.getType();
-        Map<String, Channel> channelMap = context.channel().attr(Constants.CHANNELS).get();
         switch (type) {
             case TYPE_REGISTER:
                 register(context, message);
                 break;
             case TYPE_DATA:
-                dispatch(message, channelMap::get, (proxyType, channel) -> channel.writeAndFlush(Optional.ofNullable(message.getData()).orElse(EmptyArrays.EMPTY_BYTES)));
+                dispatch(message, channelId -> context.channel().attr(Constants.LOCAL).get(), (proxyType, channel) -> channel.writeAndFlush(Optional.ofNullable(message.getData()).orElse(EmptyArrays.EMPTY_BYTES)));
                 break;
             case TYPE_CONNECTED:
-                dispatch(message, channelMap::get, (proxyType, channel) -> channel.pipeline().fireUserEventTriggered(proxyType));
+                dispatch(message, SERVER_CHANNEL_MAP.get(message.getMeta().getServerId()).attr(Constants.CHANNELS).get()::get, (proxyType, channel) -> {
+                    channel.attr(Constants.PROXY).set(context.channel());
+                    context.channel().attr(Constants.LOCAL).set(channel);
+                    channel.pipeline().fireUserEventTriggered(proxyType);
+                });
                 break;
             case TYPE_DISCONNECTED:
-                // 数据发送完成后再关闭连
-                dispatch(message, channelMap::remove, (proxyType, channel) -> channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE));
+                dispatch(message, SERVER_CHANNEL_MAP.get(message.getMeta().getServerId()).attr(Constants.CHANNELS).get()::remove, (proxyType, channel) -> {
+                    // maybe proxy channel
+                    context.channel().attr(Constants.LOCAL).set(null);
+                    channel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
+                });
                 break;
             case TYPE_KEEPALIVE:
             default:
@@ -97,6 +114,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     private void register(ChannelHandlerContext context, Message message) throws InterruptedException {
         Meta meta = message.getMeta();
+        context.channel().attr(Constants.CLIENT_KEY).set(meta.getClientKey());
         if (!Config.getServerConfig().authorize(meta.getClientKey())) {
             logger.info("授权失败,客户端使用的秘钥:{}", meta.getClientKey());
             Message res = new Message();
@@ -114,8 +132,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             channelFuture.addListener(ChannelFutureListener.CLOSE);
             return;
         }
-        context.channel().attr(Constants.CLIENT_KEY).set(meta.getClientKey());
         context.channel().attr(Constants.CHANNELS).set(new ConcurrentHashMap<>(1024));
+        SERVER_CHANNEL_MAP.put(context.channel().id().asLongText(), context.channel());
     }
 
     private void fillRemoteResult(ChannelHandlerContext context, Meta meta) throws InterruptedException {
@@ -176,7 +194,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             return;
         }
         ServerBootstrap remoteBootstrap = new ServerBootstrap();
-        remoteBootstrap.group(remoteBossGroup, remoteWorkerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
+        remoteBootstrap.group(REMOTE_BOSS_GROUP, REMOTE_WORKER_GROUP).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel channel) throws Exception {
                 channel.pipeline().addLast(new ByteArrayCodec());

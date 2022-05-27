@@ -12,7 +12,7 @@ public class RedirectHandler extends SimpleChannelInboundHandler<FullHttpRequest
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        ctx.channel().close();
+        ctx.close();
     }
 
     @Override

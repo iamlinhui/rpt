@@ -11,8 +11,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.internal.EmptyArrays;
 
-import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * 处理服务器接收到的外部请求
@@ -29,7 +29,10 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
 
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        channel.config().setAutoRead(ctx.channel().isWritable());
+        Channel proxyChannel = ctx.channel().attr(Constants.PROXY).get();
+        if (Objects.nonNull(proxyChannel)) {
+            proxyChannel.config().setAutoRead(ctx.channel().isWritable());
+        }
         super.channelWritabilityChanged(ctx);
     }
 
@@ -49,13 +52,18 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         channel.attr(Constants.CHANNELS).get().put(ctx.channel().id().asLongText(), ctx.channel());
         ctx.channel().config().setAutoRead(false);
-        send(MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES, ctx);
+        send(channel, MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES, ctx);
     }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, byte[] bytes) throws Exception {
         // 从外部连接接收到的数据 转发到客户端
-        send(MessageType.TYPE_DATA, bytes, ctx);
+        Channel proxyChannel = ctx.channel().attr(Constants.PROXY).get();
+        if (Objects.isNull(proxyChannel)) {
+            ctx.close();
+            return;
+        }
+        send(proxyChannel, MessageType.TYPE_DATA, bytes, ctx);
     }
 
     /**
@@ -63,12 +71,20 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        ctx.channel().config().setAutoRead(true);
-        channel.config().setAutoRead(true);
-        Map<String, Channel> channelMap = channel.attr(Constants.CHANNELS).get();
-        if (Objects.nonNull(channelMap) && Objects.nonNull(channelMap.remove(ctx.channel().id().asLongText()))) {
-            send(MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES, ctx);
+        Optional.ofNullable(channel.attr(Constants.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(ctx.channel().id().asLongText()));
+        // 绑定代理连接断线
+        Channel proxyChannel = ctx.channel().attr(Constants.PROXY).getAndSet(null);
+        if (Objects.isNull(proxyChannel)) {
+            return;
         }
+        // 服务端通知断线
+        Channel localChannel = proxyChannel.attr(Constants.LOCAL).getAndSet(null);
+        if (Objects.isNull(localChannel)) {
+            return;
+        }
+        // 主动断线
+        proxyChannel.config().setAutoRead(true);
+        send(proxyChannel, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES, ctx);
     }
 
     /**
@@ -76,18 +92,18 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
      */
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        ctx.channel().close();
+        ctx.close();
     }
 
     /**
      * 发送数据到内网客户端流程封装
      **/
-    public void send(MessageType type, byte[] data, ChannelHandlerContext ctx) {
-        Meta meta = new Meta(ctx.channel().id().asLongText(), remoteConfig);
+    public void send(Channel complex, MessageType type, byte[] data, ChannelHandlerContext ctx) {
+        Meta meta = new Meta(ctx.channel().id().asLongText(), remoteConfig).setServerId(channel.id().asLongText());
         Message message = new Message();
         message.setType(type);
         message.setMeta(meta);
         message.setData(data);
-        channel.writeAndFlush(message);
+        complex.writeAndFlush(message);
     }
 }
