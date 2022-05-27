@@ -60,7 +60,7 @@ public class SystemTrayUtil {
      * @param text 预定会议室成功
      */
     public static void displayMessage(String text) {
-        trayIcon.displayMessage(Constants.TITLE, text, TrayIcon.MessageType.INFO);
+        trayIcon.displayMessage(Constants.Desktop.TITLE, text, TrayIcon.MessageType.INFO);
     }
 
     private static MenuItem getExitMenuItem() {

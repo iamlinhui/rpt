@@ -8,7 +8,7 @@ import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.protocol.Meta;
 import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.base.utils.StringUtils;
-import cn.promptness.rpt.server.cache.DispatcherCache;
+import cn.promptness.rpt.server.page.StaticDispatcher;
 import cn.promptness.rpt.server.cache.ServerChannelCache;
 import cn.promptness.rpt.server.coder.HttpEncoder;
 import io.netty.buffer.ByteBuf;
@@ -67,19 +67,12 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             return;
         }
         Optional.ofNullable(serverChannel.attr(Constants.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(ctx.channel().id().asLongText()));
-        // 绑定代理连接断线
         Channel proxyChannel = ctx.channel().attr(Constants.PROXY).getAndSet(null);
-        if (Objects.isNull(proxyChannel)) {
-            return;
+        if (Objects.nonNull(proxyChannel) && proxyChannel.isActive()) {
+            proxyChannel.attr(Constants.LOCAL).set(null);
+            proxyChannel.config().setAutoRead(true);
+            send(proxyChannel, ctx, domain, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
         }
-        // 服务端通知断线
-        Channel localChannel = proxyChannel.attr(Constants.LOCAL).getAndSet(null);
-        if (Objects.isNull(localChannel)) {
-            return;
-        }
-        // 主动断线
-        proxyChannel.config().setAutoRead(true);
-        send(proxyChannel, ctx, domain, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
     }
 
     @Override
@@ -126,17 +119,17 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
         domain = Optional.ofNullable(domain).orElse(Constants.COLON.split(fullHttpRequest.headers().get(HttpHeaderNames.HOST))[0]);
         if (!StringUtils.hasText(domain)) {
-            DispatcherCache.dispatch(fullHttpRequest, ctx);
+            StaticDispatcher.dispatch(fullHttpRequest, ctx);
             return;
         }
         Channel serverChannel = ServerChannelCache.getServerDomainChannelMap().get(domain);
         if (serverChannel == null || !serverChannel.isOpen()) {
-            DispatcherCache.dispatch(fullHttpRequest, ctx);
+            StaticDispatcher.dispatch(fullHttpRequest, ctx);
             return;
         }
 
         String token = ServerChannelCache.getServerDomainToken().get(domain);
-        if (token != null && !DispatcherCache.authorize(ctx, fullHttpRequest, token)) {
+        if (token != null && !StaticDispatcher.authorize(ctx, fullHttpRequest, token)) {
             return;
         }
 

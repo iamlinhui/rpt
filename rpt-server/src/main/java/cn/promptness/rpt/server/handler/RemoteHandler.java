@@ -72,19 +72,12 @@ public class RemoteHandler extends SimpleChannelInboundHandler<byte[]> {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         Optional.ofNullable(channel.attr(Constants.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(ctx.channel().id().asLongText()));
-        // 绑定代理连接断线
         Channel proxyChannel = ctx.channel().attr(Constants.PROXY).getAndSet(null);
-        if (Objects.isNull(proxyChannel)) {
-            return;
+        if (Objects.nonNull(proxyChannel) && proxyChannel.isActive()) {
+            proxyChannel.attr(Constants.LOCAL).set(null);
+            proxyChannel.config().setAutoRead(true);
+            send(proxyChannel, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES, ctx);
         }
-        // 服务端通知断线
-        Channel localChannel = proxyChannel.attr(Constants.LOCAL).getAndSet(null);
-        if (Objects.isNull(localChannel)) {
-            return;
-        }
-        // 主动断线
-        proxyChannel.config().setAutoRead(true);
-        send(proxyChannel, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES, ctx);
     }
 
     /**

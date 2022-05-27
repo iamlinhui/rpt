@@ -71,7 +71,7 @@ public class ClientApplication implements Application<Boolean> {
         logger.info("客户端开始连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
         bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
-                future.channel().attr(Constants.APPLICATION).set(this);
+                future.channel().attr(Constants.Client.APPLICATION).set(this);
                 //连接建立成功，发送注册请求
                 Message message = new Message();
                 message.setType(MessageType.TYPE_REGISTER);

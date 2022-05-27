@@ -36,10 +36,10 @@ public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        ctx.channel().config().setAutoRead(false);
         Channel proxyChannel = ctx.channel().attr(Constants.PROXY).get();
         channel.attr(Constants.CHANNELS).get().put(meta.getChannelId(), ctx.channel());
-        ctx.channel().config().setAutoRead(false);
-        send(proxyChannel, MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES);
+        send(proxyChannel, MessageType.TYPE_CONNECTED);
         ctx.channel().config().setAutoRead(true);
     }
 
@@ -61,19 +61,10 @@ public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         Optional.ofNullable(channel.attr(Constants.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(meta.getChannelId()));
-        // 绑定代理连接断线
-        Channel proxyChannel = ctx.channel().attr(Constants.PROXY).getAndSet(null);
-        if (Objects.isNull(proxyChannel)) {
-            return;
+        Channel proxyChannel = ctx.channel().attr(Constants.PROXY).get();
+        if (Objects.nonNull(proxyChannel) && proxyChannel.isActive()) {
+            send(proxyChannel, MessageType.TYPE_DISCONNECTED);
         }
-        // 服务端通知断线
-        Channel localChannel = proxyChannel.attr(Constants.LOCAL).getAndSet(null);
-        if (Objects.isNull(localChannel)) {
-            return;
-        }
-        // 主动断线
-        proxyChannel.config().setAutoRead(true);
-        send(proxyChannel, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
     }
 
     /**
@@ -84,13 +75,11 @@ public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
         ctx.close();
     }
 
-    private void send(Channel proxyChannel, MessageType type, byte[] data) {
-        Message message = new Message();
-        message.setType(type);
-        message.setMeta(meta);
-        message.setData(data);
-        // 收到内网服务器响应后返回给服务器端
-        proxyChannel.writeAndFlush(message);
+    private void send(Channel proxyChannel, MessageType type) {
+        send(proxyChannel, type, EmptyArrays.EMPTY_BYTES);
     }
 
+    private void send(Channel proxyChannel, MessageType type, byte[] data) {
+        proxyChannel.writeAndFlush(new Message(type, meta, data));
+    }
 }
