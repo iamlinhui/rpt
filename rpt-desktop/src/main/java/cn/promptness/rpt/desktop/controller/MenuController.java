@@ -37,9 +37,9 @@ public class MenuController {
     @FXML
     public void about() {
         Alert alert = new Alert(Alert.AlertType.NONE);
-        alert.setTitle(Constants.TITLE);
+        alert.setTitle(Constants.Desktop.TITLE);
         alert.setHeaderText("关于");
-        alert.setContentText(String.format(" Version %s %n Powered By Lynn %n https://github.com/iamlinhui/rpt", Constants.VERSION));
+        alert.setContentText(String.format(" Version %s %n Powered By Lynn %n https://github.com/iamlinhui/rpt", Constants.Desktop.VERSION));
         alert.initOwner(SystemTrayUtil.getPrimaryStage());
         alert.getButtonTypes().add(ButtonType.CLOSE);
         alert.showAndWait();
@@ -48,7 +48,7 @@ public class MenuController {
     @FXML
     public void instruction() {
         Alert alert = new Alert(Alert.AlertType.NONE);
-        alert.setTitle(Constants.TITLE);
+        alert.setTitle(Constants.Desktop.TITLE);
         alert.setHeaderText("使用说明");
         alert.setContentText("1.先填写服务器配置信息\n2.再填写映射配置信息\n3.最后点击开启服务");
         alert.initOwner(SystemTrayUtil.getPrimaryStage());

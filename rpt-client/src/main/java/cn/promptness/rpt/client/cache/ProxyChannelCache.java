@@ -21,7 +21,7 @@ public class ProxyChannelCache {
 
     public static void get(Bootstrap bootstrap, Consumer<Channel> success, Supplier<ChannelFuture> fail) {
         Channel proxyChannel = PROXY_CHANNEL_QUEUE.poll();
-        if (proxyChannel != null) {
+        if (proxyChannel != null && proxyChannel.isActive()) {
             success.accept(proxyChannel);
             return;
         }
@@ -37,14 +37,16 @@ public class ProxyChannelCache {
 
     }
 
-    public static void release(Channel proxyChannel) {
+    public static void put(Channel proxyChannel) {
         if (PROXY_CHANNEL_QUEUE.size() > MAX_QUEUE_LIMIT) {
             proxyChannel.close();
             return;
         }
-        proxyChannel.config().setAutoRead(true);
-        proxyChannel.attr(Constants.LOCAL).set(null);
-        PROXY_CHANNEL_QUEUE.offer(proxyChannel);
+        if (proxyChannel.isActive()) {
+            proxyChannel.config().setAutoRead(true);
+            proxyChannel.attr(Constants.LOCAL).set(null);
+            PROXY_CHANNEL_QUEUE.offer(proxyChannel);
+        }
     }
 
     public static void delete(Channel proxyChannel) {

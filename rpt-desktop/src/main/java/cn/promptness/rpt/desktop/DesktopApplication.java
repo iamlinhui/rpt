@@ -32,12 +32,12 @@ public class DesktopApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        SystemTrayUtil.systemTray(primaryStage, Constants.TITLE);
+        SystemTrayUtil.systemTray(primaryStage, Constants.Desktop.TITLE);
         Parent root = new FXMLLoader(this.getClass().getResource("/fxml/main.fxml")).load();
         Scene scene = new Scene(root);
         scene.setFill(Color.TRANSPARENT);
         scene.getStylesheets().add(Style.LIGHT.getStyleStylesheetURL());
-        primaryStage.setTitle(Constants.TITLE);
+        primaryStage.setTitle(Constants.Desktop.TITLE);
         primaryStage.getIcons().add(new Image("/icon.png"));
         primaryStage.setScene(scene);
         primaryStage.setResizable(true);

@@ -27,7 +27,7 @@ public class ConfigController {
     public static Pair<ButtonType, Dialog<ButtonType>> buildDialog(String confirm, String headerTex) {
         ButtonType buttonType = new ButtonType(confirm);
         Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle(Constants.TITLE);
+        dialog.setTitle(Constants.Desktop.TITLE);
         dialog.setHeaderText(headerTex);
         dialog.initOwner(SystemTrayUtil.getPrimaryStage());
         dialog.getDialogPane().getButtonTypes().add(buttonType);

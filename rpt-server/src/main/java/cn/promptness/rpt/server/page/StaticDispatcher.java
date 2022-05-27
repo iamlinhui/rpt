@@ -1,4 +1,4 @@
-package cn.promptness.rpt.server.cache;
+package cn.promptness.rpt.server.page;
 
 import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.base.utils.StringUtils;
@@ -17,24 +17,24 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiConsumer;
 
-public class DispatcherCache {
+public class StaticDispatcher {
 
-    private static final Logger logger = LoggerFactory.getLogger(DispatcherCache.class);
+    private static final Logger logger = LoggerFactory.getLogger(StaticDispatcher.class);
 
     private static final Map<String, BiConsumer<ChannelHandlerContext, FullHttpRequest>> HANDLE_MAP = new HashMap<>();
 
     private static final List<String> WHITE_URI = Arrays.asList("/favicon.ico", "/static/base.css");
 
     static {
-        HANDLE_MAP.put("/favicon.ico", DispatcherCache::favicon);
-        HANDLE_MAP.put("/", DispatcherCache::index);
-        HANDLE_MAP.put("/index.html", DispatcherCache::index);
-        HANDLE_MAP.put("/static/base.css", DispatcherCache::css);
+        HANDLE_MAP.put("/favicon.ico", StaticDispatcher::favicon);
+        HANDLE_MAP.put("/", StaticDispatcher::index);
+        HANDLE_MAP.put("/index.html", StaticDispatcher::index);
+        HANDLE_MAP.put("/static/base.css", StaticDispatcher::css);
     }
 
     public static void dispatch(FullHttpRequest fullHttpRequest, ChannelHandlerContext ctx) {
         String uri = fullHttpRequest.uri();
-        HANDLE_MAP.getOrDefault(uri, DispatcherCache::notFound).accept(ctx, fullHttpRequest);
+        HANDLE_MAP.getOrDefault(uri, StaticDispatcher::notFound).accept(ctx, fullHttpRequest);
     }
 
     public static boolean authorize(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, String token) {
