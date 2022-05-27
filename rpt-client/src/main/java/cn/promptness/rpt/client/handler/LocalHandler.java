@@ -39,7 +39,7 @@ public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
         ctx.channel().config().setAutoRead(false);
         Channel proxyChannel = ctx.channel().attr(Constants.PROXY).get();
         channel.attr(Constants.CHANNELS).get().put(meta.getChannelId(), ctx.channel());
-        send(proxyChannel, MessageType.TYPE_CONNECTED);
+        send(proxyChannel, MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES);
         ctx.channel().config().setAutoRead(true);
     }
 
@@ -63,7 +63,7 @@ public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
         Optional.ofNullable(channel.attr(Constants.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(meta.getChannelId()));
         Channel proxyChannel = ctx.channel().attr(Constants.PROXY).get();
         if (Objects.nonNull(proxyChannel) && proxyChannel.isActive()) {
-            send(proxyChannel, MessageType.TYPE_DISCONNECTED);
+            send(proxyChannel, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
         }
     }
 
@@ -73,10 +73,6 @@ public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         ctx.close();
-    }
-
-    private void send(Channel proxyChannel, MessageType type) {
-        send(proxyChannel, type, EmptyArrays.EMPTY_BYTES);
     }
 
     private void send(Channel proxyChannel, MessageType type, byte[] data) {

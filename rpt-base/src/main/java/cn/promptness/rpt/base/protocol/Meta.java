@@ -1,10 +1,12 @@
 package cn.promptness.rpt.base.protocol;
 
 import cn.promptness.rpt.base.config.RemoteConfig;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.Collections;
 import java.util.List;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Meta {
 
     private String clientKey;

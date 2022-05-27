@@ -44,12 +44,13 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         Application<Boolean> application = ctx.channel().attr(Constants.Client.APPLICATION).getAndSet(null);
-        logger.info("客户端-服务端连接中断,{}:{}", Config.getClientConfig().getServerIp(), Config.getClientConfig().getServerPort());
         if (Objects.nonNull(application)) {
+            logger.info("客户端-服务端连接中断,{}:{}", Config.getClientConfig().getServerIp(), Config.getClientConfig().getServerPort());
             Optional.ofNullable(ctx.channel().attr(Constants.CHANNELS).get()).ifPresent(this::clear);
             application.start(1);
             return;
         }
+        logger.info("客户端-服务端代理连接中断");
         Channel localChannel = ctx.channel().attr(Constants.LOCAL).getAndSet(null);
         if (Objects.nonNull(localChannel) && localChannel.isActive()) {
             localChannel.attr(Constants.PROXY).set(null);
