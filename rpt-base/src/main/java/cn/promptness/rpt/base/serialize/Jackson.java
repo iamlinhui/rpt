@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 
-public class Jackson implements Serialize {
+public class Jackson implements Serializer {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 

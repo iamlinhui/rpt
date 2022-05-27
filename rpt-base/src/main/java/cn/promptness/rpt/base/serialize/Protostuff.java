@@ -6,7 +6,7 @@ import io.protostuff.ProtostuffIOUtil;
 import io.protostuff.Schema;
 import io.protostuff.runtime.RuntimeSchema;
 
-public class Protostuff implements Serialize {
+public class Protostuff implements Serializer {
 
     private static final LinkedBuffer BUFFER = LinkedBuffer.allocate(LinkedBuffer.DEFAULT_BUFFER_SIZE);
     private static final Schema<Meta> SCHEMA_CACHE = RuntimeSchema.getSchema(Meta.class);
