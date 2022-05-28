@@ -24,7 +24,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     private static final Logger logger = LoggerFactory.getLogger(ServerHandler.class);
 
-    private final MessageDispatcher messageDispatcher = new MessageDispatcher();
+    private static final MessageDispatcher MESSAGE_DISPATCHER = new MessageDispatcher();
 
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
@@ -37,7 +37,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext context, Message message) throws Exception {
-        messageDispatcher.handle(context, message);
+        MESSAGE_DISPATCHER.handle(context, message);
     }
 
     @Override
