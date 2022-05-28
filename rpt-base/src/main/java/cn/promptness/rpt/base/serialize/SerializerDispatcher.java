@@ -16,11 +16,10 @@ public class SerializerDispatcher {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> T deserialize(SerializationType serializationType, byte[] data) throws Exception {
+    public <T> T deserialize(SerializationType serializationType, byte[] data, Class<T> clazz) throws Exception {
         Serialization serialization = SerializeFactory.getSerialization(serializationType);
         try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data); ObjectInputStream objectInputStream = serialization.deserialize(byteArrayInputStream)) {
-            return (T) objectInputStream.readObject(Object.class);
+            return objectInputStream.readObject(clazz);
         }
     }
 }
