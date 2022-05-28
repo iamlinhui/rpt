@@ -110,6 +110,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                 return;
             }
             send(proxyChannel, ctx, domain, MessageType.TYPE_DATA, message);
+            return;
         }
         ctx.fireChannelRead(msg);
     }

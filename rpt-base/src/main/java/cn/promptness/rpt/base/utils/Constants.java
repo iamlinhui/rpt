@@ -16,6 +16,7 @@ public interface Constants {
 
     interface Server {
         AttributeKey<String> CLIENT_KEY = AttributeKey.newInstance("CLIENT_KEY");
+        AttributeKey<Class<Void>> LABEL = AttributeKey.newInstance("LABEL");
         AttributeKey<List<String>> DOMAIN = AttributeKey.newInstance("DOMAIN");
         AttributeKey<NioEventLoopGroup> REMOTE_BOSS_GROUP = AttributeKey.newInstance("REMOTE_BOSS_GROUP");
         AttributeKey<NioEventLoopGroup> REMOTE_WORKER_GROUP = AttributeKey.newInstance("REMOTE_WORKER_GROUP");
