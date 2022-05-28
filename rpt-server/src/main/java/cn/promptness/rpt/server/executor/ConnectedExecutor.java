@@ -41,6 +41,7 @@ public class ConnectedExecutor implements MessageExecutor {
         // binding each other
         localChannel.attr(Constants.PROXY).set(context.channel());
         context.channel().attr(Constants.LOCAL).set(localChannel);
+        context.channel().attr(Constants.Server.LABEL).set(Void.class);
         localChannel.pipeline().fireUserEventTriggered(proxyType);
     }
 }
