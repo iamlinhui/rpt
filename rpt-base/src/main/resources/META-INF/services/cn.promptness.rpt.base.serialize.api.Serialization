@@ -1,0 +1,2 @@
+cn.promptness.rpt.base.serialize.protostuff.ProtostuffSerialization
+cn.promptness.rpt.base.serialize.json.JsonSerialization
