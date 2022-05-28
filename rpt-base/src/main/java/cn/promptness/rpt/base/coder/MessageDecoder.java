@@ -27,7 +27,7 @@ public class MessageDecoder extends MessageToMessageDecoder<ByteBuf> {
         if (protobufLength > 0) {
             byte[] metaByte = new byte[protobufLength];
             byteBuf.readBytes(metaByte);
-            Meta meta = SERIALIZER_DISPATCHER.deserialize(SerializationType.PROTOSTUFF, metaByte);
+            Meta meta = SERIALIZER_DISPATCHER.deserialize(SerializationType.PROTOSTUFF, metaByte, Meta.class);
             proxyMessage.setMeta(meta);
         }
         if (byteBuf.isReadable()) {
