@@ -1,7 +1,7 @@
 package cn.promptness.rpt.server.handler;
 
 import cn.promptness.rpt.base.executor.MessageExecutor;
-import cn.promptness.rpt.base.executor.MessageFactory;
+import cn.promptness.rpt.base.executor.MessageExecutorFactory;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.server.cache.ServerChannelCache;
@@ -36,7 +36,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext context, Message message) throws Exception {
-        MessageExecutor messageExecutor = MessageFactory.getMessageExecutor(message.getType());
+        MessageExecutor messageExecutor = MessageExecutorFactory.getMessageExecutor(message.getType());
         if (Objects.nonNull(messageExecutor)) {
             messageExecutor.execute(context, message);
         }
