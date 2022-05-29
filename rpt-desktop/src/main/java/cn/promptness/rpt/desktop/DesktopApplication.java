@@ -26,7 +26,6 @@ public class DesktopApplication extends Application {
 
     @Override
     public void init() throws Exception {
-        ClientConfigCache.read();
         Runtime.getRuntime().addShutdownHook(new Thread(ClientConfigCache::cache));
     }
 

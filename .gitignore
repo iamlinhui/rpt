@@ -1,5 +1,5 @@
-target
+*/target
 .idea
 log
-dependency-reduced-pom.xml
-client.dat
+dependency-*.xml
+client.json
