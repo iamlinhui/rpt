@@ -1,6 +1,7 @@
 package cn.promptness.rpt.client.handler;
 
-import cn.promptness.rpt.base.executor.MessageDispatcher;
+import cn.promptness.rpt.base.executor.MessageExecutor;
+import cn.promptness.rpt.base.executor.MessageFactory;
 import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.utils.Application;
 import cn.promptness.rpt.base.utils.Config;
@@ -25,8 +26,6 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientHandler.class);
 
-    private static final MessageDispatcher MESSAGE_DISPATCHER = new MessageDispatcher();
-
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
         Channel localChannel = ctx.channel().attr(Constants.LOCAL).get();
@@ -38,7 +37,10 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext context, Message message) throws Exception {
-        MESSAGE_DISPATCHER.handle(context, message);
+        MessageExecutor messageExecutor = MessageFactory.getMessageExecutor(message.getType());
+        if (Objects.nonNull(messageExecutor)) {
+            messageExecutor.execute(context, message);
+        }
     }
 
     @Override

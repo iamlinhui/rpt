@@ -1,14 +1,12 @@
 package cn.promptness.rpt.base.executor;
 
-import cn.promptness.rpt.base.protocol.Message;
 import cn.promptness.rpt.base.protocol.MessageType;
-import io.netty.channel.ChannelHandlerContext;
 
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class MessageDispatcher {
+public class MessageFactory {
 
     private static final Map<MessageType, MessageExecutor> MESSAGE_EXECUTOR_MAP = new ConcurrentHashMap<>();
 
@@ -19,11 +17,7 @@ public class MessageDispatcher {
         }
     }
 
-    public void handle(ChannelHandlerContext context, Message message) throws Exception {
-        MessageExecutor messageExecutor = MESSAGE_EXECUTOR_MAP.get(message.getType());
-        if (messageExecutor == null) {
-            return;
-        }
-        messageExecutor.execute(context, message);
+    public static MessageExecutor getMessageExecutor(MessageType messageType) {
+        return MESSAGE_EXECUTOR_MAP.get(messageType);
     }
 }
