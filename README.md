@@ -14,23 +14,27 @@
 
 - 主界面
 
-![img.png](doc/desktop/img.png)
+![main.png](doc/desktop/main.png)
 
 - 系统配置
 
-![img_1.png](doc/desktop/img_1.png)
+![config.png](doc/desktop/config.png)
 
 - TCP映射配置
 
-![img_2.png](doc/desktop/img_2.png)
+![tcp.png](doc/desktop/tcp.png)
 
 - HTTP映射配置
 
-![img_3.png](doc/desktop/img_3.png)
+![http.png](doc/desktop/http.png)
+
+- 删除映射配置
+
+![delete.png](doc/desktop/delete.png)
 
 - 控制台输出
 
-![img_4.png](doc/desktop/img_4.png)
+![start.png](doc/desktop/start.png)
 
 ---
 
@@ -51,7 +55,7 @@
 - RDP协议：远程桌面协议，是一个多通道的协议，让用户连上提供终端服务的电脑
 - SOCKS协议: 防火墙安全会话转换协议
 
-![img.png](doc/process.png)
+![process.png](doc/process.png)
 
 ## 服务端配置`server.yml`
 
