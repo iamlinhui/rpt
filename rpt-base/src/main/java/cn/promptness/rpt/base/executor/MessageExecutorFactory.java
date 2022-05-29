@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class MessageFactory {
+public class MessageExecutorFactory {
 
     private static final Map<MessageType, MessageExecutor> MESSAGE_EXECUTOR_MAP = new ConcurrentHashMap<>();
 

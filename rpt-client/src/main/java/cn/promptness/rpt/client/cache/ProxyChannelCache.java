@@ -7,6 +7,8 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -14,6 +16,8 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class ProxyChannelCache {
+
+    private static final Logger logger = LoggerFactory.getLogger(ProxyChannelCache.class);
 
     private static final Integer MAX_QUEUE_LIMIT = 128;
 
@@ -47,6 +51,7 @@ public class ProxyChannelCache {
             proxyChannel.attr(Constants.LOCAL).set(null);
             PROXY_CHANNEL_QUEUE.offer(proxyChannel);
         }
+        logger.debug("连接池闲置连接数:{}个", PROXY_CHANNEL_QUEUE.size());
     }
 
     public static void delete(Channel proxyChannel) {
