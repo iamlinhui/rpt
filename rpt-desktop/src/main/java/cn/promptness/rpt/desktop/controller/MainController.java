@@ -2,6 +2,7 @@ package cn.promptness.rpt.desktop.controller;
 
 import cn.promptness.rpt.base.config.RemoteConfig;
 import cn.promptness.rpt.base.utils.Config;
+import cn.promptness.rpt.desktop.cache.ClientConfigCache;
 import cn.promptness.rpt.desktop.utils.TooltipUtil;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.collections.FXCollections;
@@ -45,7 +46,7 @@ public class MainController {
     public synchronized void addLog(String message) {
         textArea.appendText(LocalDateTime.now().toString());
         textArea.appendText("|");
-        textArea.appendText(message);
+        textArea.appendText(Optional.ofNullable(message).orElse("NULL"));
         textArea.appendText("\n");
     }
 
@@ -58,6 +59,7 @@ public class MainController {
 
     @SuppressWarnings("unchecked")
     public void initialize() {
+        ClientConfigCache.read();
         ReadOnlyDoubleProperty widthProperty = tableView.widthProperty();
         CONFIG.addAll(Optional.ofNullable(Config.getClientConfig().getConfig()).orElse(new ArrayList<>()));
         TableColumn<RemoteConfig, String> proxyType = new TableColumn<>("传输类型");
