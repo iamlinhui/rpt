@@ -91,6 +91,11 @@ public class RegisterExecutor implements MessageExecutor {
     }
 
     private void registerHttp(ChannelHandlerContext context, Meta meta, RemoteConfig remoteConfig, List<String> domainList, CountDownLatch countDownLatch) {
+        if (Config.getServerConfig().getHttpPort() == 0 && Config.getServerConfig().getHttpsPort() == 0) {
+            meta.setConnection(false).addRemoteResult("服务端未开启HTTP穿透功能");
+            countDownLatch.countDown();
+            return;
+        }
         if (!StringUtils.hasText(remoteConfig.getDomain())) {
             meta.setConnection(false).addRemoteResult(String.format("服务端绑定域名[%s]不合法", remoteConfig.getDomain()));
             countDownLatch.countDown();
