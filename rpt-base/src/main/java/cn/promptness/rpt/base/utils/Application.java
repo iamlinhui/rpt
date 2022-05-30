@@ -16,4 +16,10 @@ public interface Application {
     void stop();
 
     AbstractBootstrap<?, ?> bootstrap();
+
+    static void run(String[] args, Application... applications) throws Exception {
+        for (Application application : applications) {
+            application.config(args).buildBootstrap().start(0);
+        }
+    }
 }

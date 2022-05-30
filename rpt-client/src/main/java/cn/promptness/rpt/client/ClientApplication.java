@@ -39,7 +39,7 @@ public class ClientApplication implements Application {
     private final NioEventLoopGroup clientWorkerGroup = new NioEventLoopGroup();
 
     public static void main(String[] args) throws Exception {
-        new ClientApplication().config(args).buildBootstrap().start(0);
+        Application.run(args, new ClientApplication());
     }
 
     @Override
