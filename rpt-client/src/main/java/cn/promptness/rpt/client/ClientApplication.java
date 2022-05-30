@@ -34,13 +34,22 @@ import java.util.concurrent.TimeUnit;
 public class ClientApplication implements Application<Boolean> {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientApplication.class);
+
     private final Bootstrap bootstrap = new Bootstrap();
+    private final NioEventLoopGroup clientWorkerGroup = new NioEventLoopGroup();
 
     public static void main(String[] args) throws Exception {
-        new ClientApplication().buildBootstrap(new NioEventLoopGroup()).start(0);
+        new ClientApplication().config(args).buildBootstrap().start(0);
     }
 
-    public ClientApplication buildBootstrap(NioEventLoopGroup clientWorkerGroup) throws IOException {
+    @Override
+    public Application<Boolean> config(String[] args) {
+        Config.readClientConfig(args);
+        return this;
+    }
+
+    @Override
+    public Application<Boolean> buildBootstrap() throws IOException {
         SslContext sslContext = buildSslContext();
         bootstrap.group(clientWorkerGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
             @Override
@@ -64,7 +73,7 @@ public class ClientApplication implements Application<Boolean> {
     @Override
     public Boolean start(int seconds) throws Exception {
         TimeUnit.SECONDS.sleep(seconds);
-        if (bootstrap.config().group().isShuttingDown() || bootstrap.config().group().isShutdown()) {
+        if (clientWorkerGroup.isShuttingDown() || clientWorkerGroup.isShutdown()) {
             return false;
         }
         ClientConfig clientConfig = Config.getClientConfig();

@@ -4,6 +4,7 @@ import cn.promptness.rpt.base.coder.GzipCodec;
 import cn.promptness.rpt.base.coder.MessageCodec;
 import cn.promptness.rpt.base.config.ServerConfig;
 import cn.promptness.rpt.base.handler.IdleCheckHandler;
+import cn.promptness.rpt.base.utils.Application;
 import cn.promptness.rpt.base.utils.Config;
 import cn.promptness.rpt.server.handler.RedirectHandler;
 import cn.promptness.rpt.server.handler.RequestHandler;
@@ -29,17 +30,28 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.TimeUnit;
 
-public class ServerApplication {
+public class ServerApplication implements Application<Boolean> {
 
     private static final Logger logger = LoggerFactory.getLogger(ServerApplication.class);
 
-    public static void main(String[] args) throws IOException {
+    private final ServerBootstrap bootstrap = new ServerBootstrap();
+    private final NioEventLoopGroup serverBossGroup = new NioEventLoopGroup();
+    private final NioEventLoopGroup serverWorkerGroup = new NioEventLoopGroup();
 
-        NioEventLoopGroup serverBossGroup = new NioEventLoopGroup();
-        NioEventLoopGroup serverWorkerGroup = new NioEventLoopGroup();
+    public static void main(String[] args) throws Exception {
+        new ServerApplication().config(args).buildBootstrap().start(0);
+    }
 
-        ServerBootstrap bootstrap = new ServerBootstrap();
+    @Override
+    public Application<Boolean> config(String[] args) {
+        Config.readServerConfig(args);
+        return this;
+    }
+
+    @Override
+    public Application<Boolean> buildBootstrap() throws IOException {
         SslContext sslContext = buildServerSslContext();
         bootstrap.group(serverBossGroup, serverWorkerGroup).channel(NioServerSocketChannel.class).childHandler(new ChannelInitializer<SocketChannel>() {
 
@@ -58,21 +70,35 @@ public class ServerApplication {
                 ch.pipeline().addLast(new ServerHandler());
             }
         });
+        return this;
+    }
 
+    @Override
+    public Boolean start(int seconds) throws Exception {
+        TimeUnit.SECONDS.sleep(seconds);
+        if (serverBossGroup.isShuttingDown() || serverBossGroup.isShutdown()) {
+            return false;
+        }
         ServerConfig serverConfig = Config.getServerConfig();
         bootstrap.bind(serverConfig.getServerIp(), serverConfig.getServerPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
                 logger.info("服务端启动成功,本机绑定IP:{},服务端口:{}", serverConfig.getServerIp(), serverConfig.getServerPort());
-                startHttp(serverBossGroup, serverWorkerGroup);
+                this.startHttp();
             } else {
                 logger.info("服务端启动失败,本机绑定IP:{},服务端口:{},原因:{}", serverConfig.getServerIp(), serverConfig.getServerPort(), future.cause().getMessage());
                 serverBossGroup.shutdownGracefully();
                 serverWorkerGroup.shutdownGracefully();
             }
         });
+        return true;
     }
 
-    private static void startHttp(NioEventLoopGroup serverBossGroup, NioEventLoopGroup serverWorkerGroup) {
+    private void startHttp() {
+        ServerConfig serverConfig = Config.getServerConfig();
+        int httpPort = serverConfig.getHttpPort();
+        if (httpPort == 0) {
+            return;
+        }
         ServerBootstrap httpBootstrap = new ServerBootstrap();
         httpBootstrap.group(serverBossGroup, serverWorkerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
 
@@ -81,14 +107,14 @@ public class ServerApplication {
                 ch.pipeline().addLast(new HttpServerCodec());
                 ch.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
                 ch.pipeline().addLast(new ChunkedWriteHandler());
-                ch.pipeline().addLast(new RedirectHandler());
+                ch.pipeline().addLast(serverConfig.getHttpsPort() == 0 ? new RequestHandler() : new RedirectHandler());
             }
         });
-        ServerConfig serverConfig = Config.getServerConfig();
+
         httpBootstrap.bind(serverConfig.getServerIp(), serverConfig.getHttpPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
                 logger.info("服务端启动成功,本机绑定IP:{},Http端口:{}", serverConfig.getServerIp(), serverConfig.getHttpPort());
-                startHttps(serverBossGroup, serverWorkerGroup);
+                startHttps();
             } else {
                 logger.info("服务端启动失败,本机绑定IP:{},Http端口:{},原因:{}", serverConfig.getServerIp(), serverConfig.getHttpPort(), future.cause().getMessage());
                 serverBossGroup.shutdownGracefully();
@@ -97,9 +123,12 @@ public class ServerApplication {
         });
     }
 
-    private static void startHttps(NioEventLoopGroup serverBossGroup, NioEventLoopGroup serverWorkerGroup) throws IOException {
+    private void startHttps() throws IOException {
         ServerConfig serverConfig = Config.getServerConfig();
-
+        int httpsPort = serverConfig.getHttpsPort();
+        if (httpsPort == 0) {
+            return;
+        }
         ServerBootstrap httpsBootstrap = new ServerBootstrap();
         SslContext sslContext = buildHttpsSslContext(serverConfig);
         httpsBootstrap.group(serverBossGroup, serverWorkerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
@@ -124,7 +153,7 @@ public class ServerApplication {
         });
     }
 
-    private static SslContext buildHttpsSslContext(ServerConfig serverConfig) throws IOException {
+    private SslContext buildHttpsSslContext(ServerConfig serverConfig) throws IOException {
         try (InputStream certChainFile = ClassLoader.getSystemResourceAsStream(serverConfig.getDomainCert()); InputStream keyFile = ClassLoader.getSystemResourceAsStream(serverConfig.getDomainKey())) {
             return SslContextBuilder.forServer(certChainFile, keyFile).clientAuth(ClientAuth.NONE).sslProvider(SslProvider.OPENSSL).build();
         }
@@ -136,4 +165,8 @@ public class ServerApplication {
         }
     }
 
+    @Override
+    public ServerBootstrap bootstrap() {
+        return bootstrap;
+    }
 }
