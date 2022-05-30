@@ -139,7 +139,7 @@ public class MenuController {
         if (QUEUE.isEmpty()) {
             synchronized (QUEUE) {
                 if (QUEUE.isEmpty()) {
-                    Application<Boolean> application = new ClientApplication();
+                    Application application = new ClientApplication();
                     try {
                         boolean start = application.buildBootstrap().start(0);
                         if (!start) {

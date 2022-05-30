@@ -45,7 +45,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        Application<Boolean> application = ctx.channel().attr(Constants.Client.APPLICATION).getAndSet(null);
+        Application application = ctx.channel().attr(Constants.Client.APPLICATION).getAndSet(null);
         if (Objects.nonNull(application)) {
             logger.info("客户端-服务端连接中断,{}:{}", Config.getClientConfig().getServerIp(), Config.getClientConfig().getServerPort());
             Optional.ofNullable(ctx.channel().attr(Constants.CHANNELS).get()).ifPresent(this::clear);
