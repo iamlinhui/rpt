@@ -12,50 +12,15 @@
 
 ---
 
-- 主界面
+## 快速体验
 
-![main.png](doc/desktop/main.png)
+- 启动服务端
 
-- 系统配置
+`java -jar rpt-server-*.jar -c server.yml`
 
-![config.png](doc/desktop/config.png)
+- 启动客户端
 
-- TCP映射配置
-
-![tcp.png](doc/desktop/tcp.png)
-
-- HTTP映射配置
-
-![http.png](doc/desktop/http.png)
-
-- 删除映射配置
-
-![delete.png](doc/desktop/delete.png)
-
-- 控制台输出
-
-![start.png](doc/desktop/start.png)
-
----
-
-> http代理、https代理(eg:本地支付接口调试,本地微信公众号调试)\
-> 远程桌面(eg:远程办公)\
-> socks5代理(eg:网络代理)\
-> ssh访问(eg:远程连接内网服务器)
-
-运行于TCP协议之上的协议：
-
-- HTTP协议：超文本传输协议，用于普通浏览
-- HTTPS协议：安全超文本传输协议，身披SSL外衣的HTTP协议
-- FTP协议：文件传输协议，用于文件传输
-- POP3协议：邮局协议，收邮件使用
-- SMTP协议：简单邮件传输协议，用来发送电子邮件
-- Telnet协议：远程登陆协议，通过一个终端登陆到网络
-- SSH协议：安全外壳协议，用于加密安全登陆，替代安全性差的Telnet协议
-- RDP协议：远程桌面协议，是一个多通道的协议，让用户连上提供终端服务的电脑
-- SOCKS协议: 防火墙安全会话转换协议
-
-![process.png](doc/process.png)
+`java -jar rpt-client-*.jar -c client.yml`
 
 ## 服务端配置`server.yml`
 
@@ -67,10 +32,10 @@ serverPort: 6167
 #服务端暴露的HTTP重定向端口 为0则不开启
 httpPort: 80
 #服务端暴露的HTTPS复用端口 为0则不开启
-httpsPort: 443
-# 域名证书公钥(需替换)
+httpsPort: 0
+# 域名证书公钥(需替换) httpsPort为0时不生效
 domainCert: server.crt
-# 域名证书私钥(需替换)
+# 域名证书私钥(需替换) httpsPort为0时不生效
 domainKey: pkcs8_server.key
 #授权给客户端的秘钥
 token:
@@ -116,21 +81,15 @@ config:
     localIp: 127.0.0.1
     localPort: 8080
     # 访问域名(*.domain.com 用二级域名指向 eg:test.domain.com)
-    domain: localhost
+    domain: test.domain.com
     # 访问资源时登录的账号和密码(账号:密码) 非必填
     token: admin:admin
     description: tomcat
 ```
 
-## 快速体验
+## GUI客户端
 
-- 启动服务端
-
-`java -jar rpt-server-*.jar -c server.yml`
-
-- 启动客户端
-
-`java -jar rpt-client-*.jar -c client.yml`
+[使用介绍](doc/GUI.md)
 
 ## 完整部署
 
@@ -166,6 +125,8 @@ server端需要在conf文件夹里面放置`server.crt`和`pkcs8_server.key`和`
 
 ## 注册Windows服务
 
+将rpt-client.jar注册Windows服务可开机自启动
+
 下载 [winsw工具](https://github.com/winsw/winsw/releases) ,将WinSW-x64.exe文件重命名为rpt-client.exe, 和rpt-client.jar放在同一个目录中,
 在该目录中新建文件rpt-client.xml文件,写入如下内容
 
@@ -183,29 +144,7 @@ server端需要在conf文件夹里面放置`server.crt`和`pkcs8_server.key`和`
 
 执行`rpt-client.exe install`即可完成注册为Windows服务
 
+
 ## 其他
 
-Java命令行添加外部文件到classpath，从而实现读取外部配置文件
-
-```text
-对于jar包启动，使用-Xbootclasspath/a:命令；对于class启动，使用-cp命令。
-
-两种方法分别是：
-1. java -Xbootclasspath/a:/etc/hadoop/conf:/etc/hive/conf -jar example.jar
-2. java -cp /etc/hadoop/conf:/etc/hive/conf:./example.jar example.Main.class
-注意事项：
-（1）-Xbootclasspath/a:要在-jar之前
-（2）-Xbootclasspath/a:和后面的参数之间不能有空格
-（3）example.Main.class是jar包的主类，要把相应的jar包放到classpath参数中。
-（4）文件路径之间使用分隔符（win下为分号，linux下为冒号）
-```
-
-Javafx硬件渲染会有控件变黑问题
-
-```text
-Javafx启用软件渲染 -Dprism.order=sw
-```
-
-## TODO
-
-- [ ] 集群运维版本
+[补充说明](doc/OTHER.md)
