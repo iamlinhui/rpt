@@ -86,12 +86,18 @@ public class ServerApplication implements Application<Boolean> {
                 this.startHttp();
             } else {
                 logger.info("服务端启动失败,本机绑定IP:{},服务端口:{},原因:{}", serverConfig.getServerIp(), serverConfig.getServerPort(), future.cause().getMessage());
-                serverBossGroup.shutdownGracefully();
-                serverWorkerGroup.shutdownGracefully();
+                this.stop();
             }
         });
         return true;
     }
+
+    @Override
+    public void stop() {
+        serverBossGroup.shutdownGracefully();
+        serverWorkerGroup.shutdownGracefully();
+    }
+
 
     private void startHttp() {
         ServerConfig serverConfig = Config.getServerConfig();
@@ -114,11 +120,10 @@ public class ServerApplication implements Application<Boolean> {
         httpBootstrap.bind(serverConfig.getServerIp(), serverConfig.getHttpPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
                 logger.info("服务端启动成功,本机绑定IP:{},Http端口:{}", serverConfig.getServerIp(), serverConfig.getHttpPort());
-                startHttps();
+                this.startHttps();
             } else {
                 logger.info("服务端启动失败,本机绑定IP:{},Http端口:{},原因:{}", serverConfig.getServerIp(), serverConfig.getHttpPort(), future.cause().getMessage());
-                serverBossGroup.shutdownGracefully();
-                serverWorkerGroup.shutdownGracefully();
+                this.stop();
             }
         });
     }
@@ -147,8 +152,7 @@ public class ServerApplication implements Application<Boolean> {
                 logger.info("服务端启动成功,本机绑定IP:{},Https端口:{}", serverConfig.getServerIp(), serverConfig.getHttpsPort());
             } else {
                 logger.info("服务端启动失败,本机绑定IP:{},Https端口:{},原因:{}", serverConfig.getServerIp(), serverConfig.getHttpsPort(), future.cause().getMessage());
-                serverBossGroup.shutdownGracefully();
-                serverWorkerGroup.shutdownGracefully();
+                this.stop();
             }
         });
     }
