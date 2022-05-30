@@ -7,7 +7,7 @@ import cn.promptness.rpt.client.ClientApplication;
 import cn.promptness.rpt.desktop.utils.ProgressUtil;
 import cn.promptness.rpt.desktop.utils.SystemTrayUtil;
 import cn.promptness.rpt.desktop.utils.TooltipUtil;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.EventLoopGroup;
 import javafx.application.Platform;
 import javafx.concurrent.Service;
 import javafx.concurrent.Task;
@@ -20,7 +20,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 public class MenuController {
 
-    private static final ArrayBlockingQueue<NioEventLoopGroup> QUEUE = new ArrayBlockingQueue<>(1);
+    private static final ArrayBlockingQueue<EventLoopGroup> QUEUE = new ArrayBlockingQueue<>(1);
 
     @FXML
     public MenuItem startText;
@@ -122,11 +122,11 @@ public class MenuController {
         if (!QUEUE.isEmpty()) {
             synchronized (QUEUE) {
                 if (!QUEUE.isEmpty()) {
-                    NioEventLoopGroup nioEventLoopGroup = QUEUE.poll();
-                    if (nioEventLoopGroup == null) {
+                    EventLoopGroup eventLoopGroup = QUEUE.poll();
+                    if (eventLoopGroup == null) {
                         return false;
                     }
-                    nioEventLoopGroup.shutdownGracefully();
+                    eventLoopGroup.shutdownGracefully();
                     return true;
                 }
             }
@@ -138,20 +138,21 @@ public class MenuController {
         if (QUEUE.isEmpty()) {
             synchronized (QUEUE) {
                 if (QUEUE.isEmpty()) {
-                    NioEventLoopGroup nioEventLoopGroup = new NioEventLoopGroup();
+                    ClientApplication clientApplication = new ClientApplication();
+                    EventLoopGroup eventLoopGroup = clientApplication.bootstrap().config().group();
                     try {
-                        boolean start = new ClientApplication().buildBootstrap(nioEventLoopGroup).start(0);
+                        boolean start = clientApplication.config(new String[0]).buildBootstrap().start(0);
                         if (!start) {
-                            nioEventLoopGroup.shutdownGracefully();
+                            clientApplication.bootstrap().config().group().shutdownGracefully();
                             return false;
                         }
-                        if (!QUEUE.offer(nioEventLoopGroup)) {
-                            nioEventLoopGroup.shutdownGracefully();
+                        if (!QUEUE.offer(eventLoopGroup)) {
+                            eventLoopGroup.shutdownGracefully();
                         } else {
                             return true;
                         }
                     } catch (Exception e) {
-                        nioEventLoopGroup.shutdownGracefully();
+                        eventLoopGroup.shutdownGracefully();
                     }
                 }
             }

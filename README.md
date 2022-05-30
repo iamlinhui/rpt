@@ -64,9 +64,9 @@
 serverIp: 0.0.0.0
 #服务端与客户端通讯端口
 serverPort: 6167
-#服务端暴露的HTTP重定向端口
+#服务端暴露的HTTP重定向端口 为0则不开启
 httpPort: 80
-#服务端暴露的HTTPS复用端口
+#服务端暴露的HTTPS复用端口 为0则不开启
 httpsPort: 443
 # 域名证书公钥(需替换)
 domainCert: server.crt
@@ -122,7 +122,17 @@ config:
     description: tomcat
 ```
 
-## 部署
+## 快速体验
+
+- 启动服务端
+
+`java -jar rpt-server-*.jar -c server.yml`
+
+- 启动客户端
+
+`java -jar rpt-client-*.jar -c client.yml`
+
+## 完整部署
 
 首先在jar包的当前目录,新建conf文件夹,并将相应的配置文件(`client.yml`或者`server.yml`)放进去
 
@@ -197,4 +207,5 @@ Javafx启用软件渲染 -Dprism.order=sw
 ```
 
 ## TODO
+
 - [ ] 集群运维版本
