@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
-public class ClientApplication implements Application<Boolean> {
+public class ClientApplication implements Application {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientApplication.class);
 
@@ -43,13 +43,13 @@ public class ClientApplication implements Application<Boolean> {
     }
 
     @Override
-    public Application<Boolean> config(String[] args) {
+    public Application config(String[] args) {
         Config.readClientConfig(args);
         return this;
     }
 
     @Override
-    public Application<Boolean> buildBootstrap() throws IOException {
+    public Application buildBootstrap() throws IOException {
         SslContext sslContext = buildSslContext();
         bootstrap.group(clientWorkerGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
             @Override
@@ -71,7 +71,7 @@ public class ClientApplication implements Application<Boolean> {
     }
 
     @Override
-    public Boolean start(int seconds) throws Exception {
+    public boolean start(int seconds) throws Exception {
         TimeUnit.SECONDS.sleep(seconds);
         if (clientWorkerGroup.isShuttingDown() || clientWorkerGroup.isShutdown()) {
             return false;

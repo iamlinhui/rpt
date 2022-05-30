@@ -5,13 +5,13 @@ import io.netty.bootstrap.AbstractBootstrap;
 
 import java.io.IOException;
 
-public interface Application<R> {
+public interface Application {
 
-    Application<R> config(String[] args);
+    Application config(String[] args);
 
-    Application<R> buildBootstrap() throws IOException;
+    Application buildBootstrap() throws IOException;
 
-    R start(int value) throws Exception;
+    boolean start(int seconds) throws Exception;
 
     void stop();
 

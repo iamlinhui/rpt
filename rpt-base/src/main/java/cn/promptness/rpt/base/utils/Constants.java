@@ -23,7 +23,7 @@ public interface Constants {
     }
 
     interface Client {
-        AttributeKey<Application<Boolean>> APPLICATION = AttributeKey.newInstance("APPLICATION");
+        AttributeKey<Application> APPLICATION = AttributeKey.newInstance("APPLICATION");
     }
 
     interface Desktop {
