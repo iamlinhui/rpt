@@ -57,6 +57,7 @@ public class HttpApplication implements Application {
         ServerConfig serverConfig = Config.getServerConfig();
         int httpPort = serverConfig.getHttpPort();
         if (httpPort == 0) {
+            this.stop();
             return false;
         }
         httpBootstrap.bind(serverConfig.getServerIp(), serverConfig.getHttpPort()).addListener((ChannelFutureListener) future -> {
