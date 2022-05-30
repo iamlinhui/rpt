@@ -95,6 +95,11 @@ public class ClientApplication implements Application<Boolean> {
     }
 
     @Override
+    public void stop() {
+        clientWorkerGroup.shutdownGracefully();
+    }
+
+    @Override
     public Bootstrap bootstrap() {
         return bootstrap;
     }

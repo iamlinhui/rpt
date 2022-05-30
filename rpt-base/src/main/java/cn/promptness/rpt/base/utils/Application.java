@@ -13,5 +13,7 @@ public interface Application<R> {
 
     R start(int value) throws Exception;
 
+    void stop();
+
     AbstractBootstrap<?, ?> bootstrap();
 }

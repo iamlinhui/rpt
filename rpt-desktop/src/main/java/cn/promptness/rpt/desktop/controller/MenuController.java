@@ -1,6 +1,7 @@
 package cn.promptness.rpt.desktop.controller;
 
 import cn.promptness.rpt.base.config.RemoteConfig;
+import cn.promptness.rpt.base.utils.Application;
 import cn.promptness.rpt.base.utils.Config;
 import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.client.ClientApplication;
@@ -138,21 +139,21 @@ public class MenuController {
         if (QUEUE.isEmpty()) {
             synchronized (QUEUE) {
                 if (QUEUE.isEmpty()) {
-                    ClientApplication clientApplication = new ClientApplication();
-                    EventLoopGroup eventLoopGroup = clientApplication.bootstrap().config().group();
+                    Application<Boolean> application = new ClientApplication();
                     try {
-                        boolean start = clientApplication.config(new String[0]).buildBootstrap().start(0);
+                        boolean start = application.buildBootstrap().start(0);
                         if (!start) {
-                            clientApplication.bootstrap().config().group().shutdownGracefully();
+                            application.stop();
                             return false;
                         }
+                        EventLoopGroup eventLoopGroup = application.bootstrap().config().group();
                         if (!QUEUE.offer(eventLoopGroup)) {
-                            eventLoopGroup.shutdownGracefully();
+                            application.stop();
                         } else {
                             return true;
                         }
                     } catch (Exception e) {
-                        eventLoopGroup.shutdownGracefully();
+                        application.stop();
                     }
                 }
             }
