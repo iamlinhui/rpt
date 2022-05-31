@@ -63,6 +63,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
     private void clear(Map<String, Channel> channelMap) {
         for (Channel localChannel : channelMap.values()) {
+            localChannel.attr(Constants.PROXY).set(null);
             localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
         }
         channelMap.clear();

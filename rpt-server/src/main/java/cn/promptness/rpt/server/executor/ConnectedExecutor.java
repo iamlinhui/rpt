@@ -11,7 +11,9 @@ import cn.promptness.rpt.server.cache.ServerChannelCache;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 
+import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 public class ConnectedExecutor implements MessageExecutor {
@@ -31,11 +33,14 @@ public class ConnectedExecutor implements MessageExecutor {
         ProxyType proxyType = Optional.ofNullable(remoteConfig.getProxyType()).orElse(ProxyType.TCP);
 
         String serverId = meta.getServerId();
-        Map<String, Channel> channelMap = ServerChannelCache.getServerChannelMap().get(serverId).attr(Constants.CHANNELS).get();
-
+        Channel serverChannel = ServerChannelCache.getServerChannelMap().get(serverId);
+        if (Objects.isNull(serverChannel)) {
+            return;
+        }
+        Map<String, Channel> localChannelMap = Optional.ofNullable(serverChannel.attr(Constants.CHANNELS).get()).orElse(Collections.emptyMap());
         String channelId = meta.getChannelId();
-        Channel localChannel = channelMap.get(channelId);
-        if (localChannel == null) {
+        Channel localChannel = localChannelMap.get(channelId);
+        if (Objects.isNull(localChannel)) {
             return;
         }
         // binding each other

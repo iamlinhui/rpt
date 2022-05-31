@@ -22,8 +22,9 @@ public class DisconnectedExecutor implements MessageExecutor {
     public void execute(ChannelHandlerContext context, Message message) {
         Channel localChannel = context.channel().attr(Constants.LOCAL).getAndSet(null);
         if (Objects.nonNull(localChannel)) {
-            ProxyChannelCache.put(context.channel());
+            localChannel.attr(Constants.PROXY).set(null);
             localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
         }
+        ProxyChannelCache.put(context.channel());
     }
 }
