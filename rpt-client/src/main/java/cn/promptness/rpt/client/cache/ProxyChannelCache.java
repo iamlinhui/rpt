@@ -1,19 +1,18 @@
 package cn.promptness.rpt.client.cache;
 
 import cn.promptness.rpt.base.config.ClientConfig;
+import cn.promptness.rpt.base.protocol.Meta;
 import cn.promptness.rpt.base.utils.Config;
 import cn.promptness.rpt.base.utils.Constants;
+import cn.promptness.rpt.base.utils.Listener;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 public class ProxyChannelCache {
 
@@ -23,19 +22,19 @@ public class ProxyChannelCache {
 
     private static final Queue<Channel> PROXY_CHANNEL_QUEUE = new LinkedBlockingQueue<>();
 
-    public static void get(Bootstrap bootstrap, Consumer<Channel> success, Supplier<ChannelFuture> fail) {
+    public static void get(Channel serverChannel, Meta meta, Listener<Meta> listener) {
         Channel proxyChannel = PROXY_CHANNEL_QUEUE.poll();
         if (proxyChannel != null && proxyChannel.isActive()) {
-            success.accept(proxyChannel);
+            listener.success(serverChannel, proxyChannel, meta);
             return;
         }
         ClientConfig clientConfig = Config.getClientConfig();
+        Bootstrap bootstrap = serverChannel.attr(Constants.Client.APPLICATION).get().bootstrap();
         bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
-                success.accept(future.channel());
+                listener.success(serverChannel, future.channel(), meta);
             } else {
-                future.channel().close();
-                fail.get();
+                listener.fail(serverChannel, meta);
             }
         });
 

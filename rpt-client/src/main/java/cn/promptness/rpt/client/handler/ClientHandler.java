@@ -7,6 +7,7 @@ import cn.promptness.rpt.base.utils.Application;
 import cn.promptness.rpt.base.utils.Config;
 import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.client.cache.ProxyChannelCache;
+import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -45,7 +46,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        Application application = ctx.channel().attr(Constants.Client.APPLICATION).getAndSet(null);
+        Application<Bootstrap> application = ctx.channel().attr(Constants.Client.APPLICATION).getAndSet(null);
         if (Objects.nonNull(application)) {
             logger.info("客户端-服务端连接中断,{}:{}", Config.getClientConfig().getServerIp(), Config.getClientConfig().getServerPort());
             Optional.ofNullable(ctx.channel().attr(Constants.CHANNELS).get()).ifPresent(this::clear);
