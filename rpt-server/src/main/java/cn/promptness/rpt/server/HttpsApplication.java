@@ -25,7 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
-public class HttpsApplication implements Application {
+public class HttpsApplication implements Application<ServerBootstrap> {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpsApplication.class);
 
@@ -34,13 +34,13 @@ public class HttpsApplication implements Application {
     private final NioEventLoopGroup serverWorkerGroup = new NioEventLoopGroup();
 
     @Override
-    public Application config(String[] args) {
+    public Application<ServerBootstrap> config(String[] args) {
         Config.readServerConfig(args);
         return this;
     }
 
     @Override
-    public Application buildBootstrap() throws IOException {
+    public Application<ServerBootstrap> buildBootstrap() throws IOException {
         ServerConfig serverConfig = Config.getServerConfig();
         SslContext sslContext = buildHttpsSslContext(serverConfig);
         httpsBootstrap.group(serverBossGroup, serverWorkerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {

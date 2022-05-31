@@ -1,5 +1,6 @@
 package cn.promptness.rpt.base.utils;
 
+import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.AttributeKey;
@@ -23,7 +24,7 @@ public interface Constants {
     }
 
     interface Client {
-        AttributeKey<Application> APPLICATION = AttributeKey.newInstance("APPLICATION");
+        AttributeKey<Application<Bootstrap>> APPLICATION = AttributeKey.newInstance("APPLICATION");
     }
 
     interface Desktop {
