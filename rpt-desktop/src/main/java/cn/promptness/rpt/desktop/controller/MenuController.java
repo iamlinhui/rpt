@@ -7,7 +7,6 @@ import cn.promptness.rpt.client.ClientApplication;
 import cn.promptness.rpt.desktop.utils.ProgressUtil;
 import cn.promptness.rpt.desktop.utils.SystemTrayUtil;
 import cn.promptness.rpt.desktop.utils.TooltipUtil;
-import io.netty.channel.EventLoopGroup;
 import javafx.application.Platform;
 import javafx.concurrent.Service;
 import javafx.concurrent.Task;
@@ -20,7 +19,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 public class MenuController {
 
-    private static final ArrayBlockingQueue<EventLoopGroup> QUEUE = new ArrayBlockingQueue<>(1);
+    private static final ArrayBlockingQueue<ClientApplication> QUEUE = new ArrayBlockingQueue<>(1);
 
     @FXML
     public MenuItem startText;
@@ -122,11 +121,11 @@ public class MenuController {
         if (!QUEUE.isEmpty()) {
             synchronized (QUEUE) {
                 if (!QUEUE.isEmpty()) {
-                    EventLoopGroup eventLoopGroup = QUEUE.poll();
-                    if (eventLoopGroup == null) {
+                    ClientApplication clientApplication = QUEUE.poll();
+                    if (clientApplication == null) {
                         return false;
                     }
-                    eventLoopGroup.shutdownGracefully();
+                    clientApplication.stop();
                     return true;
                 }
             }
@@ -145,8 +144,7 @@ public class MenuController {
                             clientApplication.stop();
                             return false;
                         }
-                        EventLoopGroup eventLoopGroup = clientApplication.bootstrap().config().group();
-                        if (!QUEUE.offer(eventLoopGroup)) {
+                        if (!QUEUE.offer(clientApplication)) {
                             clientApplication.stop();
                         } else {
                             return true;
