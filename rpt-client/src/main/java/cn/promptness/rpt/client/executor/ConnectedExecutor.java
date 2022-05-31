@@ -9,6 +9,7 @@ import cn.promptness.rpt.base.protocol.MessageType;
 import cn.promptness.rpt.base.protocol.Meta;
 import cn.promptness.rpt.base.utils.Config;
 import cn.promptness.rpt.base.utils.Constants;
+import cn.promptness.rpt.base.utils.Listener;
 import cn.promptness.rpt.client.cache.ProxyChannelCache;
 import cn.promptness.rpt.client.handler.LocalHandler;
 import io.netty.bootstrap.Bootstrap;
@@ -22,7 +23,7 @@ import io.netty.util.internal.EmptyArrays;
 import java.util.Collections;
 import java.util.Objects;
 
-public class ConnectedExecutor implements MessageExecutor {
+public class ConnectedExecutor implements MessageExecutor, Listener<Meta> {
 
     private final EventLoopGroup localGroup = new NioEventLoopGroup();
 
@@ -49,11 +50,11 @@ public class ConnectedExecutor implements MessageExecutor {
             meta.setRemoteConfigList(Collections.singletonList(httpConfig));
         }
         // 绑定代理连接
-        Bootstrap bootstrap = context.channel().attr(Constants.Client.APPLICATION).get().bootstrap();
-        ProxyChannelCache.get(bootstrap, proxyChannel -> connectedTcp(context, proxyChannel, meta), () -> context.writeAndFlush(new Message(MessageType.TYPE_DISCONNECTED, meta, EmptyArrays.EMPTY_BYTES)));
+        ProxyChannelCache.get(context.channel(), meta, this);
     }
 
-    private void connectedTcp(ChannelHandlerContext context, Channel proxyChannel, Meta meta) {
+    @Override
+    public void success(Channel serverChannel, Channel proxyChannel, Meta meta) {
         RemoteConfig remoteConfig = meta.getRemoteConfig();
         Bootstrap localBootstrap = new Bootstrap();
         localBootstrap.group(localGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
@@ -61,7 +62,7 @@ public class ConnectedExecutor implements MessageExecutor {
             public void initChannel(SocketChannel channel) throws Exception {
                 channel.pipeline().addLast(new ByteArrayCodec());
                 channel.pipeline().addLast(new ChunkedWriteHandler());
-                channel.pipeline().addLast(new LocalHandler(context.channel(), meta));
+                channel.pipeline().addLast(new LocalHandler(serverChannel, meta));
             }
         });
         localBootstrap.connect(remoteConfig.getLocalIp(), remoteConfig.getLocalPort()).addListener((ChannelFutureListener) future -> {
@@ -70,8 +71,14 @@ public class ConnectedExecutor implements MessageExecutor {
                 proxyChannel.attr(Constants.LOCAL).set(future.channel());
             } else {
                 ProxyChannelCache.put(proxyChannel);
-                context.writeAndFlush(new Message(MessageType.TYPE_DISCONNECTED, meta, EmptyArrays.EMPTY_BYTES));
+                serverChannel.writeAndFlush(new Message(MessageType.TYPE_DISCONNECTED, meta, EmptyArrays.EMPTY_BYTES));
             }
         });
     }
+
+    @Override
+    public void fail(Channel serverChannel, Meta meta) {
+        serverChannel.writeAndFlush(new Message(MessageType.TYPE_DISCONNECTED, meta, EmptyArrays.EMPTY_BYTES));
+    }
+
 }

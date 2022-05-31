@@ -22,6 +22,7 @@ import io.netty.handler.stream.ChunkedWriteHandler;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -36,9 +37,6 @@ public class RegisterExecutor implements MessageExecutor {
 
     @Override
     public void execute(ChannelHandlerContext context, Message message) throws Exception {
-
-        context.channel().attr(Constants.Server.REMOTE_BOSS_GROUP).set(new NioEventLoopGroup());
-        context.channel().attr(Constants.Server.REMOTE_WORKER_GROUP).set(new NioEventLoopGroup());
 
         Meta meta = message.getMeta();
         context.channel().attr(Constants.Server.CLIENT_KEY).set(meta.getClientKey());
@@ -78,6 +76,11 @@ public class RegisterExecutor implements MessageExecutor {
             ProxyType proxyType = Optional.ofNullable(remoteConfig.getProxyType()).orElse(ProxyType.TCP);
             switch (proxyType) {
                 case TCP:
+                    // lazy
+                    if (Objects.isNull(context.channel().attr(Constants.Server.REMOTE_BOSS_GROUP).get()) && Objects.isNull(context.channel().attr(Constants.Server.REMOTE_WORKER_GROUP).get())) {
+                        context.channel().attr(Constants.Server.REMOTE_BOSS_GROUP).set(new NioEventLoopGroup());
+                        context.channel().attr(Constants.Server.REMOTE_WORKER_GROUP).set(new NioEventLoopGroup());
+                    }
                     registerTcp(context, meta, remoteConfig, countDownLatch);
                     break;
                 case HTTP:
