@@ -27,6 +27,10 @@ public class ConnectedExecutor implements MessageExecutor, Listener<Meta> {
 
     private final EventLoopGroup localGroup = new NioEventLoopGroup();
 
+    public ConnectedExecutor() {
+        Runtime.getRuntime().addShutdownHook(new Thread(localGroup::shutdownGracefully));
+    }
+
     @Override
     public MessageType getMessageType() {
         return MessageType.TYPE_CONNECTED;
