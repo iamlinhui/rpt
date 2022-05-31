@@ -34,15 +34,8 @@ public class HttpsApplication extends Application<ServerBootstrap> {
     private final NioEventLoopGroup serverWorkerGroup = new NioEventLoopGroup();
 
     @Override
-    public Application<ServerBootstrap> config(String[] args) {
-        Config.readServerConfig(args);
-        return this;
-    }
-
-    @Override
     public Application<ServerBootstrap> buildBootstrap() throws IOException {
-        ServerConfig serverConfig = Config.getServerConfig();
-        SslContext sslContext = buildHttpsSslContext(serverConfig);
+        SslContext sslContext = buildHttpsSslContext();
         httpsBootstrap.group(serverBossGroup, serverWorkerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
 
             @Override
@@ -88,7 +81,8 @@ public class HttpsApplication extends Application<ServerBootstrap> {
         return httpsBootstrap;
     }
 
-    private SslContext buildHttpsSslContext(ServerConfig serverConfig) throws IOException {
+    private SslContext buildHttpsSslContext() throws IOException {
+        ServerConfig serverConfig = Config.getServerConfig();
         try (InputStream certChainFile = ClassLoader.getSystemResourceAsStream(serverConfig.getDomainCert()); InputStream keyFile = ClassLoader.getSystemResourceAsStream(serverConfig.getDomainKey())) {
             return SslContextBuilder.forServer(certChainFile, keyFile).clientAuth(ClientAuth.NONE).sslProvider(SslProvider.OPENSSL).build();
         }
