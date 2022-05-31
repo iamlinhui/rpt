@@ -9,7 +9,9 @@ public abstract class Application<B> {
         Runtime.getRuntime().addShutdownHook(new Thread(this::stop));
     }
 
-    public abstract Application<B> config(String[] args);
+    public Application<B> config(String[] args) {
+        return this;
+    }
 
     public abstract Application<B> buildBootstrap() throws IOException;
 

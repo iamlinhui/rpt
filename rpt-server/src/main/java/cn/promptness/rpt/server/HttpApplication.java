@@ -30,12 +30,6 @@ public class HttpApplication extends Application<ServerBootstrap> {
     private final NioEventLoopGroup serverWorkerGroup = new NioEventLoopGroup();
 
     @Override
-    public Application<ServerBootstrap> config(String[] args) {
-        Config.readServerConfig(args);
-        return this;
-    }
-
-    @Override
     public Application<ServerBootstrap> buildBootstrap() throws IOException {
         ServerConfig serverConfig = Config.getServerConfig();
         httpBootstrap.group(serverBossGroup, serverWorkerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
