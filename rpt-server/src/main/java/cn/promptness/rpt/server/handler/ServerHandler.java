@@ -64,6 +64,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             return;
         }
         logger.info("服务端-客户端连接中断,{}", clientKey);
+        ServerChannelCache.getServerChannelMap().remove(ctx.channel().id().asLongText());
         Optional.ofNullable(ctx.channel().attr(Constants.CHANNELS).getAndSet(null)).ifPresent(this::clear);
         Optional.ofNullable(ctx.channel().attr(Constants.Server.DOMAIN).getAndSet(null)).ifPresent(ServerChannelCache::remove);
         Optional.ofNullable(ctx.channel().attr(Constants.Server.REMOTE_BOSS_GROUP).getAndSet(null)).ifPresent(AbstractEventExecutorGroup::shutdownGracefully);
