@@ -3,19 +3,23 @@ package cn.promptness.rpt.base.utils;
 
 import java.io.IOException;
 
-public interface Application<B> {
+public abstract class Application<B> {
 
-    Application<B> config(String[] args);
+    public Application() {
+        Runtime.getRuntime().addShutdownHook(new Thread(this::stop));
+    }
 
-    Application<B> buildBootstrap() throws IOException;
+    public abstract Application<B> config(String[] args);
 
-    boolean start(int seconds) throws Exception;
+    public abstract Application<B> buildBootstrap() throws IOException;
 
-    void stop();
+    public abstract boolean start(int seconds) throws Exception;
 
-    B bootstrap();
+    public abstract void stop();
 
-    static void run(String[] args, Application<?>... applications) throws Exception {
+    public abstract B bootstrap();
+
+    public static void run(String[] args, Application<?>... applications) throws Exception {
         for (Application<?> application : applications) {
             application.config(args).buildBootstrap().start(0);
         }

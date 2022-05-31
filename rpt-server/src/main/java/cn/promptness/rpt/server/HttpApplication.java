@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-public class HttpApplication implements Application<ServerBootstrap> {
+public class HttpApplication extends Application<ServerBootstrap> {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpApplication.class);
 

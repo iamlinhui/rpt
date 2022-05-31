@@ -25,7 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
-public class HttpsApplication implements Application<ServerBootstrap> {
+public class HttpsApplication extends Application<ServerBootstrap> {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpsApplication.class);
 
