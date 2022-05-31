@@ -113,7 +113,7 @@ kill $(cat pid.file)
 ## SSL证书申请
 
 详细操作步骤看这里
-[OpenSSL申请证书](https://github.com/iamlinhui/rpt/wiki/OpenSSL证书申请)
+[OpenSSL申请证书](doc/OpenSSL.md)
 
 ## 替换证书
 
