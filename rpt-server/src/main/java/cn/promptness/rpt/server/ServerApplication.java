@@ -27,7 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
-public class ServerApplication implements Application<ServerBootstrap> {
+public class ServerApplication extends Application<ServerBootstrap> {
 
     private static final Logger logger = LoggerFactory.getLogger(ServerApplication.class);
 

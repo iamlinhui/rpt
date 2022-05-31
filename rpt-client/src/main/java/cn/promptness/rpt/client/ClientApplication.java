@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
-public class ClientApplication implements Application<Bootstrap> {
+public class ClientApplication extends Application<Bootstrap> {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientApplication.class);
 
