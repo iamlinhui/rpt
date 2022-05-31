@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-public class HttpApplication implements Application {
+public class HttpApplication implements Application<ServerBootstrap> {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpApplication.class);
 
@@ -30,13 +30,13 @@ public class HttpApplication implements Application {
     private final NioEventLoopGroup serverWorkerGroup = new NioEventLoopGroup();
 
     @Override
-    public Application config(String[] args) {
+    public Application<ServerBootstrap> config(String[] args) {
         Config.readServerConfig(args);
         return this;
     }
 
     @Override
-    public Application buildBootstrap() throws IOException {
+    public Application<ServerBootstrap> buildBootstrap() throws IOException {
         ServerConfig serverConfig = Config.getServerConfig();
         httpBootstrap.group(serverBossGroup, serverWorkerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
 

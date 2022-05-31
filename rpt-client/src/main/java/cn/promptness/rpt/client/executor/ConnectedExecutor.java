@@ -49,7 +49,7 @@ public class ConnectedExecutor implements MessageExecutor {
             meta.setRemoteConfigList(Collections.singletonList(httpConfig));
         }
         // 绑定代理连接
-        Bootstrap bootstrap = (Bootstrap) context.channel().attr(Constants.Client.APPLICATION).get().bootstrap();
+        Bootstrap bootstrap = context.channel().attr(Constants.Client.APPLICATION).get().bootstrap();
         ProxyChannelCache.get(bootstrap, proxyChannel -> connectedTcp(context, proxyChannel, meta), () -> context.writeAndFlush(new Message(MessageType.TYPE_DISCONNECTED, meta, EmptyArrays.EMPTY_BYTES)));
     }
 
