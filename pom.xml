@@ -76,16 +76,21 @@
             <plugins>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-shade-plugin</artifactId>
-                    <version>2.4.1</version>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>3.3.0</version>
                     <configuration>
                         <finalName>${project.artifactId}-${project.version}</finalName>
+                        <descriptorRefs>
+                            <descriptorRef>jar-with-dependencies</descriptorRef>
+                        </descriptorRefs>
+                        <appendAssemblyId>false</appendAssemblyId>
                     </configuration>
                     <executions>
                         <execution>
+                            <id>make-assembly</id>
                             <phase>package</phase>
                             <goals>
-                                <goal>shade</goal>
+                                <goal>single</goal>
                             </goals>
                         </execution>
                     </executions>
