@@ -88,7 +88,7 @@ public class ClientApplication extends Application<Bootstrap> {
                 future.channel().writeAndFlush(message);
             } else {
                 logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), future.cause().getMessage());
-                this.start(1);
+                this.start(10);
             }
         });
         return true;
