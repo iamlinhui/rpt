@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 public class HttpsApplication extends Application<ServerBootstrap> {
@@ -83,7 +84,9 @@ public class HttpsApplication extends Application<ServerBootstrap> {
 
     private SslContext buildHttpsSslContext() throws IOException {
         ServerConfig serverConfig = Config.getServerConfig();
-        try (InputStream certChainFile = ClassLoader.getSystemResourceAsStream(serverConfig.getDomainCert()); InputStream keyFile = ClassLoader.getSystemResourceAsStream(serverConfig.getDomainKey())) {
+        String domainCert = Optional.ofNullable(serverConfig.getDomainCert()).orElse("server.crt");
+        String domainKey = Optional.ofNullable(serverConfig.getDomainKey()).orElse("pkcs8_server.key");
+        try (InputStream certChainFile = ClassLoader.getSystemResourceAsStream(domainCert); InputStream keyFile = ClassLoader.getSystemResourceAsStream(domainKey)) {
             return SslContextBuilder.forServer(certChainFile, keyFile).clientAuth(ClientAuth.NONE).sslProvider(SslProvider.OPENSSL).build();
         }
     }
