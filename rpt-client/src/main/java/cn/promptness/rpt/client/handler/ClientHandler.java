@@ -50,7 +50,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         if (Objects.nonNull(application)) {
             logger.info("客户端-服务端连接中断,{}:{}", Config.getClientConfig().getServerIp(), Config.getClientConfig().getServerPort());
             Optional.ofNullable(ctx.channel().attr(Constants.CHANNELS).get()).ifPresent(this::clear);
-            application.start(1);
+            application.start(15);
             return;
         }
         logger.info("客户端-服务端代理连接中断");
