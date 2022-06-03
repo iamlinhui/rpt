@@ -7,12 +7,14 @@ import cn.promptness.rpt.client.ClientApplication;
 import cn.promptness.rpt.desktop.utils.ProgressUtil;
 import cn.promptness.rpt.desktop.utils.SystemTrayUtil;
 import cn.promptness.rpt.desktop.utils.TooltipUtil;
+import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.MenuItem;
 
 import java.util.concurrent.ArrayBlockingQueue;
@@ -35,10 +37,16 @@ public class MenuController {
 
     @FXML
     public void about() {
+        final Hyperlink hyperlink = new Hyperlink("https://github.com/iamlinhui/rpt");
+        hyperlink.setOnAction(t -> {
+            HostServices hostServices = (HostServices) SystemTrayUtil.getPrimaryStage().getProperties().get("hostServices");
+            hostServices.showDocument(hyperlink.getText());
+        });
         Alert alert = new Alert(Alert.AlertType.NONE);
         alert.setTitle(Constants.Desktop.TITLE);
         alert.setHeaderText("关于");
-        alert.setContentText(String.format(" Version %s %n Powered By Lynn %n https://github.com/iamlinhui/rpt", Constants.Desktop.VERSION));
+        alert.setGraphic(hyperlink);
+        alert.setContentText(String.format("Version %s %nPowered By Lynn", Constants.Desktop.VERSION));
         alert.initOwner(SystemTrayUtil.getPrimaryStage());
         alert.getButtonTypes().add(ButtonType.CLOSE);
         alert.showAndWait();
