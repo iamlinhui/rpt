@@ -1,25 +1,25 @@
-## GUIÊ¹ÓÃ½çÃæ
+## GUIä½¿ç”¨ç•Œé¢
 
-- Ö÷½çÃæ
+- ä¸»ç•Œé¢
 
 ![main.png](desktop/main.png)
 
-- ÏµÍ³ÅäÖÃ
+- ç³»ç»Ÿé…ç½®
 
 ![config.png](desktop/config.png)
 
-- TCPÓ³ÉäÅäÖÃ
+- TCPæ˜ å°„é…ç½®
 
 ![tcp.png](desktop/tcp.png)
 
-- HTTPÓ³ÉäÅäÖÃ
+- HTTPæ˜ å°„é…ç½®
 
 ![http.png](desktop/http.png)
 
-- É¾³ıÓ³ÉäÅäÖÃ
+- åˆ é™¤æ˜ å°„é…ç½®
 
 ![delete.png](desktop/delete.png)
 
-- ¿ØÖÆÌ¨Êä³ö
+- æ§åˆ¶å°è¾“å‡º
 
 ![start.png](desktop/start.png)
