@@ -49,7 +49,7 @@ public class RegisterExecutor implements MessageExecutor {
             context.writeAndFlush(res).addListener(ChannelFutureListener.CLOSE);
             return;
         }
-        List<String> domainList = fillRemoteResult(context, meta);
+        this.fillRemoteResult(context, meta);
         Message res = new Message();
         res.setType(MessageType.TYPE_AUTH);
         res.setMeta(meta);
@@ -61,16 +61,13 @@ public class RegisterExecutor implements MessageExecutor {
         logger.info("授权注册成功,客户端使用的秘钥:{}", meta.getClientKey());
         ServerChannelCache.getServerChannelMap().put(context.channel().id().asLongText(), context.channel());
         context.channel().attr(Constants.CHANNELS).set(new ConcurrentHashMap<>(1024));
-        context.channel().attr(Constants.Server.DOMAIN).set(domainList);
     }
 
-    private List<String> fillRemoteResult(ChannelHandlerContext context, Meta meta) throws Exception {
-        List<String> domainList = new CopyOnWriteArrayList<>();
-        List<String> remoteResult = new CopyOnWriteArrayList<>();
-        meta.setConnection(true).setRemoteResult(remoteResult);
+    private void fillRemoteResult(ChannelHandlerContext context, Meta meta) throws Exception {
+        meta.setConnection(true).setRemoteResult(new CopyOnWriteArrayList<>());
         List<RemoteConfig> remoteConfigList = Optional.ofNullable(meta.getRemoteConfigList()).orElse(Collections.emptyList());
         if (remoteConfigList.isEmpty()) {
-            return domainList;
+            return;
         }
         CountDownLatch countDownLatch = new CountDownLatch(remoteConfigList.size());
         for (RemoteConfig remoteConfig : remoteConfigList) {
@@ -85,16 +82,18 @@ public class RegisterExecutor implements MessageExecutor {
                     registerTcp(context, meta, remoteConfig, countDownLatch);
                     break;
                 case HTTP:
-                    registerHttp(context, meta, remoteConfig, domainList, countDownLatch);
+                    if (Objects.isNull(context.channel().attr(Constants.Server.DOMAIN).get())) {
+                        context.channel().attr(Constants.Server.DOMAIN).set(new CopyOnWriteArrayList<>());
+                    }
+                    registerHttp(context, meta, remoteConfig, countDownLatch);
                     break;
                 default:
             }
         }
         countDownLatch.await();
-        return domainList;
     }
 
-    private void registerHttp(ChannelHandlerContext context, Meta meta, RemoteConfig remoteConfig, List<String> domainList, CountDownLatch countDownLatch) {
+    private void registerHttp(ChannelHandlerContext context, Meta meta, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {
         if (Config.getServerConfig().getHttpPort() == 0 && Config.getServerConfig().getHttpsPort() == 0) {
             meta.setConnection(false).addRemoteResult("服务端未开启HTTP穿透功能");
             countDownLatch.countDown();
@@ -111,7 +110,7 @@ public class RegisterExecutor implements MessageExecutor {
                 meta.setConnection(false).addRemoteResult(String.format("服务端绑定域名[%s]重复", domain));
                 return channel;
             }
-            domainList.add(domain);
+            context.channel().attr(Constants.Server.DOMAIN).get().add(domain);
             if (StringUtils.hasText(remoteConfig.getToken())) {
                 ServerChannelCache.getServerDomainToken().put(domain, remoteConfig.getToken());
             }

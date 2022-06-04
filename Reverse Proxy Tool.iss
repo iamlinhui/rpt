@@ -2,9 +2,9 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Reverse Proxy Tool"
-#define MyAppVersion "2.4.0"
+#define MyAppVersion "2.5.0"
 #define MyAppPublisher "Lynn"
-#define MyAppURL "https://www.holme.cn/"
+#define MyAppURL "https://www.holmes.cn/"
 #define MyAppExeName "rpt-desktop.exe"
 #define MySourcePath "out\artifacts\rpt_desktop\bundles\rpt-desktop\"
 
