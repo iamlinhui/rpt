@@ -58,6 +58,7 @@ public class RegisterExecutor implements MessageExecutor {
             channelFuture.addListener(ChannelFutureListener.CLOSE);
             return;
         }
+        logger.info("授权注册成功,客户端使用的秘钥:{}", meta.getClientKey());
         ServerChannelCache.getServerChannelMap().put(context.channel().id().asLongText(), context.channel());
         context.channel().attr(Constants.CHANNELS).set(new ConcurrentHashMap<>(1024));
         context.channel().attr(Constants.Server.DOMAIN).set(domainList);

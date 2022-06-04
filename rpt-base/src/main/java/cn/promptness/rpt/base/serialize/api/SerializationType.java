@@ -24,4 +24,13 @@ public enum SerializationType {
     public String getDesc() {
         return desc;
     }
+
+    public static SerializationType getInstance(int code) {
+        for (SerializationType value : SerializationType.values()) {
+            if (value.code == code) {
+                return value;
+            }
+        }
+        return null;
+    }
 }

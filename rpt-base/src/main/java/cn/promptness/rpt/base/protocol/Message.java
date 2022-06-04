@@ -1,5 +1,7 @@
 package cn.promptness.rpt.base.protocol;
 
+import cn.promptness.rpt.base.serialize.api.SerializationType;
+
 /**
  * 客户端-服务器自定义通信协议
  */
@@ -9,6 +11,8 @@ public class Message {
      * 消息类型
      */
     private MessageType type;
+
+    private SerializationType serialization = SerializationType.PROTOSTUFF;
 
     /**
      * 元数据
@@ -54,4 +58,11 @@ public class Message {
         this.type = type;
     }
 
+    public SerializationType getSerialization() {
+        return serialization;
+    }
+
+    public void setSerialization(SerializationType serialization) {
+        this.serialization = serialization;
+    }
 }

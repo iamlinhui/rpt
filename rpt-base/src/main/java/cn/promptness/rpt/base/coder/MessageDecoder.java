@@ -12,28 +12,31 @@ import io.netty.handler.codec.MessageToMessageDecoder;
 
 import java.util.List;
 
-
+/**
+ * messageLength|messageType|serializerType|metaLength|meta|data
+ */
 public class MessageDecoder extends MessageToMessageDecoder<ByteBuf> {
 
     private static final SerializerDispatcher SERIALIZER_DISPATCHER = new SerializerDispatcher();
 
     @Override
     protected void decode(ChannelHandlerContext channelHandlerContext, ByteBuf byteBuf, List<Object> list) throws Exception {
-        Message proxyMessage = new Message();
+        Message message = new Message();
         // 4个字节
-        proxyMessage.setType(MessageType.getInstance(byteBuf.readInt()));
+        message.setType(MessageType.getInstance(byteBuf.readInt()));
+        SerializationType serialization = SerializationType.getInstance(byteBuf.readInt());
 
-        int protobufLength = byteBuf.readInt();
-        if (protobufLength > 0) {
-            byte[] metaByte = new byte[protobufLength];
+        int metaByteLength = byteBuf.readInt();
+        if (metaByteLength > 0) {
+            byte[] metaByte = new byte[metaByteLength];
             byteBuf.readBytes(metaByte);
-            Meta meta = SERIALIZER_DISPATCHER.deserialize(SerializationType.PROTOSTUFF, metaByte, Meta.class);
-            proxyMessage.setMeta(meta);
+            Meta meta = SERIALIZER_DISPATCHER.deserialize(serialization, metaByte, Meta.class);
+            message.setMeta(meta);
         }
         if (byteBuf.isReadable()) {
             byte[] data = ByteBufUtil.getBytes(byteBuf);
-            proxyMessage.setData(data);
+            message.setData(data);
         }
-        list.add(proxyMessage);
+        list.add(message);
     }
 }
