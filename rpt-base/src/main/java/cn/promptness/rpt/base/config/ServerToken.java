@@ -4,9 +4,9 @@ public class ServerToken {
 
     private String clientKey;
 
-    private int minPort;
+    private int minPort = 1;
 
-    private int maxPort;
+    private int maxPort = 65535;
 
     public boolean authorize(int remotePort) {
         return remotePort >= minPort && remotePort <= maxPort;

@@ -11,6 +11,7 @@ public class ServerConfig {
     private int httpsPort;
     private String domainCert;
     private String domainKey;
+    private boolean ipFilter;
     private List<ServerToken> token;
 
     public boolean authorize(String clientKey) {
@@ -88,5 +89,13 @@ public class ServerConfig {
 
     public void setDomainKey(String domainKey) {
         this.domainKey = domainKey;
+    }
+
+    public boolean ipFilter() {
+        return ipFilter;
+    }
+
+    public void setIpFilter(boolean ipFilter) {
+        this.ipFilter = ipFilter;
     }
 }
