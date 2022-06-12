@@ -1,3 +1,5 @@
+<img alt="rpt" height="120" src="doc/rpt.png" width="120"/> 
+
 ### 内网穿透工具
 
 > 一个可用于内网穿透的工具，将局域网个人电脑、服务器映射到公网。
@@ -29,18 +31,20 @@
 serverIp: 0.0.0.0
 #服务端与客户端通讯端口
 serverPort: 6167
-#服务端暴露的HTTP重定向端口 为0则不开启
+#服务端暴露的HTTP重定向端口 为0则不开启 默认值0
 httpPort: 80
-#服务端暴露的HTTPS复用端口 为0则不开启
+#服务端暴露的HTTPS复用端口 为0则不开启 默认值0
 httpsPort: 0
-# 域名证书公钥(需替换) httpsPort为0时不生效
+# 域名证书公钥(需替换) httpsPort为0时不生效 默认值server.crt
 domainCert: server.crt
-# 域名证书私钥(需替换) httpsPort为0时不生效
+# 域名证书私钥(需替换) httpsPort为0时不生效 默认值pkcs8_server.key
 domainKey: pkcs8_server.key
+# 是否限制连接暴露端口的IP必须在当前地区国家 默认值false
+ipFilter: true
 #授权给客户端的秘钥
 token:
   - clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
-    # 限制绑定端口范围 左右闭区间
+    # 限制绑定端口范围 左右闭区间  默认值[1,65535]
     minPort: 4000
     maxPort: 8000
   - clientKey: 4befea7e-a61c-4979-b012-47659bab6f21
@@ -111,7 +115,18 @@ kill $(cat pid.file)
 ```
 
 ## Docker 镜像地址
+
 https://hub.docker.com/r/promptness/rpt-client
+
+## 更新IP库
+
+https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
+
+https://github.com/Loyalsoldier/geoip/releases
+
+https://github.com/Dreamacro/maxmind-geoip/releases
+
+将下载的Country.mmdb放入server端的conf文件夹中
 
 ## SSL证书申请
 
@@ -146,7 +161,6 @@ server端需要在conf文件夹里面放置`server.crt`和`pkcs8_server.key`和`
 ```
 
 执行`rpt-client.exe install`即可完成注册为Windows服务
-
 
 ## 其他
 

@@ -56,7 +56,7 @@ public class StaticDispatcher {
 
     private static void unauthorized(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
         FullHttpResponse response = buildResponse(ctx, HttpResponseStatus.UNAUTHORIZED, page("static/401.html"));
-        response.headers().set(HttpHeaderNames.WWW_AUTHENTICATE, "Basic realm=\".\"");
+        response.headers().set(HttpHeaderNames.WWW_AUTHENTICATE, "Basic realm=\"Restricted Area\"");
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_HTML);
         handle(ctx, fullHttpRequest, response);
     }

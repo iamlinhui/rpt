@@ -12,12 +12,14 @@ import cn.promptness.rpt.base.utils.Config;
 import cn.promptness.rpt.base.utils.Constants;
 import cn.promptness.rpt.base.utils.StringUtils;
 import cn.promptness.rpt.server.cache.ServerChannelCache;
+import cn.promptness.rpt.server.handler.IpFilterRuleHandler;
 import cn.promptness.rpt.server.handler.RemoteHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.ipfilter.RuleBasedIpFilter;
 import io.netty.handler.stream.ChunkedWriteHandler;
 
 import java.util.Collections;
@@ -30,6 +32,8 @@ import java.util.concurrent.CountDownLatch;
 
 public class RegisterExecutor implements MessageExecutor {
 
+    private final RuleBasedIpFilter ruleBasedIpFilter = new RuleBasedIpFilter(new IpFilterRuleHandler());
+
     @Override
     public MessageType getMessageType() {
         return MessageType.TYPE_REGISTER;
@@ -39,7 +43,8 @@ public class RegisterExecutor implements MessageExecutor {
     public void execute(ChannelHandlerContext context, Message message) throws Exception {
 
         Meta meta = message.getMeta();
-        context.channel().attr(Constants.Server.CLIENT_KEY).set(meta.getClientKey());
+        // 存在client_key为设置为null的情况 在断线时的标识判断
+        context.channel().attr(Constants.Server.CLIENT_KEY).set(String.valueOf(meta.getClientKey()));
 
         if (!Config.getServerConfig().authorize(meta.getClientKey())) {
             logger.info("授权失败,客户端使用的秘钥:{}", meta.getClientKey());
@@ -136,6 +141,9 @@ public class RegisterExecutor implements MessageExecutor {
         remoteBootstrap.group(context.channel().attr(Constants.Server.REMOTE_BOSS_GROUP).get(), context.channel().attr(Constants.Server.REMOTE_WORKER_GROUP).get()).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel channel) throws Exception {
+                if (Config.getServerConfig().ipFilter()) {
+                    channel.pipeline().addLast(ruleBasedIpFilter);
+                }
                 channel.pipeline().addLast(new ByteArrayCodec());
                 channel.pipeline().addLast(new ChunkedWriteHandler());
                 channel.pipeline().addLast(new RemoteHandler(context.channel(), remoteConfig));
