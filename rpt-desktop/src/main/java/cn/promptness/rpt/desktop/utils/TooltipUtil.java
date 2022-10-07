@@ -4,6 +4,7 @@ import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Tooltip;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
 import java.util.Timer;
@@ -14,7 +15,7 @@ public class TooltipUtil {
     public static void show(String message) {
         Stage primaryStage = SystemTrayUtil.getPrimaryStage();
         Parent root = primaryStage.getScene().getRoot();
-        double x = getScreenX(root) + getWidth(root) / 2 - 50;
+        double x = getScreenX(root) + getWidth(root) / 2 - getWidth(message) / 1.5;
         double y = getScreenY(root) + getHeight(root) / 2;
         Tooltip tooltip = new Tooltip(message);
         tooltip.setAutoHide(true);
@@ -43,5 +44,9 @@ public class TooltipUtil {
 
     public static double getHeight(Node control) {
         return control.getBoundsInParent().getHeight();
+    }
+
+    public static double getWidth(String message) {
+        return new Text(message).getBoundsInLocal().getWidth();
     }
 }
