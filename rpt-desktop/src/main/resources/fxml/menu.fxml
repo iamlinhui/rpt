@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.*?>
-<MenuBar fx:controller="cn.promptness.rpt.desktop.controller.MenuController" xmlns="http://javafx.com/javafx/8"
+<MenuBar fx:controller="cn.holmes.rpt.desktop.controller.MenuController" xmlns="http://javafx.com/javafx/8"
          xmlns:fx="http://javafx.com/fxml/1">
     <Menu text="编辑">
         <MenuItem text="新增" fx:id="addText"  onAction="#add" accelerator="Shortcut+N"/>

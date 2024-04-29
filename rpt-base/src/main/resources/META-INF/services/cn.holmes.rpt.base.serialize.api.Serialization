@@ -1,0 +1,2 @@
+cn.holmes.rpt.base.serialize.protostuff.ProtostuffSerialization
+cn.holmes.rpt.base.serialize.json.JsonSerialization

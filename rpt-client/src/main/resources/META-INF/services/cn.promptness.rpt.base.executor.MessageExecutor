@@ -1,4 +1,0 @@
-cn.promptness.rpt.client.executor.AuthExecutor
-cn.promptness.rpt.client.executor.ConnectedExecutor
-cn.promptness.rpt.client.executor.DataExecutor
-cn.promptness.rpt.client.executor.DisconnectedExecutor

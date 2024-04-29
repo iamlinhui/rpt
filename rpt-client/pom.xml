@@ -35,7 +35,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>cn.promptness.rpt.client.ClientApplication</mainClass>
+                            <mainClass>cn.holmes.rpt.client.ClientApplication</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
