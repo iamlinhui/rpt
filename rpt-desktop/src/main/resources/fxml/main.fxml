@@ -4,7 +4,7 @@
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.layout.*?>
-<VBox fx:controller="cn.promptness.rpt.desktop.controller.MainController" maxHeight="-Infinity" maxWidth="-Infinity"
+<VBox fx:controller="cn.holmes.rpt.desktop.controller.MainController" maxHeight="-Infinity" maxWidth="-Infinity"
       minHeight="-Infinity" minWidth="-Infinity"
       xmlns="http://javafx.com/javafx/11.0.14-internal" xmlns:fx="http://javafx.com/fxml/1">
     <padding>

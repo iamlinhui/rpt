@@ -45,7 +45,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>cn.promptness.rpt.server.ServerApplication</mainClass>
+                            <mainClass>cn.holmes.rpt.server.ServerApplication</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

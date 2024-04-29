@@ -4,10 +4,10 @@
 # 3. Run with: docker run -d -v /home/rpt/conf:/home/rpt/conf --restart=always --name rpt-client rpt-client
 
 FROM openjdk:8-jre
-MAINTAINER Lynn <lynn@promptness.cn>
+LABEL authors="lynn"
 
 ENV TIME_ZONE=PRC
-RUN ln -snf /usr/share/zoneinfo/$TIME_ZONE /etc/localtime && echo $TIME_ZONE > /etc/timezone
+RUN ln -snf /usr/share/zoneinfo/"$TIME_ZONE" /etc/localtime && echo "$TIME_ZONE" > /etc/timezone
 
 ADD target/rpt-client-*.jar /home/rpt/rpt-client.jar
 
