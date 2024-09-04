@@ -14,6 +14,34 @@
 
 ---
 
+## GUI客户端
+
+- 主界面
+
+![main.png](doc/desktop/main.png)
+
+- 系统配置
+
+![config.png](doc/desktop/config.png)
+
+- TCP映射配置
+
+![tcp.png](doc/desktop/tcp.png)
+
+- HTTP映射配置
+
+![http.png](doc/desktop/http.png)
+
+- 删除映射配置
+
+![delete.png](doc/desktop/delete.png)
+
+- 控制台输出
+
+![start.png](doc/desktop/start.png)
+
+---
+
 ## 快速体验 Quick Start
 
 - 启动服务端
@@ -90,10 +118,6 @@ config:
     token: admin:admin
     description: tomcat
 ```
-
-## GUI客户端
-
-[使用介绍](doc/GUI.md)
 
 ## 进阶部署
 
