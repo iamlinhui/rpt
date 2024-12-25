@@ -1,6 +1,5 @@
 package cn.holmes.rpt.desktop.utils;
 
-import cn.holmes.rpt.base.utils.Constants;
 import javafx.application.Platform;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
@@ -52,15 +51,6 @@ public class SystemTrayUtil {
         trayIcon.setImageAutoSize(true);
         addMouseListener(trayIcon);
         return trayIcon;
-    }
-
-    /**
-     * 发送系统通知
-     *
-     * @param text 预定会议室成功
-     */
-    public static void displayMessage(String text) {
-        trayIcon.displayMessage(Constants.Desktop.TITLE, text, TrayIcon.MessageType.INFO);
     }
 
     private static MenuItem getExitMenuItem() {

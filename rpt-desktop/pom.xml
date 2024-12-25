@@ -4,8 +4,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>rpt</artifactId>
-        <groupId>cn.promptness</groupId>
-        <version>2.5.0</version>
+        <groupId>cn.holmes</groupId>
+        <version>2.5.1</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -31,7 +31,7 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>cn.promptness</groupId>
+            <groupId>cn.holmes</groupId>
             <artifactId>rpt-client</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
