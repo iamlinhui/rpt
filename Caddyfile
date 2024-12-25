@@ -1,0 +1,19 @@
+{
+        admin off
+        email admin@holmes.cn
+}
+:443, holmes.cn
+route {
+        # rpt配置的http端口
+        reverse_proxy 127.0.0.1:6234 {
+                header_up Host {host}
+                header_up X-Real-IP {remote}
+                header_up X-Forwarded-For {remote}
+                header_up X-Forwarded-Host {host}
+                header_up X-Forwarded-Proto {scheme}
+                # 关闭连接池
+                transport http {
+                        keepalive off
+                }
+        }
+}

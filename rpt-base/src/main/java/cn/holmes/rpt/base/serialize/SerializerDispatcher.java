@@ -9,7 +9,8 @@ public class SerializerDispatcher {
 
     public byte[] serialize(SerializationType serializationType, Object obj) throws Exception {
         Serialization serialization = SerializeFactory.getSerialization(serializationType);
-        try (ByteArrayOutputStream byteBufOutputStream = new ByteArrayOutputStream(); ObjectOutputStream objectOutputStream = serialization.serialize(byteBufOutputStream)) {
+        ByteArrayOutputStream byteBufOutputStream = new ByteArrayOutputStream();
+        try (ObjectOutputStream objectOutputStream = serialization.serialize(byteBufOutputStream)) {
             objectOutputStream.writeObject(obj);
             objectOutputStream.flush();
             return byteBufOutputStream.toByteArray();
@@ -18,7 +19,8 @@ public class SerializerDispatcher {
 
     public <T> T deserialize(SerializationType serializationType, byte[] data, Class<T> clazz) throws Exception {
         Serialization serialization = SerializeFactory.getSerialization(serializationType);
-        try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data); ObjectInputStream objectInputStream = serialization.deserialize(byteArrayInputStream)) {
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data);
+        try (ObjectInputStream objectInputStream = serialization.deserialize(byteArrayInputStream)) {
             return objectInputStream.readObject(clazz);
         }
     }
