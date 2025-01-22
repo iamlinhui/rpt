@@ -6,6 +6,7 @@ import cn.holmes.rpt.base.config.ServerConfig;
 import cn.holmes.rpt.base.handler.IdleCheckHandler;
 import cn.holmes.rpt.base.utils.Application;
 import cn.holmes.rpt.base.utils.Config;
+import cn.holmes.rpt.server.handler.IpFilterRuleHandler;
 import cn.holmes.rpt.server.handler.ServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFutureListener;
@@ -15,6 +16,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.handler.ipfilter.RuleBasedIpFilter;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -34,6 +36,7 @@ public class ServerApplication extends Application<ServerBootstrap> {
     private final ServerBootstrap bootstrap = new ServerBootstrap();
     private final NioEventLoopGroup serverBossGroup = new NioEventLoopGroup();
     private final NioEventLoopGroup serverWorkerGroup = new NioEventLoopGroup();
+    private final RuleBasedIpFilter ruleBasedIpFilter = new RuleBasedIpFilter(new IpFilterRuleHandler());
 
     public static void main(String[] args) throws Exception {
         Application.run(args, new ServerApplication(), new HttpApplication(), new HttpsApplication());
@@ -52,6 +55,9 @@ public class ServerApplication extends Application<ServerBootstrap> {
 
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
+                if (Config.getServerConfig().ipFilter()) {
+                    ch.pipeline().addLast(ruleBasedIpFilter);
+                }
                 ch.pipeline().addLast(sslContext.newHandler(ch.alloc()));
                 ch.pipeline().addLast(new GzipCodec());
                 // 固定帧长解码器
