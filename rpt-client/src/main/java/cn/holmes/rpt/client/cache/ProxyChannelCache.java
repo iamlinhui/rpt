@@ -20,7 +20,7 @@ public class ProxyChannelCache {
 
     private static final Integer MAX_QUEUE_LIMIT = 128;
 
-    private static final Queue<Channel> PROXY_CHANNEL_QUEUE = new LinkedBlockingQueue<>();
+    private static final Queue<Channel> PROXY_CHANNEL_QUEUE = new LinkedBlockingQueue<>(MAX_QUEUE_LIMIT);
 
     public static void get(Channel serverChannel, Meta meta, Listener<Meta> listener) {
         Channel proxyChannel = PROXY_CHANNEL_QUEUE.poll();
@@ -41,14 +41,14 @@ public class ProxyChannelCache {
     }
 
     public static void put(Channel proxyChannel) {
-        if (PROXY_CHANNEL_QUEUE.size() > MAX_QUEUE_LIMIT) {
+        if(!proxyChannel.isActive()){
             proxyChannel.close();
             return;
         }
-        if (proxyChannel.isActive()) {
-            proxyChannel.config().setAutoRead(true);
-            proxyChannel.attr(Constants.LOCAL).set(null);
-            PROXY_CHANNEL_QUEUE.offer(proxyChannel);
+        proxyChannel.config().setAutoRead(true);
+        proxyChannel.attr(Constants.LOCAL).set(null);
+        if(!PROXY_CHANNEL_QUEUE.offer(proxyChannel)){
+            proxyChannel.close();
         }
         logger.debug("连接池闲置连接数:{}个", PROXY_CHANNEL_QUEUE.size());
     }
