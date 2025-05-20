@@ -41,13 +41,13 @@ public class ProxyChannelCache {
     }
 
     public static void put(Channel proxyChannel) {
-        if(!proxyChannel.isActive()){
+        if (!proxyChannel.isActive()) {
             proxyChannel.close();
             return;
         }
         proxyChannel.config().setAutoRead(true);
         proxyChannel.attr(Constants.LOCAL).set(null);
-        if(!PROXY_CHANNEL_QUEUE.offer(proxyChannel)){
+        if (!PROXY_CHANNEL_QUEUE.offer(proxyChannel)) {
             proxyChannel.close();
         }
         logger.debug("连接池闲置连接数:{}个", PROXY_CHANNEL_QUEUE.size());
