@@ -138,7 +138,8 @@ public class RegisterExecutor implements MessageExecutor {
             return;
         }
         ServerBootstrap remoteBootstrap = new ServerBootstrap();
-        remoteBootstrap.group(context.channel().attr(Constants.Server.REMOTE_BOSS_GROUP).get(), context.channel().attr(Constants.Server.REMOTE_WORKER_GROUP).get()).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
+        // 允许端口复用，解决快速重连时端口未释放的问题
+        remoteBootstrap.group(context.channel().attr(Constants.Server.REMOTE_BOSS_GROUP).get(), context.channel().attr(Constants.Server.REMOTE_WORKER_GROUP).get()).channel(NioServerSocketChannel.class).option(ChannelOption.SO_REUSEADDR, true).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel channel) throws Exception {
                 if (Config.getServerConfig().ipFilter()) {
