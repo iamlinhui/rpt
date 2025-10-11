@@ -2,7 +2,7 @@ package cn.holmes.rpt.base.utils;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.ChannelFuture;
 import io.netty.util.AttributeKey;
 
 import java.util.List;
@@ -19,8 +19,7 @@ public interface Constants {
         AttributeKey<String> CLIENT_KEY = AttributeKey.newInstance("CLIENT_KEY");
         AttributeKey<Class<Void>> LABEL = AttributeKey.newInstance("LABEL");
         AttributeKey<List<String>> DOMAIN = AttributeKey.newInstance("DOMAIN");
-        AttributeKey<NioEventLoopGroup> REMOTE_BOSS_GROUP = AttributeKey.newInstance("REMOTE_BOSS_GROUP");
-        AttributeKey<NioEventLoopGroup> REMOTE_WORKER_GROUP = AttributeKey.newInstance("REMOTE_WORKER_GROUP");
+        AttributeKey<Map<Integer, ChannelFuture>> PORT_CHANNEL_FUTURE = AttributeKey.newInstance("PORT_CHANNEL_FUTURE");
     }
 
     interface Client {
