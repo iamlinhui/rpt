@@ -29,7 +29,7 @@ public class AuthExecutor implements MessageExecutor {
         boolean connection = message.getMeta().isConnection();
         if (connection) {
             logger.info("连接成功,当前秘钥:{}", message.getMeta().getClientKey());
-            context.channel().attr(Constants.CHANNELS).set(channelMap);
+            context.channel().attr(Constants.CHANNELS).setIfAbsent(channelMap);
         } else {
             logger.info("连接失败,当前秘钥:{}", message.getMeta().getClientKey());
         }

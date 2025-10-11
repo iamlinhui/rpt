@@ -5,11 +5,7 @@ import cn.holmes.rpt.base.executor.MessageExecutorFactory;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.utils.Constants;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.util.concurrent.AbstractEventExecutorGroup;
+import io.netty.channel.*;
 import io.netty.util.internal.EmptyArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,14 +63,19 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         logger.info("服务端-客户端连接中断,{}", clientKey);
         ServerChannelCache.getServerChannelMap().remove(ctx.channel().id().asLongText());
         Optional.ofNullable(ctx.channel().attr(Constants.CHANNELS).getAndSet(null)).ifPresent(this::clear);
+        Optional.ofNullable(ctx.channel().attr(Constants.Server.PORT_CHANNEL_FUTURE).getAndSet(null)).ifPresent(this::close);
         Optional.ofNullable(ctx.channel().attr(Constants.Server.DOMAIN).getAndSet(null)).ifPresent(ServerChannelCache::remove);
-        Optional.ofNullable(ctx.channel().attr(Constants.Server.REMOTE_BOSS_GROUP).getAndSet(null)).ifPresent(AbstractEventExecutorGroup::shutdownGracefully);
-        Optional.ofNullable(ctx.channel().attr(Constants.Server.REMOTE_WORKER_GROUP).getAndSet(null)).ifPresent(AbstractEventExecutorGroup::shutdownGracefully);
     }
 
     private void clear(Map<String, Channel> channelMap) {
         for (Channel localChannel : channelMap.values()) {
             localChannel.close();
+        }
+    }
+
+    private void close(Map<Integer, ChannelFuture> channelFutureMap) {
+        for (ChannelFuture remoteChannelFuture : channelFutureMap.values()) {
+            remoteChannelFuture.channel().close();
         }
     }
 

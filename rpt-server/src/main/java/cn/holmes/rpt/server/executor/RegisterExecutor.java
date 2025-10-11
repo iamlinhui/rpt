@@ -24,7 +24,6 @@ import io.netty.handler.stream.ChunkedWriteHandler;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -34,6 +33,10 @@ public class RegisterExecutor implements MessageExecutor {
 
     private final RuleBasedIpFilter ruleBasedIpFilter = new RuleBasedIpFilter(new IpFilterRuleHandler());
 
+    private static final NioEventLoopGroup REMOTE_BOSS_GROUP = new NioEventLoopGroup();
+
+    private static final NioEventLoopGroup REMOTE_WORKER_GROUP = new NioEventLoopGroup();
+    
     @Override
     public MessageType getMessageType() {
         return MessageType.TYPE_REGISTER;
@@ -65,7 +68,7 @@ public class RegisterExecutor implements MessageExecutor {
         }
         logger.info("授权注册成功,客户端使用的秘钥:{}", meta.getClientKey());
         ServerChannelCache.getServerChannelMap().put(context.channel().id().asLongText(), context.channel());
-        context.channel().attr(Constants.CHANNELS).set(new ConcurrentHashMap<>(1024));
+        context.channel().attr(Constants.CHANNELS).setIfAbsent(new ConcurrentHashMap<>(1024));
     }
 
     private void fillRemoteResult(ChannelHandlerContext context, Meta meta) throws Exception {
@@ -79,17 +82,11 @@ public class RegisterExecutor implements MessageExecutor {
             ProxyType proxyType = Optional.ofNullable(remoteConfig.getProxyType()).orElse(ProxyType.TCP);
             switch (proxyType) {
                 case TCP:
-                    // lazy
-                    if (Objects.isNull(context.channel().attr(Constants.Server.REMOTE_BOSS_GROUP).get()) && Objects.isNull(context.channel().attr(Constants.Server.REMOTE_WORKER_GROUP).get())) {
-                        context.channel().attr(Constants.Server.REMOTE_BOSS_GROUP).set(new NioEventLoopGroup());
-                        context.channel().attr(Constants.Server.REMOTE_WORKER_GROUP).set(new NioEventLoopGroup());
-                    }
+                    context.channel().attr(Constants.Server.PORT_CHANNEL_FUTURE).setIfAbsent(new ConcurrentHashMap<>());
                     registerTcp(context, meta, remoteConfig, countDownLatch);
                     break;
                 case HTTP:
-                    if (Objects.isNull(context.channel().attr(Constants.Server.DOMAIN).get())) {
-                        context.channel().attr(Constants.Server.DOMAIN).set(new CopyOnWriteArrayList<>());
-                    }
+                    context.channel().attr(Constants.Server.DOMAIN).setIfAbsent(new CopyOnWriteArrayList<>());
                     registerHttp(context, meta, remoteConfig, countDownLatch);
                     break;
                 default:
@@ -139,7 +136,7 @@ public class RegisterExecutor implements MessageExecutor {
         }
         ServerBootstrap remoteBootstrap = new ServerBootstrap();
         // 允许端口复用，解决快速重连时端口未释放的问题
-        remoteBootstrap.group(context.channel().attr(Constants.Server.REMOTE_BOSS_GROUP).get(), context.channel().attr(Constants.Server.REMOTE_WORKER_GROUP).get()).channel(NioServerSocketChannel.class).option(ChannelOption.SO_REUSEADDR, true).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
+        remoteBootstrap.group(REMOTE_BOSS_GROUP, REMOTE_WORKER_GROUP).channel(NioServerSocketChannel.class).option(ChannelOption.SO_REUSEADDR, true).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel channel) throws Exception {
                 if (Config.getServerConfig().ipFilter()) {
@@ -154,6 +151,7 @@ public class RegisterExecutor implements MessageExecutor {
         logger.info("服务端开始建立本地端口绑定[{}]", remoteConfig.getRemotePort());
         remoteBootstrap.bind(Config.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).addListener((ChannelFutureListener) channelFuture -> {
             if (channelFuture.isSuccess()) {
+                context.channel().attr(Constants.Server.PORT_CHANNEL_FUTURE).get().put(remoteConfig.getRemotePort(), channelFuture);
                 meta.addRemoteResult(String.format("服务端绑定端口[%s]成功", remoteConfig.getRemotePort()));
             } else {
                 logger.info("服务端失败建立本地端口绑定[{}], {}", remoteConfig.getRemotePort(), channelFuture.cause().getMessage());
