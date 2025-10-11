@@ -8,14 +8,16 @@ import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
 import cn.holmes.rpt.base.utils.Constants;
 import cn.holmes.rpt.base.utils.StringUtils;
-import cn.holmes.rpt.server.page.StaticDispatcher;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
 import cn.holmes.rpt.server.coder.HttpEncoder;
+import cn.holmes.rpt.server.page.StaticDispatcher;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.internal.EmptyArrays;
 
@@ -87,7 +89,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                 FullHttpRequest request;
                 while ((request = requestMessage.poll()) != null) {
                     handle(proxyChannel, ctx, request);
-                    ReferenceCountUtil.release(request);
                 }
             }
         }
@@ -140,6 +141,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (!connected.get()) {
             synchronized (connected) {
                 if (!connected.get()) {
+                    // 1 -> 2
                     requestMessage.offer(fullHttpRequest.retain());
                     return;
                 }
@@ -150,11 +152,12 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             ctx.close();
             return;
         }
-        handle(proxyChannel, ctx, fullHttpRequest);
+        handle(proxyChannel, ctx, fullHttpRequest.retain());
     }
 
     private void handle(Channel proxyChannel, ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
         List<Object> encode = new ArrayList<>();
+        // 1 -> 0
         requestEncoder.encode(ctx, fullHttpRequest, encode);
         for (Object obj : encode) {
             ByteBuf buf = (ByteBuf) obj;
