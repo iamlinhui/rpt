@@ -1,5 +1,6 @@
 package cn.holmes.rpt.base.utils;
 
+import cn.holmes.rpt.base.serialize.api.SerializationType;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -14,10 +15,11 @@ public interface Constants {
     AttributeKey<Map<String, Channel>> CHANNELS = AttributeKey.newInstance("CHANNELS");
     AttributeKey<Channel> PROXY = AttributeKey.newInstance("PROXY");
     AttributeKey<Channel> LOCAL = AttributeKey.newInstance("LOCAL");
+    AttributeKey<SerializationType> SERIALIZATION_TYPE = AttributeKey.newInstance("SERIALIZATION_TYPE");
 
     interface Server {
         AttributeKey<String> CLIENT_KEY = AttributeKey.newInstance("CLIENT_KEY");
-        AttributeKey<Class<Void>> LABEL = AttributeKey.newInstance("LABEL");
+        AttributeKey<String> LABEL = AttributeKey.newInstance("LABEL");
         AttributeKey<List<String>> DOMAIN = AttributeKey.newInstance("DOMAIN");
         AttributeKey<Map<Integer, ChannelFuture>> PORT_CHANNEL_FUTURE = AttributeKey.newInstance("PORT_CHANNEL_FUTURE");
     }

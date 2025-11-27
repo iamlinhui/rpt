@@ -5,6 +5,7 @@ import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
 import cn.holmes.rpt.base.serialize.SerializerDispatcher;
 import cn.holmes.rpt.base.serialize.api.SerializationType;
+import cn.holmes.rpt.base.utils.Constants;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.ChannelHandlerContext;
@@ -25,7 +26,7 @@ public class MessageDecoder extends MessageToMessageDecoder<ByteBuf> {
         // 4个字节
         message.setType(MessageType.getInstance(byteBuf.readInt()));
         SerializationType serialization = SerializationType.getInstance(byteBuf.readInt());
-
+        channelHandlerContext.channel().attr(Constants.SERIALIZATION_TYPE).set(serialization);
         int metaByteLength = byteBuf.readInt();
         if (metaByteLength > 0) {
             byte[] metaByte = new byte[metaByteLength];

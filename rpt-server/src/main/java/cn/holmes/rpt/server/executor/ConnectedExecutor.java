@@ -37,6 +37,7 @@ public class ConnectedExecutor implements MessageExecutor {
         if (Objects.isNull(serverChannel)) {
             return;
         }
+        String clientKey = serverChannel.attr(Constants.Server.CLIENT_KEY).get();
         Map<String, Channel> localChannelMap = Optional.ofNullable(serverChannel.attr(Constants.CHANNELS).get()).orElse(Collections.emptyMap());
         String channelId = meta.getChannelId();
         Channel localChannel = localChannelMap.get(channelId);
@@ -46,7 +47,7 @@ public class ConnectedExecutor implements MessageExecutor {
         // binding each other
         localChannel.attr(Constants.PROXY).set(context.channel());
         context.channel().attr(Constants.LOCAL).set(localChannel);
-        context.channel().attr(Constants.Server.LABEL).set(Void.class);
+        context.channel().attr(Constants.Server.LABEL).set(clientKey);
         localChannel.pipeline().fireUserEventTriggered(proxyType);
     }
 }
