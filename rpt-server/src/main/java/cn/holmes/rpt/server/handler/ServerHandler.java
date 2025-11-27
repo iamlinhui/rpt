@@ -52,7 +52,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         String label = ctx.channel().attr(Constants.Server.LABEL).getAndSet(null);
         // 代理连接/未知连接
         if (Objects.isNull(clientKey)) {
-            logger.info("服务端-客户端{}连接中断,{}", label == null ? "未知" : "代理", label);
+            logger.info("服务端-客户端{}连接中断,{}", label == null ? "未知" : "代理", Optional.ofNullable(label).orElse("empty"));
             Channel localChannel = ctx.channel().attr(Constants.LOCAL).getAndSet(null);
             if (Objects.nonNull(localChannel) && localChannel.isActive()) {
                 localChannel.attr(Constants.PROXY).set(null);
