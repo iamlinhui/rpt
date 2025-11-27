@@ -28,6 +28,7 @@ public class ConnectedExecutor implements MessageExecutor {
         Meta meta = message.getMeta();
         RemoteConfig remoteConfig = meta.getRemoteConfig();
         if (remoteConfig == null) {
+            context.close();
             return;
         }
         ProxyType proxyType = Optional.ofNullable(remoteConfig.getProxyType()).orElse(ProxyType.TCP);
@@ -35,9 +36,17 @@ public class ConnectedExecutor implements MessageExecutor {
         String serverId = meta.getServerId();
         Channel serverChannel = ServerChannelCache.getServerChannelMap().get(serverId);
         if (Objects.isNull(serverChannel)) {
+            context.close();
             return;
         }
         String clientKey = serverChannel.attr(Constants.Server.CLIENT_KEY).get();
+        if (Objects.isNull(clientKey)) {
+            context.close();
+            return;
+        }
+        // label the channel with clientKey
+        context.channel().attr(Constants.Server.LABEL).set(clientKey);
+
         Map<String, Channel> localChannelMap = Optional.ofNullable(serverChannel.attr(Constants.CHANNELS).get()).orElse(Collections.emptyMap());
         String channelId = meta.getChannelId();
         Channel localChannel = localChannelMap.get(channelId);
@@ -47,7 +56,6 @@ public class ConnectedExecutor implements MessageExecutor {
         // binding each other
         localChannel.attr(Constants.PROXY).set(context.channel());
         context.channel().attr(Constants.LOCAL).set(localChannel);
-        context.channel().attr(Constants.Server.LABEL).set(clientKey);
         localChannel.pipeline().fireUserEventTriggered(proxyType);
     }
 }
