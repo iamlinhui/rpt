@@ -49,10 +49,10 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         String clientKey = ctx.channel().attr(Constants.Server.CLIENT_KEY).getAndSet(null);
-        Class<Void> label = ctx.channel().attr(Constants.Server.LABEL).getAndSet(null);
+        String label = ctx.channel().attr(Constants.Server.LABEL).getAndSet(null);
         // 代理连接/未知连接
         if (Objects.isNull(clientKey)) {
-            logger.info("服务端-客户端{}连接中断", label == null ? "未知" : "代理");
+            logger.info("服务端-客户端{}连接中断,{}", label == null ? "未知" : "代理", label);
             Channel localChannel = ctx.channel().attr(Constants.LOCAL).getAndSet(null);
             if (Objects.nonNull(localChannel) && localChannel.isActive()) {
                 localChannel.attr(Constants.PROXY).set(null);

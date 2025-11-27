@@ -36,7 +36,7 @@ public class RegisterExecutor implements MessageExecutor {
     private static final NioEventLoopGroup REMOTE_BOSS_GROUP = new NioEventLoopGroup();
 
     private static final NioEventLoopGroup REMOTE_WORKER_GROUP = new NioEventLoopGroup();
-    
+
     @Override
     public MessageType getMessageType() {
         return MessageType.TYPE_REGISTER;
