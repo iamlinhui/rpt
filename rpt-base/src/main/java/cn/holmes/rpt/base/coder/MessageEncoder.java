@@ -22,10 +22,10 @@ public class MessageEncoder extends MessageToByteEncoder<Message> {
 
     @Override
     protected void encode(ChannelHandlerContext channelHandlerContext, Message message, ByteBuf out) throws Exception {
+        SerializationType serializationType = Optional.ofNullable(channelHandlerContext.channel().attr(Constants.SERIALIZATION_TYPE).get()).orElse(message.getSerialization());
         MessageType type = message.getType();
         out.writeInt(type.getCode());
-        out.writeInt(message.getSerialization().getCode());
-        SerializationType serializationType = Optional.ofNullable(channelHandlerContext.channel().attr(Constants.SERIALIZATION_TYPE).get()).orElse(message.getSerialization());
+        out.writeInt(serializationType.getCode());
         Meta meta = message.getMeta();
         byte[] metaByte = meta == null ? EmptyArrays.EMPTY_BYTES : SERIALIZER_DISPATCHER.serialize(serializationType, meta);
         out.writeInt(metaByte.length);

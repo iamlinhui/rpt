@@ -26,6 +26,7 @@ public class MessageDecoder extends MessageToMessageDecoder<ByteBuf> {
         // 4个字节
         message.setType(MessageType.getInstance(byteBuf.readInt()));
         SerializationType serialization = SerializationType.getInstance(byteBuf.readInt());
+        message.setSerialization(serialization);
         channelHandlerContext.channel().attr(Constants.SERIALIZATION_TYPE).set(serialization);
         int metaByteLength = byteBuf.readInt();
         if (metaByteLength > 0) {
