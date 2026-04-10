@@ -6,6 +6,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.util.AttributeKey;
 
+import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -16,6 +17,8 @@ public interface Constants {
     AttributeKey<Channel> PROXY = AttributeKey.newInstance("PROXY");
     AttributeKey<Channel> LOCAL = AttributeKey.newInstance("LOCAL");
     AttributeKey<SerializationType> SERIALIZATION_TYPE = AttributeKey.newInstance("SERIALIZATION_TYPE");
+    AttributeKey<InetSocketAddress> UDP_SENDER = AttributeKey.newInstance("UDP_SENDER");
+    AttributeKey<InetSocketAddress> UDP_TARGET = AttributeKey.newInstance("UDP_TARGET");
 
     interface Server {
         AttributeKey<String> CLIENT_KEY = AttributeKey.newInstance("CLIENT_KEY");
@@ -26,11 +29,6 @@ public interface Constants {
 
     interface Client {
         AttributeKey<Application<Bootstrap>> APPLICATION = AttributeKey.newInstance("APPLICATION");
-    }
-
-    interface Desktop {
-        String TITLE = "Reverse Proxy Tool";
-        String VERSION = "2.5.1";
     }
 
     Pattern COLON = Pattern.compile(":");

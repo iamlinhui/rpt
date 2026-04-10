@@ -14,10 +14,14 @@ import cn.holmes.rpt.base.utils.StringUtils;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
 import cn.holmes.rpt.server.handler.IpFilterRuleHandler;
 import cn.holmes.rpt.server.handler.RemoteHandler;
+import cn.holmes.rpt.server.handler.UdpRemoteHandler;
+import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.ipfilter.RuleBasedIpFilter;
 import io.netty.handler.stream.ChunkedWriteHandler;
@@ -89,6 +93,10 @@ public class RegisterExecutor implements MessageExecutor {
                     context.channel().attr(Constants.Server.DOMAIN).setIfAbsent(new CopyOnWriteArrayList<>());
                     registerHttp(context, meta, remoteConfig, countDownLatch);
                     break;
+                case UDP:
+                    context.channel().attr(Constants.Server.PORT_CHANNEL_FUTURE).setIfAbsent(new ConcurrentHashMap<>());
+                    registerUdp(context, meta, remoteConfig, countDownLatch);
+                    break;
                 default:
             }
         }
@@ -156,6 +164,42 @@ public class RegisterExecutor implements MessageExecutor {
             } else {
                 logger.info("服务端失败建立本地端口绑定[{}], {}", remoteConfig.getRemotePort(), channelFuture.cause().getMessage());
                 meta.setConnection(false).addRemoteResult(String.format("服务端绑定端口[%s]失败,原因:%s", remoteConfig.getRemotePort(), channelFuture.cause().getMessage()));
+            }
+            countDownLatch.countDown();
+        });
+    }
+
+    private void registerUdp(ChannelHandlerContext context, Meta meta, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {
+        if (remoteConfig.getRemotePort() == 0 || remoteConfig.getRemotePort() == Config.getServerConfig().getServerPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getHttpPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getHttpsPort()) {
+            meta.setConnection(false).addRemoteResult(String.format("需要绑定的UDP端口[%s]不合法", remoteConfig.getRemotePort()));
+            countDownLatch.countDown();
+            return;
+        }
+        ServerToken serverToken = Config.getServerConfig().getServerToken(meta.getClientKey());
+        if (!serverToken.authorize(remoteConfig.getRemotePort())) {
+            meta.setConnection(false).addRemoteResult(String.format("需要绑定的UDP端口[%s]范围不合法", remoteConfig.getRemotePort()));
+            countDownLatch.countDown();
+            return;
+        }
+        Bootstrap udpBootstrap = new Bootstrap();
+        udpBootstrap.group(REMOTE_WORKER_GROUP)
+                .channel(NioDatagramChannel.class)
+                .option(ChannelOption.SO_REUSEADDR, true)
+                .handler(new ChannelInitializer<DatagramChannel>() {
+                    @Override
+                    protected void initChannel(DatagramChannel channel) throws Exception {
+                        channel.pipeline().addLast(new UdpRemoteHandler(context.channel(), remoteConfig));
+                    }
+                });
+
+        logger.info("服务端开始建立UDP端口绑定[{}]", remoteConfig.getRemotePort());
+        udpBootstrap.bind(Config.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).addListener((ChannelFutureListener) channelFuture -> {
+            if (channelFuture.isSuccess()) {
+                context.channel().attr(Constants.Server.PORT_CHANNEL_FUTURE).get().put(remoteConfig.getRemotePort(), channelFuture);
+                meta.addRemoteResult(String.format("服务端绑定UDP端口[%s]成功", remoteConfig.getRemotePort()));
+            } else {
+                logger.info("服务端失败建立UDP端口绑定[{}], {}", remoteConfig.getRemotePort(), channelFuture.cause().getMessage());
+                meta.setConnection(false).addRemoteResult(String.format("服务端绑定UDP端口[%s]失败,原因:%s", remoteConfig.getRemotePort(), channelFuture.cause().getMessage()));
             }
             countDownLatch.countDown();
         });
