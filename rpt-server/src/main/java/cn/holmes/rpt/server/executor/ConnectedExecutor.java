@@ -8,9 +8,11 @@ import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
 import cn.holmes.rpt.base.utils.Constants;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
+import cn.holmes.rpt.server.handler.UdpRemoteHandler;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 
+import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -54,8 +56,22 @@ public class ConnectedExecutor implements MessageExecutor {
             return;
         }
         // binding each other
-        localChannel.attr(Constants.PROXY).set(context.channel());
-        context.channel().attr(Constants.LOCAL).set(localChannel);
-        localChannel.pipeline().fireUserEventTriggered(proxyType);
+        if (Objects.equals(ProxyType.UDP, proxyType)) {
+            // UDP: localChannel是共享的DatagramChannel，设置发送者地址用于响应路由
+            context.channel().attr(Constants.LOCAL).set(localChannel);
+            UdpRemoteHandler udpHandler = localChannel.pipeline().get(UdpRemoteHandler.class);
+            if (udpHandler != null) {
+                InetSocketAddress sender = udpHandler.getSenderMap().get(channelId);
+                if (sender != null) {
+                    context.channel().attr(Constants.UDP_SENDER).set(sender);
+                }
+                // 绑定代理通道并刷新缓冲的数据
+                udpHandler.bindProxy(channelId, context.channel());
+            }
+        } else {
+            localChannel.attr(Constants.PROXY).set(context.channel());
+            context.channel().attr(Constants.LOCAL).set(localChannel);
+            localChannel.pipeline().fireUserEventTriggered(proxyType);
+        }
     }
 }

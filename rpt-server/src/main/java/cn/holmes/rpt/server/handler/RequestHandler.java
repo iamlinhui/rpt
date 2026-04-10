@@ -22,12 +22,13 @@ import io.netty.util.ReferenceCountUtil;
 import io.netty.util.internal.EmptyArrays;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
-    private final Queue<FullHttpRequest> requestMessage = new LinkedBlockingQueue<>();
+    private final Queue<FullHttpRequest> requestMessage = new ConcurrentLinkedQueue<>();
 
     private final AtomicBoolean connected = new AtomicBoolean(false);
 

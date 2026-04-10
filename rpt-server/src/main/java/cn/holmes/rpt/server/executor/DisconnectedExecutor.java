@@ -35,6 +35,11 @@ public class DisconnectedExecutor implements MessageExecutor {
         if (Objects.isNull(localChannel)) {
             return;
         }
-        localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
+        // UDP channels are shared DatagramChannels — don't close them, just remove the session entry
+        if (channelId != null && channelId.startsWith("udp-")) {
+            localChannelMap.remove(channelId);
+        } else {
+            localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
+        }
     }
 }
