@@ -12,6 +12,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.socket.DatagramChannel;
 import io.netty.util.internal.EmptyArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +58,11 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         Channel localChannel = ctx.channel().attr(Constants.LOCAL).getAndSet(null);
         if (Objects.nonNull(localChannel) && localChannel.isActive()) {
             localChannel.attr(Constants.PROXY).set(null);
-            localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
+            if (localChannel instanceof DatagramChannel) {
+                localChannel.close();
+            } else {
+                localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
+            }
         }
         ProxyChannelCache.delete(ctx.channel());
     }
@@ -65,7 +70,12 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
     private void clear(Map<String, Channel> channelMap) {
         for (Channel localChannel : channelMap.values()) {
             localChannel.attr(Constants.PROXY).set(null);
-            localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
+            // UDP DatagramChannel不接受原始byte[]写入，直接关闭
+            if (localChannel instanceof DatagramChannel) {
+                localChannel.close();
+            } else {
+                localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
+            }
         }
         channelMap.clear();
     }

@@ -6,6 +6,7 @@ import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.utils.Constants;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
 import io.netty.channel.*;
+import io.netty.channel.socket.DatagramChannel;
 import io.netty.util.internal.EmptyArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +57,11 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             Channel localChannel = ctx.channel().attr(Constants.LOCAL).getAndSet(null);
             if (Objects.nonNull(localChannel) && localChannel.isActive()) {
                 localChannel.attr(Constants.PROXY).set(null);
-                localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
+                if (localChannel instanceof DatagramChannel) {
+                    // UDP DatagramChannel是共享的，代理断开时不关闭
+                } else {
+                    localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
+                }
             }
             return;
         }
@@ -69,6 +74,10 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     private void clear(Map<String, Channel> channelMap) {
         for (Channel localChannel : channelMap.values()) {
+            // UDP DatagramChannel是共享的，由PORT_CHANNEL_FUTURE.close()统一关闭，此处跳过
+            if (localChannel instanceof DatagramChannel) {
+                continue;
+            }
             localChannel.close();
         }
     }

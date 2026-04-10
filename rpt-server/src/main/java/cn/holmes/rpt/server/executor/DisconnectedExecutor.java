@@ -5,6 +5,7 @@ import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.utils.Constants;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
+import cn.holmes.rpt.server.handler.UdpRemoteHandler;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -35,9 +36,13 @@ public class DisconnectedExecutor implements MessageExecutor {
         if (Objects.isNull(localChannel)) {
             return;
         }
-        // UDP channels are shared DatagramChannels — don't close them, just remove the session entry
+        // UDP: DatagramChannel是共享的，不能关闭，只清理会话状态
         if (channelId != null && channelId.startsWith("udp-")) {
             localChannelMap.remove(channelId);
+            UdpRemoteHandler udpHandler = localChannel.pipeline().get(UdpRemoteHandler.class);
+            if (udpHandler != null) {
+                udpHandler.removeSession(channelId);
+            }
         } else {
             localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
         }
