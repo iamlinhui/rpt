@@ -30,6 +30,11 @@ public class UdpRemoteHandler extends SimpleChannelInboundHandler<DatagramPacket
 
     private static final long SESSION_TIMEOUT_MS = 60_000;
 
+    /**
+     * 每个会话代理建立前最多缓冲的数据包数量，防止OOM
+     */
+    private static final int MAX_BUFFER_SIZE = 64;
+
     private final Channel channel;
     private final RemoteConfig remoteConfig;
 
@@ -73,6 +78,12 @@ public class UdpRemoteHandler extends SimpleChannelInboundHandler<DatagramPacket
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         scheduler.shutdownNow();
+        // 关闭所有代理通道，使客户端能感知断开并回收资源
+        for (Channel proxyChannel : proxyMap.values()) {
+            if (proxyChannel.isActive()) {
+                proxyChannel.close();
+            }
+        }
         senderMap.clear();
         proxyMap.clear();
         bufferMap.clear();
@@ -101,7 +112,7 @@ public class UdpRemoteHandler extends SimpleChannelInboundHandler<DatagramPacket
             // 将DatagramChannel存入CHANNELS map，用于ConnectedExecutor查找
             channelMap.put(channelId, ctx.channel());
             // 缓冲数据，等待代理通道建立
-            bufferMap.computeIfAbsent(channelId, k -> new ConcurrentLinkedQueue<>()).add(data);
+            addToBuffer(channelId, data);
             // 通知客户端建立连接
             sendMessage(channel, MessageType.TYPE_CONNECTED, new byte[0], channelId);
             return;
@@ -113,7 +124,7 @@ public class UdpRemoteHandler extends SimpleChannelInboundHandler<DatagramPacket
             sendMessage(proxyChannel, MessageType.TYPE_DATA, data, channelId);
         } else {
             // 代理通道尚未建立，缓冲数据
-            bufferMap.computeIfAbsent(channelId, k -> new ConcurrentLinkedQueue<>()).add(data);
+            addToBuffer(channelId, data);
         }
     }
 
@@ -171,6 +182,13 @@ public class UdpRemoteHandler extends SimpleChannelInboundHandler<DatagramPacket
                 }
             }
         });
+    }
+
+    private void addToBuffer(String channelId, byte[] data) {
+        Queue<byte[]> queue = bufferMap.computeIfAbsent(channelId, k -> new ConcurrentLinkedQueue<>());
+        if (queue.size() < MAX_BUFFER_SIZE) {
+            queue.add(data);
+        }
     }
 
     private void sendMessage(Channel target, MessageType type, byte[] data, String channelId) {
