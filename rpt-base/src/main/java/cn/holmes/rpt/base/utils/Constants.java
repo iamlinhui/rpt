@@ -31,6 +31,11 @@ public interface Constants {
         AttributeKey<Application<Bootstrap>> APPLICATION = AttributeKey.newInstance("APPLICATION");
     }
 
+    interface Desktop {
+        String TITLE = "Reverse Proxy Tool";
+        String VERSION = "2.5.1";
+    }
+
     Pattern COLON = Pattern.compile(":");
     Pattern BLANK = Pattern.compile("\\s");
 }
