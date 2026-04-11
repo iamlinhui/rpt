@@ -23,11 +23,16 @@ public class ProxyChannelCache {
     private static final Queue<Channel> PROXY_CHANNEL_QUEUE = new LinkedBlockingQueue<>(MAX_QUEUE_LIMIT);
 
     public static void get(Channel serverChannel, Meta meta, Listener<Meta> listener) {
-        Channel proxyChannel = PROXY_CHANNEL_QUEUE.poll();
-        if (proxyChannel != null && proxyChannel.isActive()) {
-            listener.success(serverChannel, proxyChannel, meta);
-            return;
+        // 循环排空失效连接，找到第一个可用的
+        Channel proxyChannel;
+        while ((proxyChannel = PROXY_CHANNEL_QUEUE.poll()) != null) {
+            if (proxyChannel.isActive()) {
+                listener.success(serverChannel, proxyChannel, meta);
+                return;
+            }
+            proxyChannel.close();
         }
+        // 池中无可用连接，新建代理连接
         ClientConfig clientConfig = Config.getClientConfig();
         Bootstrap bootstrap = serverChannel.attr(Constants.Client.APPLICATION).get().bootstrap();
         bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).addListener((ChannelFutureListener) future -> {
@@ -37,7 +42,6 @@ public class ProxyChannelCache {
                 listener.fail(serverChannel, meta);
             }
         });
-
     }
 
     public static void put(Channel proxyChannel) {

@@ -82,7 +82,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         }
     }
 
-    private void close(Map<Integer, ChannelFuture> channelFutureMap) {
+    private void close(Map<String, ChannelFuture> channelFutureMap) {
         for (ChannelFuture remoteChannelFuture : channelFutureMap.values()) {
             remoteChannelFuture.channel().close();
         }
