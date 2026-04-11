@@ -51,6 +51,8 @@ public class ProxyChannelCache {
         }
         proxyChannel.config().setAutoRead(true);
         proxyChannel.attr(Constants.LOCAL).set(null);
+        proxyChannel.attr(Constants.UDP_TARGET).set(null);
+        proxyChannel.attr(Constants.UDP_SENDER).set(null);
         if (!PROXY_CHANNEL_QUEUE.offer(proxyChannel)) {
             proxyChannel.close();
         }

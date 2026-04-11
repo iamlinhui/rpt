@@ -85,6 +85,8 @@ public class ConnectedExecutor implements MessageExecutor, Listener<Meta> {
             if (future.isSuccess()) {
                 future.channel().attr(Constants.PROXY).set(proxyChannel);
                 proxyChannel.attr(Constants.LOCAL).set(future.channel());
+                // 清除可能残留的UDP属性，防止该proxyChannel上次用于UDP后被复用时DataExecutor走错路径
+                proxyChannel.attr(Constants.UDP_TARGET).set(null);
             } else {
                 ProxyChannelCache.put(proxyChannel);
                 serverChannel.writeAndFlush(new Message(MessageType.TYPE_DISCONNECTED, meta, EmptyArrays.EMPTY_BYTES));
