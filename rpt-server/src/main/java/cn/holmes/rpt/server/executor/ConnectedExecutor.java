@@ -71,6 +71,8 @@ public class ConnectedExecutor implements MessageExecutor {
         } else {
             localChannel.attr(Constants.PROXY).set(context.channel());
             context.channel().attr(Constants.LOCAL).set(localChannel);
+            // 清除可能残留的UDP属性，防止该proxyChannel上次用于UDP后被复用时DataExecutor走错路径
+            context.channel().attr(Constants.UDP_SENDER).set(null);
             localChannel.pipeline().fireUserEventTriggered(proxyType);
         }
     }
