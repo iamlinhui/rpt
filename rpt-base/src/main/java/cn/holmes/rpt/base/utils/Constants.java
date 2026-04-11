@@ -24,7 +24,7 @@ public interface Constants {
         AttributeKey<String> CLIENT_KEY = AttributeKey.newInstance("CLIENT_KEY");
         AttributeKey<String> LABEL = AttributeKey.newInstance("LABEL");
         AttributeKey<List<String>> DOMAIN = AttributeKey.newInstance("DOMAIN");
-        AttributeKey<Map<Integer, ChannelFuture>> PORT_CHANNEL_FUTURE = AttributeKey.newInstance("PORT_CHANNEL_FUTURE");
+        AttributeKey<Map<String, ChannelFuture>> PORT_CHANNEL_FUTURE = AttributeKey.newInstance("PORT_CHANNEL_FUTURE");
     }
 
     interface Client {

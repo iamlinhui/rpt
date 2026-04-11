@@ -159,7 +159,7 @@ public class RegisterExecutor implements MessageExecutor {
         logger.info("服务端开始建立本地端口绑定[{}]", remoteConfig.getRemotePort());
         remoteBootstrap.bind(Config.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).addListener((ChannelFutureListener) channelFuture -> {
             if (channelFuture.isSuccess()) {
-                context.channel().attr(Constants.Server.PORT_CHANNEL_FUTURE).get().put(remoteConfig.getRemotePort(), channelFuture);
+                context.channel().attr(Constants.Server.PORT_CHANNEL_FUTURE).get().put("tcp-" + remoteConfig.getRemotePort(), channelFuture);
                 meta.addRemoteResult(String.format("服务端绑定端口[%s]成功", remoteConfig.getRemotePort()));
             } else {
                 logger.info("服务端失败建立本地端口绑定[{}], {}", remoteConfig.getRemotePort(), channelFuture.cause().getMessage());
@@ -195,7 +195,7 @@ public class RegisterExecutor implements MessageExecutor {
         logger.info("服务端开始建立UDP端口绑定[{}]", remoteConfig.getRemotePort());
         udpBootstrap.bind(Config.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).addListener((ChannelFutureListener) channelFuture -> {
             if (channelFuture.isSuccess()) {
-                context.channel().attr(Constants.Server.PORT_CHANNEL_FUTURE).get().put(remoteConfig.getRemotePort(), channelFuture);
+                context.channel().attr(Constants.Server.PORT_CHANNEL_FUTURE).get().put("udp-" + remoteConfig.getRemotePort(), channelFuture);
                 meta.addRemoteResult(String.format("服务端绑定UDP端口[%s]成功", remoteConfig.getRemotePort()));
             } else {
                 logger.info("服务端失败建立UDP端口绑定[{}], {}", remoteConfig.getRemotePort(), channelFuture.cause().getMessage());
