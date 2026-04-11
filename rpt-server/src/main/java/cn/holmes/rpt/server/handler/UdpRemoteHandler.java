@@ -178,6 +178,7 @@ public class UdpRemoteHandler extends SimpleChannelInboundHandler<DatagramPacket
                 // 通过代理通道通知客户端断开，客户端会关闭本地通道并将proxyChannel归还连接池复用
                 if (proxyChannel != null && proxyChannel.isActive()) {
                     proxyChannel.attr(Constants.LOCAL).set(null);
+                    proxyChannel.attr(Constants.UDP_SENDER).set(null);
                     sendMessage(proxyChannel, MessageType.TYPE_DISCONNECTED, new byte[0], channelId);
                 }
             }
