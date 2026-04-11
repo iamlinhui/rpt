@@ -62,7 +62,7 @@ public class ConfigController {
             domain.setDisable(false);
             token.setDisable(false);
             remotePort.setDisable(false);
-            if (Objects.equals(ProxyType.TCP, newValue)) {
+            if (Objects.equals(ProxyType.TCP, newValue) || Objects.equals(ProxyType.UDP, newValue)) {
                 domain.setDisable(true);
                 token.setDisable(true);
                 domain.setText("");
