@@ -33,7 +33,7 @@ public interface Constants {
 
     interface Desktop {
         String TITLE = "Reverse Proxy Tool";
-        String VERSION = "2.5.1";
+        String VERSION = "2.6.0";
     }
 
     Pattern COLON = Pattern.compile(":");
