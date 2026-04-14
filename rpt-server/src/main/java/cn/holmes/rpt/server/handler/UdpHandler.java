@@ -22,7 +22,10 @@ import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 处理服务器接收到的外部UDP请求
@@ -36,7 +39,7 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
     private static final IpFilterRule IP_FILTER_RULE_HANDLER = new IpFilterRuleHandler();
 
-    private static final long SESSION_TIMEOUT_MS = 60_000;
+    private static final long SESSION_TIMEOUT = 60;
 
     private static final int MAX_BUFFER_SIZE = 64;
 
@@ -64,7 +67,7 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
      */
     private final Map<String, Long> lastActiveMap = new ConcurrentHashMap<>();
 
-    private final ScheduledExecutorService checkScheduler = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledFuture<?> timeoutChecker;
 
     public UdpHandler(Channel serverChannel, RemoteConfig remoteConfig) {
         this.serverChannel = serverChannel;
@@ -74,7 +77,7 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         ctx.channel().attr(Server.PROXY_TYPE).set(ProxyType.UDP);
-        checkScheduler.scheduleAtFixedRate(this::cleanIdleSessions, SESSION_TIMEOUT_MS, SESSION_TIMEOUT_MS / 2, TimeUnit.MILLISECONDS);
+        timeoutChecker = ctx.channel().eventLoop().scheduleAtFixedRate(this::cleanIdleSessions, SESSION_TIMEOUT, SESSION_TIMEOUT / 2, TimeUnit.SECONDS);
     }
 
     @Override
@@ -98,7 +101,9 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        checkScheduler.shutdownNow();
+        if (timeoutChecker != null) {
+            timeoutChecker.cancel(false);
+        }
         // 关闭所有代理通道，使客户端能感知断开并回收资源
         for (String channelId : proxyChannelMap.keySet()) {
             removeSession(channelId);
@@ -193,7 +198,7 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
         for (Map.Entry<String, Long> entry : lastActiveMap.entrySet()) {
             String channelId = entry.getKey();
             long lastActive = entry.getValue();
-            if (now - lastActive > SESSION_TIMEOUT_MS) {
+            if (now - lastActive > SESSION_TIMEOUT * 1000) {
                 logger.info("UDP session expired: {}", channelId);
                 removeSession(channelId);
             }
