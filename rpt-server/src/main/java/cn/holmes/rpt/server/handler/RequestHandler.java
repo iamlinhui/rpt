@@ -24,8 +24,11 @@ import io.netty.util.internal.EmptyArrays;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
 
 public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
+
+    private static final Pattern COLON = Pattern.compile(":");
 
     private final Queue<FullHttpRequest> requestMessage = new ConcurrentLinkedQueue<>();
 
@@ -117,7 +120,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
-        domain = Optional.ofNullable(domain).orElse(Server.COLON.split(fullHttpRequest.headers().get(HttpHeaderNames.HOST))[0]);
+        domain = Optional.ofNullable(domain).orElse(COLON.split(fullHttpRequest.headers().get(HttpHeaderNames.HOST))[0]);
         if (!StringUtils.hasText(domain)) {
             StaticDispatcher.dispatch(fullHttpRequest, ctx);
             return;

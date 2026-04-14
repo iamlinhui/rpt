@@ -10,7 +10,6 @@ import io.netty.util.AttributeKey;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 public interface Constants {
 
@@ -27,9 +26,6 @@ public interface Constants {
         AttributeKey<Channel> LOCAL = AttributeKey.newInstance("LOCAL");
         AttributeKey<ProxyType> PROXY_TYPE = AttributeKey.newInstance("PROXY_TYPE");
         AttributeKey<InetSocketAddress> UDP_SENDER = AttributeKey.newInstance("UDP_SENDER");
-
-        Pattern COLON = Pattern.compile(":");
-        Pattern BLANK = Pattern.compile("\\s");
     }
 
     interface Client {

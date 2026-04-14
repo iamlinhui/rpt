@@ -8,7 +8,11 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
 
+import java.util.regex.Pattern;
+
 public class RedirectHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
+
+    private static final Pattern COLON = Pattern.compile(":");
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
@@ -20,7 +24,7 @@ public class RedirectHandler extends SimpleChannelInboundHandler<FullHttpRequest
         FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.MOVED_PERMANENTLY);
         HttpHeaders headers = response.headers();
         headers.set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
-        String host = Server.COLON.split(msg.headers().get(HttpHeaderNames.HOST))[0] + Server.COLON + Config.getServerConfig().getHttpsPort();
+        String host = COLON.split(msg.headers().get(HttpHeaderNames.HOST))[0] + COLON + Config.getServerConfig().getHttpsPort();
         headers.set(HttpHeaderNames.LOCATION, HttpScheme.HTTPS + "://" + host + msg.uri());
         ChannelFuture future = ctx.writeAndFlush(response);
         if (!HttpUtil.isKeepAlive(msg)) {
