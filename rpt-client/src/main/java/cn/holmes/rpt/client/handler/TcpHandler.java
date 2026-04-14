@@ -3,7 +3,7 @@ package cn.holmes.rpt.client.handler;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
-import cn.holmes.rpt.base.utils.Constants;
+import cn.holmes.rpt.base.utils.Constants.Client;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -15,19 +15,19 @@ import java.util.Optional;
 /**
  * 实际内网连接处理器
  */
-public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
+public class TcpHandler extends SimpleChannelInboundHandler<byte[]> {
 
-    private final Channel channel;
+    private final Channel serverChannel;
     private final Meta meta;
 
-    public LocalHandler(Channel channel, Meta meta) {
-        this.channel = channel;
+    public TcpHandler(Channel serverChannel, Meta meta) {
+        this.serverChannel = serverChannel;
         this.meta = meta;
     }
 
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        Channel proxyChannel = ctx.channel().attr(Constants.PROXY).get();
+        Channel proxyChannel = ctx.channel().attr(Client.PROXY).get();
         if (Objects.nonNull(proxyChannel)) {
             proxyChannel.config().setAutoRead(ctx.channel().isWritable());
         }
@@ -37,8 +37,8 @@ public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         ctx.channel().config().setAutoRead(false);
-        Channel proxyChannel = ctx.channel().attr(Constants.PROXY).get();
-        channel.attr(Constants.CHANNELS).get().put(meta.getChannelId(), ctx.channel());
+        Channel proxyChannel = ctx.channel().attr(Client.PROXY).get();
+        serverChannel.attr(Client.CHANNELS).get().put(meta.getChannelId(), ctx.channel());
         send(proxyChannel, MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES);
         ctx.channel().config().setAutoRead(true);
     }
@@ -46,7 +46,7 @@ public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, byte[] bytes) throws Exception {
-        Channel proxyChannel = ctx.channel().attr(Constants.PROXY).get();
+        Channel proxyChannel = ctx.channel().attr(Client.PROXY).get();
         if (Objects.isNull(proxyChannel)) {
             ctx.close();
             return;
@@ -60,8 +60,8 @@ public class LocalHandler extends SimpleChannelInboundHandler<byte[]> {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        Optional.ofNullable(channel.attr(Constants.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(meta.getChannelId()));
-        Channel proxyChannel = ctx.channel().attr(Constants.PROXY).get();
+        Optional.ofNullable(serverChannel.attr(Client.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(meta.getChannelId()));
+        Channel proxyChannel = ctx.channel().attr(Client.PROXY).get();
         if (Objects.nonNull(proxyChannel) && proxyChannel.isActive()) {
             send(proxyChannel, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
         }

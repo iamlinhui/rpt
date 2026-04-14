@@ -3,7 +3,7 @@ package cn.holmes.rpt.client.executor;
 import cn.holmes.rpt.base.executor.MessageExecutor;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
-import cn.holmes.rpt.base.utils.Constants;
+import cn.holmes.rpt.base.utils.Constants.Client;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -23,12 +23,12 @@ public class DataExecutor implements MessageExecutor {
 
     @Override
     public void execute(ChannelHandlerContext context, Message message) {
-        Channel localChannel = context.channel().attr(Constants.LOCAL).get();
+        Channel localChannel = context.channel().attr(Client.LOCAL).get();
         if (Objects.isNull(localChannel)) {
             return;
         }
         byte[] data = Optional.ofNullable(message.getData()).orElse(EmptyArrays.EMPTY_BYTES);
-        InetSocketAddress udpTarget = context.channel().attr(Constants.UDP_TARGET).get();
+        InetSocketAddress udpTarget = localChannel.attr(Client.UDP_TARGET).get();
         if (udpTarget != null) {
             // UDP: 将字节数据包装为DatagramPacket发送到本地UDP服务
             ByteBuf buf = localChannel.alloc().buffer(data.length);

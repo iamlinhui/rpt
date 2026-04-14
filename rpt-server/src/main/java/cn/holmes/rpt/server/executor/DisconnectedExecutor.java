@@ -1,11 +1,13 @@
 package cn.holmes.rpt.server.executor;
 
+import cn.holmes.rpt.base.config.ProxyType;
+import cn.holmes.rpt.base.config.RemoteConfig;
 import cn.holmes.rpt.base.executor.MessageExecutor;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
-import cn.holmes.rpt.base.utils.Constants;
+import cn.holmes.rpt.base.utils.Constants.Server;
+import cn.holmes.rpt.base.utils.FireEvent;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
-import cn.holmes.rpt.server.handler.UdpRemoteHandler;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -30,19 +32,19 @@ public class DisconnectedExecutor implements MessageExecutor {
         if (Objects.isNull(serverChannel)) {
             return;
         }
-        Map<String, Channel> localChannelMap = Optional.ofNullable(serverChannel.attr(Constants.CHANNELS).get()).orElse(Collections.emptyMap());
+        Map<String, Channel> localChannelMap = Optional.ofNullable(serverChannel.attr(Server.CHANNELS).get()).orElse(Collections.emptyMap());
         String channelId = message.getMeta().getChannelId();
         Channel localChannel = localChannelMap.get(channelId);
         if (Objects.isNull(localChannel)) {
             return;
         }
+        Channel proxyChannel = context.channel();
+        RemoteConfig remoteConfig = message.getMeta().getRemoteConfig();
+        ProxyType proxyType = Optional.ofNullable(remoteConfig.getProxyType()).orElse(ProxyType.TCP);
         // UDP: DatagramChannel是共享的，不能关闭，只清理会话状态
-        if (channelId != null && channelId.startsWith("udp-")) {
-            localChannelMap.remove(channelId);
-            UdpRemoteHandler udpHandler = localChannel.pipeline().get(UdpRemoteHandler.class);
-            if (udpHandler != null) {
-                udpHandler.removeSession(channelId);
-            }
+        if (Objects.equals(ProxyType.UDP, proxyType)) {
+            FireEvent fireEvent = new FireEvent(channelId, proxyChannel, getMessageType());
+            localChannel.pipeline().fireUserEventTriggered(fireEvent);
         } else {
             localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
         }

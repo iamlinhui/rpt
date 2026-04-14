@@ -1,7 +1,7 @@
 package cn.holmes.rpt.server.handler;
 
 import cn.holmes.rpt.base.utils.Config;
-import cn.holmes.rpt.base.utils.Constants;
+import cn.holmes.rpt.base.utils.Constants.Server;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -20,7 +20,7 @@ public class RedirectHandler extends SimpleChannelInboundHandler<FullHttpRequest
         FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.MOVED_PERMANENTLY);
         HttpHeaders headers = response.headers();
         headers.set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
-        String host = Constants.COLON.split(msg.headers().get(HttpHeaderNames.HOST))[0] + Constants.COLON + Config.getServerConfig().getHttpsPort();
+        String host = Server.COLON.split(msg.headers().get(HttpHeaderNames.HOST))[0] + Server.COLON + Config.getServerConfig().getHttpsPort();
         headers.set(HttpHeaderNames.LOCATION, HttpScheme.HTTPS + "://" + host + msg.uri());
         ChannelFuture future = ctx.writeAndFlush(response);
         if (!HttpUtil.isKeepAlive(msg)) {

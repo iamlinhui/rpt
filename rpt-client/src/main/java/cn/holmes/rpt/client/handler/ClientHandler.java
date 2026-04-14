@@ -5,18 +5,18 @@ import cn.holmes.rpt.base.executor.MessageExecutorFactory;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.utils.Application;
 import cn.holmes.rpt.base.utils.Config;
-import cn.holmes.rpt.base.utils.Constants;
+import cn.holmes.rpt.base.utils.Constants.Client;
 import cn.holmes.rpt.client.cache.ProxyChannelCache;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.channel.socket.DatagramChannel;
 import io.netty.util.internal.EmptyArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -30,7 +30,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        Channel localChannel = ctx.channel().attr(Constants.LOCAL).get();
+        Channel localChannel = ctx.channel().attr(Client.LOCAL).get();
         if (Objects.nonNull(localChannel)) {
             localChannel.config().setAutoRead(ctx.channel().isWritable());
         }
@@ -47,36 +47,33 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        Application<Bootstrap> application = ctx.channel().attr(Constants.Client.APPLICATION).getAndSet(null);
+        Application<Bootstrap> application = ctx.channel().attr(Client.APPLICATION).getAndSet(null);
         if (Objects.nonNull(application)) {
             logger.info("客户端-服务端连接中断,{}:{}", Config.getClientConfig().getServerIp(), Config.getClientConfig().getServerPort());
-            Optional.ofNullable(ctx.channel().attr(Constants.CHANNELS).get()).ifPresent(this::clear);
+            Optional.ofNullable(ctx.channel().attr(Client.CHANNELS).get()).ifPresent(this::clear);
             application.start(15);
             return;
         }
         logger.info("客户端-服务端代理连接中断");
-        Channel localChannel = ctx.channel().attr(Constants.LOCAL).getAndSet(null);
-        if (Objects.nonNull(localChannel) && localChannel.isActive()) {
-            localChannel.attr(Constants.PROXY).set(null);
-            if (localChannel instanceof DatagramChannel) {
-                localChannel.close();
-            } else {
-                localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
-            }
-        }
+        close(ctx.channel().attr(Client.LOCAL).getAndSet(null));
         ProxyChannelCache.delete(ctx.channel());
     }
 
-    private void clear(Map<String, Channel> channelMap) {
-        for (Channel localChannel : channelMap.values()) {
-            localChannel.attr(Constants.PROXY).set(null);
+    private void close(Channel localChannel) {
+        if (Objects.nonNull(localChannel) && localChannel.isActive()) {
+            localChannel.attr(Client.PROXY).set(null);
             // UDP DatagramChannel不接受原始byte[]写入，直接关闭
-            if (localChannel instanceof DatagramChannel) {
+            InetSocketAddress udpTarget = localChannel.attr(Client.UDP_TARGET).getAndSet(null);
+            if (udpTarget != null) {
                 localChannel.close();
             } else {
                 localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
             }
         }
+    }
+
+    private void clear(Map<String, Channel> channelMap) {
+        channelMap.values().forEach(this::close);
         channelMap.clear();
     }
 

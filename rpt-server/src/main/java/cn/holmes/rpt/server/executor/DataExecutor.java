@@ -1,9 +1,11 @@
 package cn.holmes.rpt.server.executor;
 
+import cn.holmes.rpt.base.config.ProxyType;
+import cn.holmes.rpt.base.config.RemoteConfig;
 import cn.holmes.rpt.base.executor.MessageExecutor;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
-import cn.holmes.rpt.base.utils.Constants;
+import cn.holmes.rpt.base.utils.Constants.Server;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -22,19 +24,25 @@ public class DataExecutor implements MessageExecutor {
 
     @Override
     public void execute(ChannelHandlerContext context, Message message) throws Exception {
-        Channel localChannel = context.channel().attr(Constants.LOCAL).get();
+        Channel localChannel = context.channel().attr(Server.LOCAL).get();
         if (Objects.isNull(localChannel)) {
             return;
         }
         byte[] data = Optional.ofNullable(message.getData()).orElse(EmptyArrays.EMPTY_BYTES);
-        InetSocketAddress udpSender = context.channel().attr(Constants.UDP_SENDER).get();
-        if (udpSender != null) {
+        RemoteConfig remoteConfig = message.getMeta().getRemoteConfig();
+        ProxyType proxyType = Optional.ofNullable(remoteConfig.getProxyType()).orElse(ProxyType.TCP);
+        Channel proxyChannel = context.channel();
+        if (Objects.equals(ProxyType.UDP, proxyType)) {
+            InetSocketAddress udpSender = proxyChannel.attr(Server.UDP_SENDER).get();
+            if (udpSender == null) {
+                return;
+            }
             // UDP: 将字节数据包装为DatagramPacket发送回外部客户端
             ByteBuf buf = localChannel.alloc().buffer(data.length);
             buf.writeBytes(data);
             localChannel.writeAndFlush(new DatagramPacket(buf, udpSender));
-        } else {
-            localChannel.writeAndFlush(data);
+            return;
         }
+        localChannel.writeAndFlush(data);
     }
 }

@@ -3,7 +3,7 @@ package cn.holmes.rpt.client.cache;
 import cn.holmes.rpt.base.config.ClientConfig;
 import cn.holmes.rpt.base.protocol.Meta;
 import cn.holmes.rpt.base.utils.Config;
-import cn.holmes.rpt.base.utils.Constants;
+import cn.holmes.rpt.base.utils.Constants.Client;
 import cn.holmes.rpt.base.utils.Listener;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -20,6 +20,11 @@ public class ProxyChannelCache {
 
     private static final Integer MAX_QUEUE_LIMIT = 128;
 
+    /**
+     * 核心连接数，保持一定数量的预热连接，避免首次请求因TLS握手延迟导致失败
+     */
+    private static final Integer CORE_QUEUE_LIMIT = 3;
+
     private static final Queue<Channel> PROXY_CHANNEL_QUEUE = new LinkedBlockingQueue<>(MAX_QUEUE_LIMIT);
 
     public static void get(Channel serverChannel, Meta meta, Listener<Meta> listener) {
@@ -34,7 +39,7 @@ public class ProxyChannelCache {
         }
         // 池中无可用连接，新建代理连接
         ClientConfig clientConfig = Config.getClientConfig();
-        Bootstrap bootstrap = serverChannel.attr(Constants.Client.APPLICATION).get().bootstrap();
+        Bootstrap bootstrap = serverChannel.attr(Client.APPLICATION).get().bootstrap();
         bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
                 listener.success(serverChannel, future.channel(), meta);
@@ -50,9 +55,7 @@ public class ProxyChannelCache {
             return;
         }
         proxyChannel.config().setAutoRead(true);
-        proxyChannel.attr(Constants.LOCAL).set(null);
-        proxyChannel.attr(Constants.UDP_TARGET).set(null);
-        proxyChannel.attr(Constants.UDP_SENDER).set(null);
+        proxyChannel.attr(Client.LOCAL).set(null);
         if (!PROXY_CHANNEL_QUEUE.offer(proxyChannel)) {
             proxyChannel.close();
         }
@@ -63,4 +66,20 @@ public class ProxyChannelCache {
         PROXY_CHANNEL_QUEUE.remove(proxyChannel);
     }
 
+    public static void init(Channel serverChannel) {
+        ClientConfig clientConfig = Config.getClientConfig();
+        Bootstrap bootstrap = serverChannel.attr(Client.APPLICATION).get().bootstrap();
+        if (PROXY_CHANNEL_QUEUE.size() >= CORE_QUEUE_LIMIT) {
+            return;
+        }
+        for (int i = 0; i < CORE_QUEUE_LIMIT; i++) {
+            bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).addListener((ChannelFutureListener) future -> {
+                if (future.isSuccess()) {
+                    put(future.channel());
+                } else {
+                    logger.error("预热代理连接失败", future.cause());
+                }
+            });
+        }
+    }
 }
