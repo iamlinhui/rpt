@@ -5,6 +5,7 @@ import cn.holmes.rpt.base.config.RemoteConfig;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
+import cn.holmes.rpt.base.utils.Config;
 import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.base.utils.FireEvent;
 import io.netty.buffer.ByteBuf;
@@ -12,6 +13,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.socket.DatagramPacket;
+import io.netty.handler.ipfilter.IpFilterRule;
 import io.netty.util.internal.EmptyArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +33,8 @@ import java.util.concurrent.*;
 public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
     private static final Logger logger = LoggerFactory.getLogger(UdpHandler.class);
+
+    private static final IpFilterRule IP_FILTER_RULE_HANDLER = new IpFilterRuleHandler();
 
     private static final long SESSION_TIMEOUT_MS = 60_000;
 
@@ -104,6 +108,10 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket packet) throws Exception {
         InetSocketAddress sender = packet.sender();
+        if (Config.getServerConfig().ipFilter() && IP_FILTER_RULE_HANDLER.matches(sender)) {
+            logger.info("UDP remote handler rejected sender: {}", sender);
+            return;
+        }
         String channelId = toChannelId(sender);
 
         lastActiveMap.put(channelId, System.currentTimeMillis());
