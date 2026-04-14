@@ -123,16 +123,15 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
         if (!senderAddressMap.containsKey(channelId)) {
             // 新的发送者，创建虚拟会话
             senderAddressMap.put(channelId, sender);
-            Map<String, Channel> channelMap = serverChannel.attr(Server.CHANNELS).get();
-            if (channelMap == null) {
+            Map<String, Channel> localChannelMap = serverChannel.attr(Server.CHANNELS).get();
+            if (localChannelMap == null) {
                 return;
             }
-            // 将DatagramChannel存入CHANNELS map，用于ConnectedExecutor查找
-            channelMap.put(channelId, ctx.channel());
+            localChannelMap.put(channelId, ctx.channel());
             // 缓冲数据，等待代理通道建立
             addToBuffer(channelId, data);
             // 通知客户端建立连接
-            sendMessage(serverChannel, MessageType.TYPE_CONNECTED, new byte[0], channelId);
+            sendMessage(serverChannel, MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES, channelId);
             return;
         }
 
