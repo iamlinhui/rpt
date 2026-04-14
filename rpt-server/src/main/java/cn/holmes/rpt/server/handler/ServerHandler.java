@@ -1,12 +1,13 @@
 package cn.holmes.rpt.server.handler;
 
+import cn.holmes.rpt.base.config.ProxyType;
 import cn.holmes.rpt.base.executor.MessageExecutor;
 import cn.holmes.rpt.base.executor.MessageExecutorFactory;
 import cn.holmes.rpt.base.protocol.Message;
-import cn.holmes.rpt.base.utils.Constants;
+import cn.holmes.rpt.base.protocol.Meta;
+import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
 import io.netty.channel.*;
-import io.netty.channel.socket.DatagramChannel;
 import io.netty.util.internal.EmptyArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +25,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        Channel localChannel = ctx.channel().attr(Constants.LOCAL).get();
+        Channel localChannel = ctx.channel().attr(Server.LOCAL).get();
         if (Objects.nonNull(localChannel)) {
             localChannel.config().setAutoRead(ctx.channel().isWritable());
         }
@@ -34,9 +35,15 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     @Override
     protected void channelRead0(ChannelHandlerContext context, Message message) throws Exception {
         MessageExecutor messageExecutor = MessageExecutorFactory.getMessageExecutor(message.getType());
-        if (Objects.nonNull(messageExecutor)) {
-            messageExecutor.execute(context, message);
+        if (Objects.isNull(messageExecutor)) {
+            return;
         }
+        Meta meta = message.getMeta();
+        if (meta == null || meta.getRemoteConfigList() == null || meta.getRemoteConfigList().isEmpty()) {
+            context.close();
+            return;
+        }
+        messageExecutor.execute(context, message);
     }
 
     @Override
@@ -49,17 +56,15 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        String clientKey = ctx.channel().attr(Constants.Server.CLIENT_KEY).getAndSet(null);
-        String label = ctx.channel().attr(Constants.Server.LABEL).getAndSet(null);
+        String clientKey = ctx.channel().attr(Server.CLIENT_KEY).getAndSet(null);
         // 代理连接/未知连接
         if (Objects.isNull(clientKey)) {
-            logger.info("服务端-客户端{}连接中断,{}", label == null ? "未知" : "代理", Optional.ofNullable(label).orElse("empty"));
-            Channel localChannel = ctx.channel().attr(Constants.LOCAL).getAndSet(null);
+            logger.info("服务端-客户端代理连接中断");
+            Channel localChannel = ctx.channel().attr(Server.LOCAL).getAndSet(null);
+            ProxyType proxyType = ctx.channel().attr(Server.PROXY_TYPE).get();
             if (Objects.nonNull(localChannel) && localChannel.isActive()) {
-                localChannel.attr(Constants.PROXY).set(null);
-                if (localChannel instanceof DatagramChannel) {
-                    // UDP DatagramChannel是共享的，代理断开时不关闭
-                } else {
+                localChannel.attr(Server.PROXY).set(null);
+                if (!Objects.equals(proxyType, ProxyType.UDP)) {
                     localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
                 }
             }
@@ -67,24 +72,26 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         }
         logger.info("服务端-客户端连接中断,{}", clientKey);
         ServerChannelCache.getServerChannelMap().remove(ctx.channel().id().asLongText());
-        Optional.ofNullable(ctx.channel().attr(Constants.CHANNELS).getAndSet(null)).ifPresent(this::clear);
-        Optional.ofNullable(ctx.channel().attr(Constants.Server.PORT_CHANNEL_FUTURE).getAndSet(null)).ifPresent(this::close);
-        Optional.ofNullable(ctx.channel().attr(Constants.Server.DOMAIN).getAndSet(null)).ifPresent(ServerChannelCache::remove);
+        Optional.ofNullable(ctx.channel().attr(Server.CHANNELS).getAndSet(null)).ifPresent(this::clear);
+        Optional.ofNullable(ctx.channel().attr(Server.TCP_PORT_CHANNEL_FUTURE).getAndSet(null)).ifPresent(this::close);
+        Optional.ofNullable(ctx.channel().attr(Server.UDP_PORT_CHANNEL_FUTURE).getAndSet(null)).ifPresent(this::close);
+        Optional.ofNullable(ctx.channel().attr(Server.DOMAIN).getAndSet(null)).ifPresent(ServerChannelCache::remove);
     }
 
     private void clear(Map<String, Channel> channelMap) {
         for (Channel localChannel : channelMap.values()) {
+            ProxyType proxyType = localChannel.attr(Server.PROXY_TYPE).get();
             // UDP DatagramChannel是共享的，由PORT_CHANNEL_FUTURE.close()统一关闭，此处跳过
-            if (localChannel instanceof DatagramChannel) {
+            if (Objects.equals(proxyType, ProxyType.UDP)) {
                 continue;
             }
             localChannel.close();
         }
     }
 
-    private void close(Map<String, ChannelFuture> channelFutureMap) {
-        for (ChannelFuture remoteChannelFuture : channelFutureMap.values()) {
-            remoteChannelFuture.channel().close();
+    private void close(Map<Integer, ChannelFuture> channelFutureMap) {
+        for (ChannelFuture future : channelFutureMap.values()) {
+            future.channel().close();
         }
     }
 

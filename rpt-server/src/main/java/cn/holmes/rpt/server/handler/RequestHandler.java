@@ -6,7 +6,7 @@ import cn.holmes.rpt.base.config.RemoteConfig;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
-import cn.holmes.rpt.base.utils.Constants;
+import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.base.utils.StringUtils;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
 import cn.holmes.rpt.server.coder.HttpEncoder;
@@ -23,7 +23,6 @@ import io.netty.util.internal.EmptyArrays;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
@@ -36,9 +35,10 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
     private String domain;
 
+
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        Channel proxyChannel = ctx.channel().attr(Constants.PROXY).get();
+        Channel proxyChannel = ctx.channel().attr(Server.PROXY).get();
         if (Objects.nonNull(proxyChannel)) {
             proxyChannel.config().setAutoRead(ctx.channel().isWritable());
         }
@@ -67,10 +67,10 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (serverChannel == null) {
             return;
         }
-        Optional.ofNullable(serverChannel.attr(Constants.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(ctx.channel().id().asLongText()));
-        Channel proxyChannel = ctx.channel().attr(Constants.PROXY).getAndSet(null);
+        Optional.ofNullable(serverChannel.attr(Server.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(ctx.channel().id().asLongText()));
+        Channel proxyChannel = ctx.channel().attr(Server.PROXY).getAndSet(null);
         if (Objects.nonNull(proxyChannel) && proxyChannel.isActive()) {
-            proxyChannel.attr(Constants.LOCAL).set(null);
+            proxyChannel.attr(Server.LOCAL).set(null);
             proxyChannel.config().setAutoRead(true);
             send(proxyChannel, ctx, domain, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES);
         }
@@ -82,7 +82,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             ctx.fireUserEventTriggered(evt);
             return;
         }
-        Channel proxyChannel = ctx.channel().attr(Constants.PROXY).get();
+        Channel proxyChannel = ctx.channel().attr(Server.PROXY).get();
         ctx.pipeline().replace(HttpServerCodec.class, ByteArrayCodec.class.getName(), new ByteArrayCodec());
         connected.set(true);
         if (!requestMessage.isEmpty()) {
@@ -104,7 +104,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         }
         if (msg instanceof byte[]) {
             byte[] message = (byte[]) msg;
-            Channel proxyChannel = ctx.channel().attr(Constants.PROXY).get();
+            Channel proxyChannel = ctx.channel().attr(Server.PROXY).get();
             if (Objects.isNull(proxyChannel)) {
                 ctx.close();
                 return;
@@ -117,8 +117,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
-
-        domain = Optional.ofNullable(domain).orElse(Constants.COLON.split(fullHttpRequest.headers().get(HttpHeaderNames.HOST))[0]);
+        domain = Optional.ofNullable(domain).orElse(Server.COLON.split(fullHttpRequest.headers().get(HttpHeaderNames.HOST))[0]);
         if (!StringUtils.hasText(domain)) {
             StaticDispatcher.dispatch(fullHttpRequest, ctx);
             return;
@@ -136,7 +135,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
         if (!connected.get()) {
             ctx.channel().config().setAutoRead(false);
-            serverChannel.attr(Constants.CHANNELS).get().put(ctx.channel().id().asLongText(), ctx.channel());
+            serverChannel.attr(Server.CHANNELS).get().put(ctx.channel().id().asLongText(), ctx.channel());
             send(serverChannel, ctx, domain, MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES);
         }
         if (!connected.get()) {
@@ -148,7 +147,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                 }
             }
         }
-        Channel proxyChannel = ctx.channel().attr(Constants.PROXY).get();
+        Channel proxyChannel = ctx.channel().attr(Server.PROXY).get();
         if (Objects.isNull(proxyChannel)) {
             ctx.close();
             return;
