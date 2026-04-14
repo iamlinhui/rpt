@@ -6,7 +6,7 @@
 
 > 支持任何TCP上层协议，可用于远程桌面、访问内网网站、SSH访问、远程连接打印机、本地支付接口调试、微信小程序调试...
 
-> 支持UDP穿透，可用于DNS转发、游戏服务器代理...
+> 支持任何UDP上层协议，可用于DNS转发、游戏服务器代理...
 
 > 支持HTTP端口复用，可用于内网反向代理，共用服务端80/443端口。支持HTTP请求升级为WebSocket，HTTP2。
 
@@ -94,7 +94,7 @@ clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
 
 # remotePort与localPort映射配置
 config:
-  - # 传输协议类型 (TCP或者HTTP) 不填写默认就是TCP
+  - # 传输协议类型 (TCP或者HTTP或者UDP)
     proxyType: TCP
     # 客户端连接目标IP
     localIp: 127.0.0.1
@@ -103,7 +103,13 @@ config:
     # 服务暴露端口
     remotePort: 4389
     # 描述
-    description: rdp
+    description: rdp-tcp
+
+  - proxyType: UDP
+    localIp: 127.0.0.1
+    localPort: 3389
+    remotePort: 4389
+    description: rdp-udp
 
   - proxyType: TCP
     localIp: 127.0.0.1
