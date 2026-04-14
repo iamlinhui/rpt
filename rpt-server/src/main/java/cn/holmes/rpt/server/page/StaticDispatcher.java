@@ -16,6 +16,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.regex.Pattern;
 
 public class StaticDispatcher {
 
@@ -24,6 +25,8 @@ public class StaticDispatcher {
     private static final Map<String, BiConsumer<ChannelHandlerContext, FullHttpRequest>> HANDLE_MAP = new HashMap<>();
 
     private static final List<String> WHITE_URI = Arrays.asList("/favicon.ico", "/static/base.css");
+
+    private static final Pattern BLANK = Pattern.compile("\\s");
 
     static {
         HANDLE_MAP.put("/favicon.ico", StaticDispatcher::favicon);
@@ -40,7 +43,7 @@ public class StaticDispatcher {
     public static boolean authorize(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, String token) {
         String authorization = fullHttpRequest.headers().get(HttpHeaderNames.AUTHORIZATION);
         if (StringUtils.hasText(authorization)) {
-            authorization = new String(Base64.getDecoder().decode(Server.BLANK.split(authorization)[1]), StandardCharsets.UTF_8);
+            authorization = new String(Base64.getDecoder().decode(BLANK.split(authorization)[1]), StandardCharsets.UTF_8);
             if (Objects.equals(token, authorization)) {
                 return true;
             }
