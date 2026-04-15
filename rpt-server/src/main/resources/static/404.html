@@ -5,78 +5,413 @@
     <title>404 - 页面未找到 | RPT</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <style>
-        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+        }
+
+        html {
+            background: #f5f5f5;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
-            min-height: 100vh;
+            color: rgba(0, 0, 0, 0.88);
+            line-height: 1.5714;
+            display: flex;
+            flex-direction: column;
+            background: #f5f5f5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a {
+            color: #1677ff;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: #4096ff;
+        }
+
+        .main {
+            flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-direction: column;
-            background: #f5f5f5;
-            color: rgba(0, 0, 0, 0.88);
+            padding: 48px 24px;
         }
-        .result {
-            text-align: center;
-            padding: 48px 32px;
+
+        .error-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 48px;
+            max-width: 720px;
         }
-        .result-icon {
-            margin-bottom: 24px;
+
+        /* 左侧插画 */
+        .error-illustration {
+            flex-shrink: 0;
         }
-        .result-title {
+
+        .compass {
+            position: relative;
+            width: 160px;
+            height: 180px;
+        }
+
+        .compass-body {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(180deg, #f0f0f0 0%, #e8e8e8 100%);
+            border-radius: 50%;
+            margin: 20px auto 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.08), 0 9px 28px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .compass-inner {
+            width: 96px;
+            height: 96px;
+            background: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .compass-needle {
+            width: 4px;
+            height: 60px;
+            position: relative;
+            animation: spin 4s ease-in-out infinite;
+            transform-origin: center center;
+        }
+
+        .compass-needle::before,
+        .compass-needle::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+        }
+
+        .compass-needle::before {
+            top: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-bottom: 28px solid #ff4d4f;
+        }
+
+        .compass-needle::after {
+            bottom: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 28px solid #d9d9d9;
+        }
+
+        .compass-center {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: rgba(0, 0, 0, 0.65);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(-30deg); }
+            25% { transform: rotate(120deg); }
+            50% { transform: rotate(60deg); }
+            75% { transform: rotate(200deg); }
+            100% { transform: rotate(330deg); }
+        }
+
+        .orbit {
+            position: absolute;
+            border-radius: 50%;
+            border: 1.5px dashed #d9d9d9;
+        }
+
+        .orbit-1 {
+            width: 150px;
+            height: 150px;
+            top: 10px;
+            left: 5px;
+            animation: rotate 25s linear infinite;
+        }
+
+        .orbit-2 {
+            width: 130px;
+            height: 130px;
+            top: 20px;
+            left: 15px;
+            border-color: #e8e8e8;
+            animation: rotate 18s linear infinite reverse;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .dot {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .dot-1 { top: 5px; left: 50px; background: #d9d9d9; }
+        .dot-2 { bottom: 15px; right: 5px; background: #e8e8e8; width: 6px; height: 6px; }
+        .dot-3 { top: 40px; right: 8px; background: #bfbfbf; width: 10px; height: 10px; }
+
+        /* 右侧内容 */
+        .error-content {
+            padding-top: 8px;
+        }
+
+        .error-code {
+            font-size: 56px;
+            font-weight: 700;
+            color: rgba(0, 0, 0, 0.25);
+            line-height: 1;
+            margin-bottom: 12px;
+        }
+
+        .error-title {
             font-size: 24px;
             font-weight: 600;
             color: rgba(0, 0, 0, 0.88);
             margin-bottom: 8px;
         }
-        .result-subtitle {
+
+        .error-desc {
             font-size: 14px;
             color: rgba(0, 0, 0, 0.45);
+            line-height: 1.8;
             margin-bottom: 24px;
-            line-height: 1.5714;
         }
+
+        .error-suggestions {
+            background: #fff;
+            border: 1px solid #f0f0f0;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+        }
+
+        .error-suggestions h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(0, 0, 0, 0.88);
+            margin-bottom: 8px;
+        }
+
+        .error-suggestions ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .error-suggestions li {
+            font-size: 14px;
+            color: rgba(0, 0, 0, 0.65);
+            line-height: 2;
+            padding-left: 16px;
+            position: relative;
+        }
+
+        .error-suggestions li::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.25);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+        }
+
         .ant-btn {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             height: 32px;
             padding: 0 16px;
             font-size: 14px;
             font-weight: 400;
             border-radius: 6px;
-            border: 1px solid #1677ff;
-            background: #1677ff;
-            color: #fff;
             cursor: pointer;
             transition: all 0.2s;
             text-decoration: none;
             font-family: inherit;
+        }
+
+        .ant-btn-primary {
+            border: 1px solid #1677ff;
+            background: #1677ff;
+            color: #fff;
             box-shadow: 0 2px 0 rgba(5, 145, 255, 0.1);
         }
-        .ant-btn:hover {
+
+        .ant-btn-primary:hover {
             background: #4096ff;
             border-color: #4096ff;
+            color: #fff;
         }
+
+        .ant-btn-default {
+            border: 1px solid #d9d9d9;
+            background: #fff;
+            color: rgba(0, 0, 0, 0.88);
+            box-shadow: 0 2px 0 rgba(0, 0, 0, 0.02);
+        }
+
+        .ant-btn-default:hover {
+            color: #4096ff;
+            border-color: #4096ff;
+        }
+
         .footer {
-            position: fixed;
-            bottom: 24px;
-            left: 0; right: 0;
+            background: #fff;
+            border-top: 1px solid #e8e8e8;
+            padding: 24px;
             text-align: center;
+        }
+
+        .footer p {
             font-size: 12px;
             color: rgba(0, 0, 0, 0.45);
+            line-height: 1.8;
+        }
+
+        .footer a {
+            color: rgba(0, 0, 0, 0.65);
+        }
+
+        .footer a:hover {
+            color: #1677ff;
+        }
+
+        @media (max-width: 600px) {
+            .error-container {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 32px;
+            }
+
+            .error-suggestions {
+                text-align: left;
+            }
+
+            .btn-group {
+                justify-content: center;
+            }
+
+            .compass {
+                width: 120px;
+                height: 140px;
+            }
+
+            .compass-body {
+                width: 90px;
+                height: 90px;
+            }
+
+            .compass-inner {
+                width: 72px;
+                height: 72px;
+            }
+
+            .compass-needle {
+                height: 46px;
+            }
+
+            .compass-needle::before {
+                border-bottom-width: 21px;
+            }
+
+            .compass-needle::after {
+                border-top-width: 21px;
+            }
+
+            .orbit-1 {
+                width: 112px;
+                height: 112px;
+                top: 8px;
+                left: 4px;
+            }
+
+            .orbit-2 {
+                width: 98px;
+                height: 98px;
+                top: 15px;
+                left: 11px;
+            }
+
+            .error-code {
+                font-size: 42px;
+            }
+
+            .error-title {
+                font-size: 20px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="result">
-        <div class="result-icon">
-            <svg width="72" height="72" viewBox="0 0 24 24" fill="rgba(0,0,0,0.25)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+    <div class="main">
+        <div class="error-container">
+            <div class="error-illustration">
+                <div class="compass">
+                    <div class="orbit orbit-1"></div>
+                    <div class="orbit orbit-2"></div>
+                    <div class="compass-body">
+                        <div class="compass-inner">
+                            <div class="compass-needle"></div>
+                            <div class="compass-center"></div>
+                        </div>
+                    </div>
+                    <div class="dot dot-1"></div>
+                    <div class="dot dot-2"></div>
+                    <div class="dot dot-3"></div>
+                </div>
+            </div>
+            <div class="error-content">
+                <div class="error-code">404</div>
+                <div class="error-title">Not Found</div>
+                <p class="error-desc">抱歉，您访问的页面不存在或已被移除。</p>
+                <div class="btn-group">
+                    <a class="ant-btn ant-btn-primary" href="/">返回首页</a>
+                </div>
+            </div>
         </div>
-        <div class="result-title">404 Not Found</div>
-        <p class="result-subtitle">您访问的页面不存在或已被移除</p>
-        <a class="ant-btn" href="/">返回首页</a>
     </div>
-    <div class="footer">
+    <footer class="footer">
+        <p><a href="https://github.com/iamlinhui/rpt" target="_blank">GitHub</a></p>
+        <p><a href="https://beian.miit.gov.cn" target="_blank">鄂ICP备2021018033号</a></p>
         <p>Copyright &copy; 2026 by Lynn. All Rights Reserved.</p>
-    </div>
+    </footer>
 </body>
 </html>
