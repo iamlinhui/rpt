@@ -1,6 +1,6 @@
 /* ===================================================================
    Ant Design 5.x Design Specification
-   Primary: Daybreak Blue #1677ff
+   Primary: Brand Orange #e78630
    Font: -apple-system stack, 14px base, 1.5714 line-height
    Spacing unit: 4px (4, 8, 12, 16, 24, 32, 48, 64, 96)
    Border radius: 6px (default), 8px (lg)
@@ -8,17 +8,17 @@
 
 /* ---------- Tokens ---------- */
 :root {
-    /* Blue palette */
-    --blue-1: #e6f4ff;
-    --blue-2: #bae0ff;
-    --blue-3: #91caff;
-    --blue-4: #69b1ff;
-    --blue-5: #4096ff;
-    --blue-6: #1677ff;
-    --blue-7: #0958d9;
-    --blue-8: #003eb3;
-    --blue-9: #002c8c;
-    --blue-10: #001d66;
+    /* Brand Orange palette */
+    --primary-1: #fff7e6;
+    --primary-2: #ffe7ba;
+    --primary-3: #ffd591;
+    --primary-4: #ffc069;
+    --primary-5: #f5a623;
+    --primary-6: #e78630;
+    --primary-7: #c26a15;
+    --primary-8: #9e5000;
+    --primary-9: #7a3d00;
+    --primary-10: #562b00;
 
     /* Functional */
     --success: #52c41a;
@@ -89,13 +89,13 @@ body {
 }
 
 a {
-    color: var(--blue-6);
+    color: var(--primary-6);
     text-decoration: none;
     transition: color 0.2s;
 }
 
 a:hover {
-    color: var(--blue-5);
+    color: var(--primary-5);
 }
 
 /* ---------- GitHub Ribbon ---------- */
@@ -116,7 +116,7 @@ a:hover {
     top: 44px;
     right: -55px;
     transform: rotate(45deg);
-    background: var(--blue-6);
+    background: var(--primary-6);
     color: #fff;
     text-align: center;
     font-size: var(--font-size-sm);
@@ -128,7 +128,7 @@ a:hover {
 }
 
 .github a:hover {
-    background: var(--blue-5);
+    background: var(--primary-5);
     color: #fff;
 }
 
@@ -159,7 +159,7 @@ a:hover {
     height: 600px;
     top: -200px;
     right: -100px;
-    background: radial-gradient(circle, var(--blue-1) 0%, transparent 70%);
+    background: radial-gradient(circle, var(--primary-1) 0%, transparent 70%);
 }
 
 .hero::after {
@@ -167,7 +167,7 @@ a:hover {
     height: 500px;
     bottom: -150px;
     left: -100px;
-    background: radial-gradient(circle, var(--blue-1) 0%, transparent 70%);
+    background: radial-gradient(circle, var(--primary-1) 0%, transparent 70%);
 }
 
 .hero-content {
@@ -183,7 +183,7 @@ a:hover {
     width: 80px;
     height: 80px;
     border-radius: var(--radius-lg);
-    background: var(--blue-6);
+    background: var(--primary-6);
     margin-bottom: 24px;
     box-shadow: var(--shadow-2);
 }
@@ -203,7 +203,7 @@ a:hover {
 }
 
 .hero h1 .highlight {
-    color: var(--blue-6);
+    color: var(--primary-6);
 }
 
 .hero-subtitle {
@@ -238,10 +238,10 @@ a:hover {
     white-space: nowrap;
 }
 
-.ant-tag-blue {
-    color: var(--blue-6);
-    background: var(--blue-1);
-    border-color: var(--blue-2);
+.ant-tag-primary {
+    color: var(--primary-7);
+    background: var(--primary-1);
+    border-color: var(--primary-2);
 }
 
 .ant-tag-green {
@@ -289,15 +289,15 @@ a:hover {
 }
 
 .ant-btn-primary {
-    background: var(--blue-6);
+    background: var(--primary-6);
     color: #fff;
-    border-color: var(--blue-6);
-    box-shadow: 0 2px 0 rgba(5, 145, 255, 0.1);
+    border-color: var(--primary-6);
+    box-shadow: 0 2px 0 rgba(231, 134, 48, 0.1);
 }
 
 .ant-btn-primary:hover {
-    background: var(--blue-5);
-    border-color: var(--blue-5);
+    background: var(--primary-5);
+    border-color: var(--primary-5);
 }
 
 .ant-btn-default {
@@ -308,8 +308,8 @@ a:hover {
 }
 
 .ant-btn-default:hover {
-    color: var(--blue-5);
-    border-color: var(--blue-5);
+    color: var(--primary-5);
+    border-color: var(--primary-5);
 }
 
 .scroll-indicator {
@@ -412,9 +412,9 @@ a:hover {
     font-size: 20px;
 }
 
-.ant-card-icon-blue {
-    background: var(--blue-1);
-    color: var(--blue-6);
+.ant-card-icon-primary {
+    background: var(--primary-1);
+    color: var(--primary-6);
 }
 
 .ant-card-icon-cyan {
@@ -474,7 +474,7 @@ a:hover {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: var(--blue-6);
+    background: var(--primary-6);
     color: #fff;
     font-size: var(--font-size);
     font-weight: 600;
@@ -550,12 +550,12 @@ a:hover {
 }
 
 .ant-tabs-tab:hover {
-    color: var(--blue-5);
+    color: var(--primary-5);
 }
 
 .ant-tabs-tab.active {
-    color: var(--blue-6);
-    border-bottom-color: var(--blue-6);
+    color: var(--primary-6);
+    border-bottom-color: var(--primary-6);
     font-weight: 600;
 }
 
@@ -626,7 +626,7 @@ a:hover {
 }
 
 .footer a:hover {
-    color: var(--blue-6);
+    color: var(--primary-6);
 }
 
 /* ---------- Click Effect ---------- */

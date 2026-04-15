@@ -23,8 +23,8 @@
         <h1>Reverse <span class="highlight">Proxy</span> Tool</h1>
         <p class="hero-subtitle">一个可用于内网穿透的工具，将局域网个人电脑、服务器映射到公网</p>
         <div class="hero-tags">
-            <span class="ant-tag ant-tag-blue">TCP</span>
-            <span class="ant-tag ant-tag-blue">UDP</span>
+            <span class="ant-tag ant-tag-primary">TCP</span>
+            <span class="ant-tag ant-tag-primary">UDP</span>
             <span class="ant-tag ant-tag-green">HTTP / HTTP2</span>
             <span class="ant-tag ant-tag-gold">SSL</span>
             <span class="ant-tag ant-tag-orange">WebSocket</span>
@@ -51,7 +51,7 @@
         </div>
         <div class="card-grid">
             <div class="ant-card fade-in">
-                <div class="ant-card-icon ant-card-icon-blue">
+                <div class="ant-card-icon ant-card-icon-primary">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M21 3H3a2 2 0 00-2 2v14a2 2 0 002 2h18a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H3V5h18v14zm-2-2H5v-2l3.5-4.5 2.5 3 3.5-4.5L19 17z"/>
                     </svg>
@@ -172,7 +172,7 @@
         <div class="deploy-grid fade-in">
             <div class="deploy-card">
                 <div class="deploy-card-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--blue-6)">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--primary-6)">
                         <path d="M21 2H3a2 2 0 00-2 2v12a2 2 0 002 2h7v2H8v2h8v-2h-2v-2h7a2 2 0 002-2V4a2 2 0 00-2-2zm0 14H3V4h18v12z"/>
                     </svg>
                 </div>
@@ -213,7 +213,7 @@
 <!-- Footer -->
 <footer class="footer">
     <p><a href="https://github.com/iamlinhui/rpt" target="_blank">GitHub</a></p>
-    <p><a href="https://beian.miit.gov.cn" target="_blank">鄂ICP备2021018033号</a></p>
+    <p><a href="https://beian.miit.gov.cn" target="_blank"></a></p>
     <p>Copyright &copy; 2026 by Lynn. All Rights Reserved.</p>
 </footer>
 
@@ -347,7 +347,7 @@
             span.textContent = words[idx];
             span.style.left = e.pageX + 'px';
             span.style.top = (e.pageY - 20) + 'px';
-            span.style.color = 'var(--blue-6)';
+            span.style.color = 'var(--primary-6)';
             idx = (idx + 1) % words.length;
             document.body.appendChild(span);
             span.animate([
