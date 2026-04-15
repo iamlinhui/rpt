@@ -38,6 +38,10 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
     private String domain;
 
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        ctx.channel().attr(Server.PROXY_TYPE).set(ProxyType.HTTP);
+    }
 
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {

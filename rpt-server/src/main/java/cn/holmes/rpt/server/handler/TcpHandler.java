@@ -50,6 +50,7 @@ public class TcpHandler extends SimpleChannelInboundHandler<byte[]> {
      */
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        ctx.channel().attr(Server.PROXY_TYPE).set(ProxyType.TCP);
         serverChannel.attr(Server.CHANNELS).get().put(ctx.channel().id().asLongText(), ctx.channel());
         ctx.channel().config().setAutoRead(false);
         send(serverChannel, MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES, ctx);
