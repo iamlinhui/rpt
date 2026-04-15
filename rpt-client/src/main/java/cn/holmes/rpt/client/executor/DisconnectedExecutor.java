@@ -23,16 +23,18 @@ public class DisconnectedExecutor implements MessageExecutor {
     @Override
     public void execute(ChannelHandlerContext context, Message message) {
         Channel localChannel = context.channel().attr(Client.LOCAL).getAndSet(null);
-        if (Objects.nonNull(localChannel)) {
-            localChannel.attr(Client.PROXY).set(null);
-            InetSocketAddress udpTarget = localChannel.attr(Client.UDP_TARGET).getAndSet(null);
-            // UDP DatagramChannel不能写入原始字节，直接关闭
-            if (udpTarget != null) {
-                localChannel.close();
-            } else {
-                localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
-            }
+        if (Objects.isNull(localChannel)) {
+            ProxyChannelCache.put(context.channel());
+            return;
         }
+        localChannel.attr(Client.PROXY).set(null);
+        InetSocketAddress udpTarget = localChannel.attr(Client.UDP_TARGET).getAndSet(null);
+        if (udpTarget != null) {
+            localChannel.close();
+            ProxyChannelCache.put(context.channel());
+            return;
+        }
+        localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
         ProxyChannelCache.put(context.channel());
     }
 }

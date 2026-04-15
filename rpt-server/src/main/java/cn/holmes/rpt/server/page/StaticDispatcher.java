@@ -1,6 +1,5 @@
 package cn.holmes.rpt.server.page;
 
-import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.base.utils.StringUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFuture;

@@ -34,8 +34,8 @@ public class DataExecutor implements MessageExecutor {
             ByteBuf buf = localChannel.alloc().buffer(data.length);
             buf.writeBytes(data);
             localChannel.writeAndFlush(new DatagramPacket(buf, udpTarget));
-        } else {
-            localChannel.writeAndFlush(data);
+            return;
         }
+        localChannel.writeAndFlush(data);
     }
 }

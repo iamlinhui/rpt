@@ -29,8 +29,8 @@ public class AuthExecutor implements MessageExecutor {
             context.channel().attr(Client.CHANNELS).setIfAbsent(new ConcurrentHashMap<>(1024));
             // 预热代理连接池，避免首次请求因TLS握手延迟导致失败
             ProxyChannelCache.init(context.channel());
-        } else {
-            logger.info("连接失败,当前秘钥:{}", message.getMeta().getClientKey());
+            return;
         }
+        logger.info("连接失败,当前秘钥:{}", message.getMeta().getClientKey());
     }
 }

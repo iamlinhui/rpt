@@ -72,6 +72,11 @@ public class Meta {
         return remoteConfigList.get(0);
     }
 
+    public Meta setRemoteConfig(RemoteConfig remoteConfig) {
+        this.remoteConfigList = Collections.singletonList(remoteConfig);
+        return this;
+    }
+
     public List<RemoteConfig> getRemoteConfigList() {
         return remoteConfigList;
     }

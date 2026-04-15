@@ -50,7 +50,7 @@ public class ConnectedExecutor implements MessageExecutor, Listener<Meta> {
             if (Objects.isNull(httpConfig)) {
                 return;
             }
-            meta.setRemoteConfigList(Collections.singletonList(httpConfig));
+            meta.setRemoteConfig(httpConfig);
         }
         // 绑定代理连接
         ProxyChannelCache.get(context.channel(), meta, this);
