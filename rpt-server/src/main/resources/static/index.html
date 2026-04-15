@@ -2,34 +2,288 @@
 <html lang="zh-cn">
 <head>
     <meta charset="UTF-8"/>
-    <title>内网穿透工具</title>
+    <title>RPT - 内网穿透工具</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
     <meta name="author" content="Lynn"/>
-    <meta name="description" content="一个可用于内网穿透的工具，将局域网个人电脑、服务器映射到公网。"/>
-    <meta name="keywords" content="支持任何TCP上层协议，可用于远程桌面、访问内网网站、SSH访问、远程连接打印机、本地支付接口调试、微信小程序调试...支持UDP穿透，可用于DNS转发、游戏服务器代理等。支持HTTP端口复用，可用于内网反向代理，共用服务端80/443端口。支持HTTP请求升级为WebSocket，HTTP2。SSL双端验证，数据加密传输。部署简单，提供桌面客户端。"/>
+    <meta name="description" content="一个可用于内网穿透的工具，将局域网个人电脑、服务器映射到公网。支持TCP/UDP/HTTP协议，SSL加密传输。"/>
+    <meta name="keywords" content="内网穿透,反向代理,TCP,UDP,HTTP,SSL,端口映射,远程桌面,SSH"/>
     <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"/>
     <link href="/static/base.css" rel="stylesheet" type="text/css"/>
 </head>
 <body>
-<div class="main">
-    <div class="github"><a href="https://github.com/iamlinhui/rpt" target="_blank">Fork me on GitHub</a></div>
-    <div class="title">
-        <h2 style="text-align: center">Reverse Proxy Tool</h2>
+
+<!-- GitHub Ribbon -->
+<div class="github"><a href="https://github.com/iamlinhui/rpt" target="_blank">Fork on GitHub</a></div>
+
+<!-- Hero -->
+<section class="hero">
+    <div class="hero-content">
+        <h1>Reverse <span class="highlight">Proxy</span> Tool</h1>
+        <p class="hero-subtitle">一个可用于内网穿透的工具，将局域网个人电脑、服务器映射到公网</p>
+        <div class="hero-tags">
+            <span class="ant-tag ant-tag-blue">TCP</span>
+            <span class="ant-tag ant-tag-blue">UDP</span>
+            <span class="ant-tag ant-tag-green">HTTP / HTTP2</span>
+            <span class="ant-tag ant-tag-gold">SSL</span>
+            <span class="ant-tag ant-tag-orange">WebSocket</span>
+        </div>
+        <div class="hero-actions">
+            <a class="ant-btn ant-btn-primary" href="https://github.com/iamlinhui/rpt/releases" target="_blank">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                下载使用
+            </a>
+            <a class="ant-btn ant-btn-default" href="#features">了解更多</a>
+        </div>
     </div>
-    <div class="content">
-        <p>一个可用于内网穿透的工具，将局域网个人电脑、服务器映射到公网。</p>
-        <p>支持任何TCP上层协议，可用于远程桌面、访问内网网站、SSH访问、远程连接打印机、本地支付接口调试、微信小程序调试...支持UDP穿透，可用于DNS转发、游戏服务器代理等。</p>
-        <p>支持HTTP端口复用，可用于内网反向代理，共用服务端80/443端口。支持HTTP请求升级为WebSocket，HTTP2。</p>
-        <p>SSL双端验证，数据加密传输。</p>
-        <p>部署简单，提供桌面客户端。</p>
+    <div class="scroll-indicator">向下滚动</div>
+</section>
+
+<!-- Features -->
+<section id="features" class="section section-grey">
+    <div class="container">
+        <div class="section-header fade-in">
+            <h2>核心特性</h2>
+            <p>支持多种协议和场景，满足各类内网穿透需求</p>
+        </div>
+        <div class="card-grid">
+            <div class="ant-card fade-in">
+                <div class="ant-card-icon ant-card-icon-blue">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 3H3a2 2 0 00-2 2v14a2 2 0 002 2h18a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H3V5h18v14zm-2-2H5v-2l3.5-4.5 2.5 3 3.5-4.5L19 17z"/></svg>
+                </div>
+                <h3>TCP 协议穿透</h3>
+                <p>支持任何TCP上层协议，可用于远程桌面、访问内网网站、SSH访问、远程连接打印机、本地支付接口调试等。</p>
+            </div>
+            <div class="ant-card fade-in">
+                <div class="ant-card-icon ant-card-icon-cyan">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                </div>
+                <h3>UDP 协议穿透</h3>
+                <p>支持任何UDP上层协议，可用于DNS转发、游戏服务器代理等场景。</p>
+            </div>
+            <div class="ant-card fade-in">
+                <div class="ant-card-icon ant-card-icon-green">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h18V4H4a2 2 0 00-2 2v11H0v3h14v-3H4V6zm19 2h-6a1 1 0 00-1 1v10a1 1 0 001 1h6a1 1 0 001-1V9a1 1 0 00-1-1zm-1 9h-4v-7h4v7z"/></svg>
+                </div>
+                <h3>HTTP 端口复用</h3>
+                <p>内网反向代理，共用服务端80/443端口。支持请求升级为WebSocket与HTTP2。</p>
+            </div>
+            <div class="ant-card fade-in">
+                <div class="ant-card-icon ant-card-icon-gold">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                </div>
+                <h3>SSL 双端验证</h3>
+                <p>SSL双端验证，数据加密传输，保障通信安全可靠。</p>
+            </div>
+            <div class="ant-card fade-in">
+                <div class="ant-card-icon ant-card-icon-purple">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1115.6 12 3.6 3.6 0 0112 15.6z"/></svg>
+                </div>
+                <h3>部署简单</h3>
+                <p>提供桌面GUI客户端，配置直观。支持Docker镜像与Windows服务注册。</p>
+            </div>
+            <div class="ant-card fade-in">
+                <div class="ant-card-icon ant-card-icon-red">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/></svg>
+                </div>
+                <h3>IP 地域过滤</h3>
+                <p>限制连接暴露端口的IP必须位于指定地区，增强服务安全性。</p>
+            </div>
+        </div>
     </div>
-    <div class="end">
-        <p>&#8212;Lynn</p>
+</section>
+
+<!-- Quick Start -->
+<section id="quickstart" class="section section-white">
+    <div class="container">
+        <div class="section-header fade-in">
+            <h2>快速开始</h2>
+            <p>两步即可完成部署</p>
+        </div>
+        <div class="steps-row fade-in">
+            <div class="ant-step">
+                <div class="ant-step-indicator">1</div>
+                <h3>启动服务端</h3>
+                <div class="code-block">
+                    <code><span class="c-cmd">java</span> <span class="c-flag">-jar</span> rpt-server-*.jar <span class="c-flag">-c</span> <span class="c-value">server.yml</span></code>
+                </div>
+            </div>
+            <div class="ant-step">
+                <div class="ant-step-indicator">2</div>
+                <h3>启动客户端</h3>
+                <div class="code-block">
+                    <code><span class="c-cmd">java</span> <span class="c-flag">-jar</span> rpt-client-*.jar <span class="c-flag">-c</span> <span class="c-value">client.yml</span></code>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="footer">
-        <p><a href="https://beian.miit.gov.cn" target="_blank"></a></p>
-        <p>Copyright &copy; 2026 by Lynn. All Rights Reserved.</p>
+</section>
+
+<!-- Configuration -->
+<section id="config" class="section section-grey">
+    <div class="container">
+        <div class="section-header fade-in">
+            <h2>配置示例</h2>
+            <p>简洁的 YAML 配置，快速上手</p>
+        </div>
+        <div class="fade-in">
+            <div class="ant-tabs-nav">
+                <button class="ant-tabs-tab active" data-tab="server">server.yml</button>
+                <button class="ant-tabs-tab" data-tab="client">client.yml</button>
+            </div>
+            <div class="ant-tabs-panel active" id="tab-server">
+                <div class="code-block">
+                    <code><span class="c-comment"># 服务端绑定IP</span>
+<span class="c-key">serverIp</span>: <span class="c-value">0.0.0.0</span>
+<span class="c-comment"># 服务端与客户端通讯端口</span>
+<span class="c-key">serverPort</span>: <span class="c-value">6167</span>
+<span class="c-comment"># HTTP重定向端口 (0则不开启)</span>
+<span class="c-key">httpPort</span>: <span class="c-value">80</span>
+<span class="c-comment"># HTTPS复用端口 (0则不开启)</span>
+<span class="c-key">httpsPort</span>: <span class="c-value">0</span>
+<span class="c-comment"># 是否限制IP地域</span>
+<span class="c-key">ipFilter</span>: <span class="c-value">true</span>
+
+<span class="c-comment"># 授权给客户端的秘钥</span>
+<span class="c-key">token</span>:
+  - <span class="c-key">clientKey</span>: <span class="c-value">b0cc39c7-1b78-4ff6-9486-020399f569e9</span>
+    <span class="c-key">minPort</span>: <span class="c-value">4000</span>
+    <span class="c-key">maxPort</span>: <span class="c-value">8000</span>
+  - <span class="c-key">clientKey</span>: <span class="c-value">4befea7e-a61c-4979-b012-47659bab6f21</span>
+    <span class="c-key">minPort</span>: <span class="c-value">9000</span>
+    <span class="c-key">maxPort</span>: <span class="c-value">9999</span></code>
+                </div>
+            </div>
+            <div class="ant-tabs-panel" id="tab-client">
+                <div class="code-block">
+                    <code><span class="c-comment"># 服务端IP</span>
+<span class="c-key">serverIp</span>: <span class="c-value">127.0.0.1</span>
+<span class="c-comment"># 服务端通讯端口</span>
+<span class="c-key">serverPort</span>: <span class="c-value">6167</span>
+<span class="c-comment"># 授权秘钥</span>
+<span class="c-key">clientKey</span>: <span class="c-value">b0cc39c7-1b78-4ff6-9486-020399f569e9</span>
+
+<span class="c-comment"># 端口映射配置</span>
+<span class="c-key">config</span>:
+  - <span class="c-key">proxyType</span>: <span class="c-value">TCP</span>
+    <span class="c-key">localIp</span>: <span class="c-value">127.0.0.1</span>
+    <span class="c-key">localPort</span>: <span class="c-value">3389</span>
+    <span class="c-key">remotePort</span>: <span class="c-value">4389</span>
+    <span class="c-key">description</span>: <span class="c-value">rdp-tcp</span>
+
+  - <span class="c-key">proxyType</span>: <span class="c-value">UDP</span>
+    <span class="c-key">localIp</span>: <span class="c-value">127.0.0.1</span>
+    <span class="c-key">localPort</span>: <span class="c-value">3389</span>
+    <span class="c-key">remotePort</span>: <span class="c-value">4389</span>
+    <span class="c-key">description</span>: <span class="c-value">rdp-udp</span>
+
+  - <span class="c-key">proxyType</span>: <span class="c-value">HTTP</span>
+    <span class="c-key">localIp</span>: <span class="c-value">127.0.0.1</span>
+    <span class="c-key">localPort</span>: <span class="c-value">8080</span>
+    <span class="c-key">domain</span>: <span class="c-value">test.domain.com</span>
+    <span class="c-key">token</span>: <span class="c-value">admin:admin</span>
+    <span class="c-key">description</span>: <span class="c-value">tomcat</span></code>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
+</section>
+
+<!-- Deploy Options -->
+<section id="deploy" class="section section-white">
+    <div class="container">
+        <div class="section-header fade-in">
+            <h2>多种部署方式</h2>
+            <p>灵活选择适合你的部署方案</p>
+        </div>
+        <div class="deploy-grid fade-in">
+            <div class="deploy-card">
+                <div class="deploy-card-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--blue-6)"><path d="M21 2H3a2 2 0 00-2 2v12a2 2 0 002 2h7v2H8v2h8v-2h-2v-2h7a2 2 0 002-2V4a2 2 0 00-2-2zm0 14H3V4h18v12z"/></svg>
+                </div>
+                <h3>GUI 桌面客户端</h3>
+                <p>图形化界面配置直观，支持映射管理与控制台</p>
+            </div>
+            <div class="deploy-card">
+                <div class="deploy-card-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#13c2c2"><path d="M20 7h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zM10 4h4v3h-4V4z"/></svg>
+                </div>
+                <h3>Docker 部署</h3>
+                <p>提供镜像，一行命令即可启动</p>
+            </div>
+            <div class="deploy-card">
+                <div class="deploy-card-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#722ed1"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zM7 15l-2-2 2-2 1.4 1.4L7 13.8l1.4 1.4L7 15zm4 1h-2l3-8h2l-3 8zm5-1l-1.4-1.4 1.4-1.4-1.4-1.4L16 11l2 2-2 2z"/></svg>
+                </div>
+                <h3>Shell 脚本部署</h3>
+                <p>适合Linux服务器环境，脚本管理进程</p>
+            </div>
+            <div class="deploy-card">
+                <div class="deploy-card-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#faad14"><path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm11-2h2v3h3v2h-3v3h-2v-3h-3v-2h3v-3z"/></svg>
+                </div>
+                <h3>Windows 服务</h3>
+                <p>WinSW注册服务，开机自启动</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+    <p><a href="https://github.com/iamlinhui/rpt" target="_blank">GitHub</a></p>
+    <p><a href="https://beian.miit.gov.cn" target="_blank"></a></p>
+    <p>Copyright &copy; 2026 by Lynn. All Rights Reserved.</p>
+</footer>
+
+<!-- Scripts -->
+<script>
+    // Intersection Observer - fade in
+    (function () {
+        var observer = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, {threshold: 0.08});
+
+        document.querySelectorAll('.fade-in').forEach(function (el) {
+            observer.observe(el);
+        });
+    })();
+
+    // Tabs
+    document.querySelectorAll('.ant-tabs-tab').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            var nav = tab.parentNode;
+            nav.querySelectorAll('.ant-tabs-tab').forEach(function (t) { t.classList.remove('active'); });
+            tab.classList.add('active');
+            var container = nav.parentNode;
+            container.querySelectorAll('.ant-tabs-panel').forEach(function (p) { p.classList.remove('active'); });
+            container.querySelector('#tab-' + tab.dataset.tab).classList.add('active');
+        });
+    });
+
+    // Click text effect
+    (function () {
+        var idx = 0;
+        var words = ['富强', '民主', '文明', '和谐', '自由', '平等', '公正', '法治', '爱国', '敬业', '诚信', '友善'];
+        document.addEventListener('click', function (e) {
+            var span = document.createElement('span');
+            span.className = 'click-text';
+            span.textContent = words[idx];
+            span.style.left = e.pageX + 'px';
+            span.style.top = (e.pageY - 20) + 'px';
+            span.style.color = 'var(--blue-6)';
+            idx = (idx + 1) % words.length;
+            document.body.appendChild(span);
+            span.animate([
+                {opacity: 1, transform: 'translateY(0)'},
+                {opacity: 0, transform: 'translateY(-120px)'}
+            ], {duration: 1200, easing: 'ease-out'});
+            setTimeout(function () { span.remove(); }, 1200);
+        });
+    })();
+</script>
 </body>
 </html>

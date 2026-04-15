@@ -1,100 +1,709 @@
-html {
-    background: #eee;
+/* ===================================================================
+   Ant Design 5.x Design Specification
+   Primary: Daybreak Blue #1677ff
+   Font: -apple-system stack, 14px base, 1.5714 line-height
+   Spacing unit: 4px (4, 8, 12, 16, 24, 32, 48, 64, 96)
+   Border radius: 6px (default), 8px (lg)
+   =================================================================== */
+
+/* ---------- Tokens ---------- */
+:root {
+    /* Blue palette */
+    --blue-1: #e6f4ff;
+    --blue-2: #bae0ff;
+    --blue-3: #91caff;
+    --blue-4: #69b1ff;
+    --blue-5: #4096ff;
+    --blue-6: #1677ff;
+    --blue-7: #0958d9;
+    --blue-8: #003eb3;
+    --blue-9: #002c8c;
+    --blue-10: #001d66;
+
+    /* Functional */
+    --success: #52c41a;
+    --warning: #faad14;
+    --error: #ff4d4f;
+
+    /* Text */
+    --text-primary: rgba(0, 0, 0, 0.88);
+    --text-secondary: rgba(0, 0, 0, 0.65);
+    --text-tertiary: rgba(0, 0, 0, 0.45);
+    --text-quaternary: rgba(0, 0, 0, 0.25);
+
+    /* Background */
+    --bg-base: #ffffff;
+    --bg-layout: #f5f5f5;
+    --bg-elevated: #ffffff;
+    --bg-spotlight: #fafafa;
+
+    /* Border */
+    --border-color: #d9d9d9;
+    --border-color-secondary: #f0f0f0;
+
+    /* Shadow (Ant Design 5.x token) */
+    --shadow-1: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+    --shadow-2: 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+    --shadow-3: 0 6px 16px -8px rgba(0, 0, 0, 0.08), 0 9px 28px 0 rgba(0, 0, 0, 0.05), 0 12px 48px 16px rgba(0, 0, 0, 0.03);
+
+    /* Radius */
+    --radius: 6px;
+    --radius-lg: 8px;
+
+    /* Font */
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-size: 14px;
+    --font-size-sm: 12px;
+    --font-size-lg: 16px;
+    --font-size-xl: 20px;
+    --font-size-heading-1: 38px;
+    --font-size-heading-2: 30px;
+    --font-size-heading-3: 24px;
+    --font-size-heading-4: 20px;
+    --font-size-heading-5: 16px;
+    --line-height: 1.5714;
+    --line-height-lg: 1.5;
+    --line-height-heading: 1.3333;
 }
 
-.title h1 {
-    text-align: center;
+/* ---------- Reset ---------- */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: var(--font-size);
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font-family);
+    color: var(--text-primary);
+    background: var(--bg-layout);
+    line-height: var(--line-height);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
 }
 
 a {
-    color: #000;
+    color: var(--blue-6);
     text-decoration: none;
+    transition: color 0.2s;
 }
 
-.main {
-    max-width: 960px;
-    background: #fff;
-    margin: 1em auto 0;
-    padding-top: 1em;
-    padding-bottom: 1em;
-    border: solid #fff;
-    border-width: 0 2em;
+a:hover {
+    color: var(--blue-5);
 }
 
-.content p {
-    word-break: break-all;
-    text-indent: 2em;
-    line-height: 2;
-    margin: 0 0 0;
-}
-
-.end p {
-    text-align: right;
-}
-
-.footer, .github {
-    padding-top: 1em;
-    padding-bottom: 1em;
-    text-align: center;
+/* ---------- GitHub Ribbon ---------- */
+.github {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 150px;
+    height: 150px;
+    overflow: hidden;
+    z-index: 1000;
 }
 
 .github a {
-    background: #000;
+    display: block;
+    width: 220px;
+    position: absolute;
+    top: 44px;
+    right: -55px;
+    transform: rotate(45deg);
+    background: var(--blue-6);
     color: #fff;
-    text-decoration: none;
-    font-family: arial, sans-serif;
     text-align: center;
-    font-weight: bold;
-    padding: 5px 40px;
-    font-size: 1rem;
-    line-height: 2rem;
-    position: relative;
-    transition: 0.5s;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    padding: 6px 0;
+    letter-spacing: 0.3px;
+    box-shadow: var(--shadow-2);
+    transition: background 0.2s;
 }
 
 .github a:hover {
-    background: #c11;
+    background: var(--blue-5);
     color: #fff;
 }
 
-.github a::before, .github a::after {
+/* ---------- Hero ---------- */
+.hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 64px 24px;
+    background: var(--bg-base);
+    overflow: hidden;
+}
+
+/* 背景装饰 */
+.hero::before,
+.hero::after {
     content: "";
-    width: 100%;
-    display: block;
     position: absolute;
-    top: 1px;
-    left: 0;
-    height: 1px;
-    background: #fff;
+    border-radius: 50%;
+    pointer-events: none;
 }
 
-.github a::after {
-    bottom: 1px;
-    top: auto;
+.hero::before {
+    width: 600px;
+    height: 600px;
+    top: -200px;
+    right: -100px;
+    background: radial-gradient(circle, var(--blue-1) 0%, transparent 70%);
 }
 
-@media screen and (min-width: 800px) {
-    .github {
-        position: fixed;
-        display: block;
-        top: 0;
-        right: 0;
-        width: 200px;
-        overflow: hidden;
-        height: 200px;
-        z-index: 9999;
+.hero::after {
+    width: 500px;
+    height: 500px;
+    bottom: -150px;
+    left: -100px;
+    background: radial-gradient(circle, var(--blue-1) 0%, transparent 70%);
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+}
+
+.hero-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    border-radius: var(--radius-lg);
+    background: var(--blue-6);
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-2);
+}
+
+.hero-logo svg {
+    width: 44px;
+    height: 44px;
+    fill: #fff;
+}
+
+.hero h1 {
+    font-size: var(--font-size-heading-1);
+    font-weight: 700;
+    line-height: var(--line-height-heading);
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.hero h1 .highlight {
+    color: var(--blue-6);
+}
+
+.hero-subtitle {
+    font-size: var(--font-size-lg);
+    color: var(--text-secondary);
+    line-height: var(--line-height);
+    margin-bottom: 24px;
+    max-width: 540px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.hero-tags {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 32px;
+}
+
+/* Ant Tag */
+.ant-tag {
+    display: inline-block;
+    height: 22px;
+    padding: 0 8px;
+    font-size: var(--font-size-sm);
+    line-height: 22px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-color-secondary);
+    background: var(--bg-spotlight);
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.ant-tag-blue {
+    color: var(--blue-6);
+    background: var(--blue-1);
+    border-color: var(--blue-2);
+}
+
+.ant-tag-green {
+    color: #389e0d;
+    background: #f6ffed;
+    border-color: #b7eb8f;
+}
+
+.ant-tag-orange {
+    color: #d46b08;
+    background: #fff7e6;
+    border-color: #ffd591;
+}
+
+.ant-tag-gold {
+    color: #d48806;
+    background: #fffbe6;
+    border-color: #ffe58f;
+}
+
+/* Ant Button */
+.hero-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.ant-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 24px;
+    font-size: var(--font-size);
+    font-weight: 600;
+    line-height: 1;
+    border-radius: var(--radius-lg);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    font-family: inherit;
+}
+
+.ant-btn-primary {
+    background: var(--blue-6);
+    color: #fff;
+    border-color: var(--blue-6);
+    box-shadow: 0 2px 0 rgba(5, 145, 255, 0.1);
+}
+
+.ant-btn-primary:hover {
+    background: var(--blue-5);
+    border-color: var(--blue-5);
+}
+
+.ant-btn-default {
+    background: var(--bg-base);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.02);
+}
+
+.ant-btn-default:hover {
+    color: var(--blue-5);
+    border-color: var(--blue-5);
+}
+
+.scroll-indicator {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--text-quaternary);
+    font-size: var(--font-size-sm);
+    animation: scrollFloat 2.4s ease-in-out infinite;
+}
+
+.scroll-indicator::after {
+    content: "";
+    display: block;
+    width: 16px;
+    height: 16px;
+    margin: 8px auto 0;
+    border-right: 1.5px solid var(--text-quaternary);
+    border-bottom: 1.5px solid var(--text-quaternary);
+    transform: rotate(45deg);
+}
+
+@keyframes scrollFloat {
+    0%, 100% {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+    50% {
+        transform: translateX(-50%) translateY(8px);
+        opacity: 0.5;
+    }
+}
+
+/* ---------- Section ---------- */
+.section {
+    padding: 64px 24px;
+}
+
+.section-white {
+    background: var(--bg-base);
+}
+
+.section-grey {
+    background: var(--bg-layout);
+}
+
+.container {
+    max-width: 1080px;
+    margin: 0 auto;
+}
+
+.section-header {
+    text-align: center;
+    margin-bottom: 48px;
+}
+
+.section-header h2 {
+    font-size: var(--font-size-heading-2);
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: var(--line-height-heading);
+    margin-bottom: 8px;
+}
+
+.section-header p {
+    font-size: var(--font-size-lg);
+    color: var(--text-tertiary);
+    line-height: var(--line-height);
+}
+
+/* ---------- Ant Card (Feature) ---------- */
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+}
+
+.ant-card {
+    background: var(--bg-base);
+    border: 1px solid var(--border-color-secondary);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.ant-card:hover {
+    box-shadow: var(--shadow-2);
+    border-color: transparent;
+}
+
+.ant-card-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+    font-size: 20px;
+}
+
+.ant-card-icon-blue {
+    background: var(--blue-1);
+    color: var(--blue-6);
+}
+
+.ant-card-icon-cyan {
+    background: #e6fffb;
+    color: #13c2c2;
+}
+
+.ant-card-icon-green {
+    background: #f6ffed;
+    color: #52c41a;
+}
+
+.ant-card-icon-gold {
+    background: #fffbe6;
+    color: #faad14;
+}
+
+.ant-card-icon-purple {
+    background: #f9f0ff;
+    color: #722ed1;
+}
+
+.ant-card-icon-red {
+    background: #fff2f0;
+    color: #ff4d4f;
+}
+
+.ant-card h3 {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: var(--line-height-heading);
+    margin-bottom: 8px;
+}
+
+.ant-card p {
+    font-size: var(--font-size);
+    color: var(--text-secondary);
+    line-height: var(--line-height);
+}
+
+/* ---------- Steps ---------- */
+.steps-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+}
+
+.ant-step {
+    position: relative;
+}
+
+.ant-step-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--blue-6);
+    color: #fff;
+    font-size: var(--font-size);
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.ant-step h3 {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+}
+
+/* ---------- Code Block ---------- */
+.code-block {
+    background: #282c34;
+    border-radius: var(--radius-lg);
+    padding: 16px 24px;
+    overflow-x: auto;
+}
+
+.code-block code {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: var(--font-size);
+    color: #abb2bf;
+    line-height: 1.8;
+    white-space: pre;
+}
+
+.code-block .c-comment {
+    color: #5c6370;
+    font-style: italic;
+}
+
+.code-block .c-key {
+    color: #c678dd;
+}
+
+.code-block .c-value {
+    color: #98c379;
+}
+
+.code-block .c-flag {
+    color: #e5c07b;
+}
+
+.code-block .c-cmd {
+    color: #61afef;
+}
+
+/* ---------- Tabs (Config) ---------- */
+.ant-tabs-nav {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border-color-secondary);
+    margin-bottom: 24px;
+}
+
+.ant-tabs-tab {
+    padding: 12px 16px;
+    font-size: var(--font-size);
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+    margin-bottom: -1px;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    font-family: inherit;
+}
+
+.ant-tabs-tab:hover {
+    color: var(--blue-5);
+}
+
+.ant-tabs-tab.active {
+    color: var(--blue-6);
+    border-bottom-color: var(--blue-6);
+    font-weight: 600;
+}
+
+.ant-tabs-panel {
+    display: none;
+}
+
+.ant-tabs-panel.active {
+    display: block;
+}
+
+/* ---------- Deploy Grid ---------- */
+.deploy-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+}
+
+.deploy-card {
+    background: var(--bg-base);
+    border: 1px solid var(--border-color-secondary);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    text-align: center;
+    transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.deploy-card:hover {
+    box-shadow: var(--shadow-2);
+    border-color: transparent;
+}
+
+.deploy-card-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+    line-height: 1;
+}
+
+.deploy-card h3 {
+    font-size: var(--font-size);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.deploy-card p {
+    font-size: var(--font-size-sm);
+    color: var(--text-tertiary);
+    line-height: var(--line-height);
+}
+
+/* ---------- Footer ---------- */
+.footer {
+    background: var(--bg-base);
+    border-top: 1px solid var(--border-color-secondary);
+    padding: 24px;
+    text-align: center;
+}
+
+.footer p {
+    font-size: var(--font-size-sm);
+    color: var(--text-tertiary);
+    line-height: 1.8;
+}
+
+.footer a {
+    color: var(--text-secondary);
+}
+
+.footer a:hover {
+    color: var(--blue-6);
+}
+
+/* ---------- Click Effect ---------- */
+.click-text {
+    position: absolute;
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    pointer-events: none;
+    z-index: 9999;
+    user-select: none;
+}
+
+/* ---------- Fade In ---------- */
+.fade-in {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.fade-in.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+    .hero {
+        padding: 48px 16px;
     }
 
-    .github a {
-        width: 200px;
-        position: absolute;
-        top: 60px;
-        right: -60px;
-        transform: rotate(45deg);
-        -webkit-transform: rotate(45deg);
-        -ms-transform: rotate(45deg);
-        -moz-transform: rotate(45deg);
-        -o-transform: rotate(45deg);
-        box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.8);
+    .hero h1 {
+        font-size: var(--font-size-heading-2);
+    }
+
+    .section {
+        padding: 48px 16px;
+    }
+
+    .section-header {
+        margin-bottom: 32px;
+    }
+
+    .section-header h2 {
+        font-size: var(--font-size-heading-3);
+    }
+
+    .card-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .steps-row {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .deploy-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+
+    .github {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero h1 {
+        font-size: var(--font-size-heading-3);
+    }
+
+    .hero-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .deploy-grid {
+        grid-template-columns: 1fr;
     }
 }
