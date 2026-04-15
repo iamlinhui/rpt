@@ -4,7 +4,6 @@ import cn.holmes.rpt.base.config.ProxyType;
 import cn.holmes.rpt.base.executor.MessageExecutor;
 import cn.holmes.rpt.base.executor.MessageExecutorFactory;
 import cn.holmes.rpt.base.protocol.Message;
-import cn.holmes.rpt.base.protocol.Meta;
 import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
 import io.netty.channel.*;
@@ -38,11 +37,6 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         if (Objects.isNull(messageExecutor)) {
             return;
         }
-        Meta meta = message.getMeta();
-        if (meta == null || meta.getRemoteConfigList() == null || meta.getRemoteConfigList().isEmpty()) {
-            context.close();
-            return;
-        }
         messageExecutor.execute(context, message);
     }
 
@@ -61,8 +55,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         if (Objects.isNull(clientKey)) {
             logger.info("服务端-客户端代理连接中断");
             Channel localChannel = ctx.channel().attr(Server.LOCAL).getAndSet(null);
-            ProxyType proxyType = ctx.channel().attr(Server.PROXY_TYPE).get();
             if (Objects.nonNull(localChannel) && localChannel.isActive()) {
+                ProxyType proxyType = localChannel.attr(Server.PROXY_TYPE).get();
                 localChannel.attr(Server.PROXY).set(null);
                 if (!Objects.equals(proxyType, ProxyType.UDP)) {
                     localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);

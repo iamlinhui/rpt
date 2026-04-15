@@ -46,10 +46,8 @@ public class ConnectedExecutor implements MessageExecutor {
         }
         // binding each other
         Channel proxyChannel = context.channel();
-        RemoteConfig remoteConfig = meta.getRemoteConfig();
-        ProxyType proxyType = Optional.ofNullable(remoteConfig.getProxyType()).orElse(ProxyType.TCP);
+        ProxyType proxyType = localChannel.attr(Server.PROXY_TYPE).get();
         if (Objects.equals(ProxyType.UDP, proxyType)) {
-            // UDP: localChannel是共享的DatagramChannel，设置发送者地址用于响应路由
             proxyChannel.attr(Server.LOCAL).set(localChannel);
             FireEvent fireEvent = new FireEvent(channelId, proxyChannel, getMessageType());
             localChannel.pipeline().fireUserEventTriggered(fireEvent);

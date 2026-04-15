@@ -1,7 +1,6 @@
 package cn.holmes.rpt.server.executor;
 
 import cn.holmes.rpt.base.config.ProxyType;
-import cn.holmes.rpt.base.config.RemoteConfig;
 import cn.holmes.rpt.base.executor.MessageExecutor;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
@@ -29,15 +28,13 @@ public class DataExecutor implements MessageExecutor {
             return;
         }
         byte[] data = Optional.ofNullable(message.getData()).orElse(EmptyArrays.EMPTY_BYTES);
-        RemoteConfig remoteConfig = message.getMeta().getRemoteConfig();
-        ProxyType proxyType = Optional.ofNullable(remoteConfig.getProxyType()).orElse(ProxyType.TCP);
+        ProxyType proxyType = localChannel.attr(Server.PROXY_TYPE).get();
         Channel proxyChannel = context.channel();
         if (Objects.equals(ProxyType.UDP, proxyType)) {
             InetSocketAddress udpSender = proxyChannel.attr(Server.UDP_SENDER).get();
             if (udpSender == null) {
                 return;
             }
-            // UDP: 将字节数据包装为DatagramPacket发送回外部客户端
             ByteBuf buf = localChannel.alloc().buffer(data.length);
             buf.writeBytes(data);
             localChannel.writeAndFlush(new DatagramPacket(buf, udpSender));

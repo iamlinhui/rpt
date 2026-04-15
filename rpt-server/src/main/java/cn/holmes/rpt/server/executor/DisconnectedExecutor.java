@@ -1,7 +1,6 @@
 package cn.holmes.rpt.server.executor;
 
 import cn.holmes.rpt.base.config.ProxyType;
-import cn.holmes.rpt.base.config.RemoteConfig;
 import cn.holmes.rpt.base.executor.MessageExecutor;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
@@ -39,14 +38,12 @@ public class DisconnectedExecutor implements MessageExecutor {
             return;
         }
         Channel proxyChannel = context.channel();
-        RemoteConfig remoteConfig = message.getMeta().getRemoteConfig();
-        ProxyType proxyType = Optional.ofNullable(remoteConfig.getProxyType()).orElse(ProxyType.TCP);
-        // UDP: DatagramChannel是共享的，不能关闭，只清理会话状态
+        ProxyType proxyType = localChannel.attr(Server.PROXY_TYPE).get();
         if (Objects.equals(ProxyType.UDP, proxyType)) {
             FireEvent fireEvent = new FireEvent(channelId, proxyChannel, getMessageType());
             localChannel.pipeline().fireUserEventTriggered(fireEvent);
-        } else {
-            localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
+            return;
         }
+        localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
     }
 }
