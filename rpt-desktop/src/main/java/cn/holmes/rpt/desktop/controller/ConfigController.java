@@ -8,11 +8,12 @@ import cn.holmes.rpt.base.utils.StringUtils;
 import cn.holmes.rpt.desktop.utils.SystemTrayUtil;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Dialog;
-import javafx.scene.control.TextField;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.util.Pair;
 
@@ -36,75 +37,90 @@ public class ConfigController {
 
     public static RemoteConfig buildDialog(String confirm, String headerTex, RemoteConfig remoteConfig) {
         Pair<ButtonType, Dialog<ButtonType>> pair = buildDialog(confirm, headerTex);
+        Dialog<ButtonType> dialog = pair.getValue();
 
+        ComboBox<ProxyType> proxyType = new ComboBox<>(FXCollections.observableArrayList(ProxyType.values()));
+        proxyType.setPrefWidth(300);
         TextField localIp = new TextField(remoteConfig.getLocalIp());
+        localIp.setPrefWidth(300);
         TextField localPort = new TextField(String.valueOf(remoteConfig.getLocalPort()));
-        localPort.textProperty().addListener((observable, oldValue, newValue) -> {
-            if (!CHECK_REGEX.matcher(newValue).matches()) {
-                localPort.setText(REPLACE_REGEX.matcher(newValue).replaceAll(""));
-            }
-        });
-
+        localPort.setPrefWidth(300);
+        addPortFilter(localPort);
         TextField domain = new TextField(remoteConfig.getDomain());
         domain.setPrefWidth(300);
         TextField token = new TextField(remoteConfig.getToken());
         token.setPrefWidth(300);
-
         TextField remotePort = new TextField(String.valueOf(remoteConfig.getRemotePort()));
-        remotePort.textProperty().addListener((observable, oldValue, newValue) -> {
-            if (!CHECK_REGEX.matcher(newValue).matches()) {
-                remotePort.setText(REPLACE_REGEX.matcher(newValue).replaceAll(""));
-            }
-        });
+        remotePort.setPrefWidth(300);
+        addPortFilter(remotePort);
+        TextField description = new TextField(remoteConfig.getDescription());
+        description.setPrefWidth(300);
 
-        ComboBox<ProxyType> proxyType = new ComboBox<>(FXCollections.observableArrayList(ProxyType.values()));
-        proxyType.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            domain.setDisable(false);
-            token.setDisable(false);
-            remotePort.setDisable(false);
-            if (Objects.equals(ProxyType.TCP, newValue) || Objects.equals(ProxyType.UDP, newValue)) {
-                domain.setDisable(true);
-                token.setDisable(true);
+        HBox domainRow = createRow("暴露域名", domain);
+        HBox tokenRow = createRow("访问账户", token);
+        HBox remotePortRow = createRow("暴露端口", remotePort);
+
+        VBox form = new VBox(10);
+        form.setPadding(new Insets(20));
+        form.getChildren().addAll(
+                createRow("传输类型", proxyType),
+                createRow("本地地址", localIp),
+                createRow("本地端口", localPort),
+                domainRow,
+                tokenRow,
+                remotePortRow,
+                createRow("备注", description)
+        );
+
+        dialog.getDialogPane().setContent(form);
+        Button confirmButton = (Button) dialog.getDialogPane().lookupButton(pair.getKey());
+
+        Runnable validate = () -> {
+            ProxyType type = proxyType.getValue();
+            boolean isHttp = type == ProxyType.HTTP;
+            boolean isTcpOrUdp = type == ProxyType.TCP || type == ProxyType.UDP;
+
+            setNodeVisible(domainRow, isHttp);
+            setNodeVisible(tokenRow, isHttp);
+            setNodeVisible(remotePortRow, isTcpOrUdp);
+
+            dialog.getDialogPane().requestLayout();
+            if (dialog.getDialogPane().getScene() != null) {
+                dialog.getDialogPane().getScene().getWindow().sizeToScene();
+            }
+
+            if (type == null) {
+                confirmButton.setDisable(true);
+                return;
+            }
+            boolean valid = StringUtils.hasText(localIp.getText()) && StringUtils.hasText(localPort.getText());
+            if (isHttp) {
+                valid = valid && StringUtils.hasText(domain.getText());
+            }
+            if (isTcpOrUdp) {
+                valid = valid && StringUtils.hasText(remotePort.getText());
+            }
+            confirmButton.setDisable(!valid);
+        };
+
+        proxyType.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal == ProxyType.TCP || newVal == ProxyType.UDP) {
                 domain.setText("");
                 token.setText("");
-            }
-            if (Objects.equals(ProxyType.HTTP, newValue)) {
-                remotePort.setDisable(true);
+            } else if (newVal == ProxyType.HTTP) {
                 remotePort.setText("");
             }
+            validate.run();
         });
+        localIp.textProperty().addListener((obs, o, n) -> validate.run());
+        localPort.textProperty().addListener((obs, o, n) -> validate.run());
+        domain.textProperty().addListener((obs, o, n) -> validate.run());
+        remotePort.textProperty().addListener((obs, o, n) -> validate.run());
+
         proxyType.setValue(remoteConfig.getProxyType());
+        validate.run();
 
-        TextField description = new TextField(remoteConfig.getDescription());
-
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20));
-        grid.add(new Text("传输类型"), 0, 0);
-        grid.add(proxyType, 1, 0);
-
-        grid.add(new Text("本地地址"), 0, 1);
-        grid.add(localIp, 1, 1);
-
-        grid.add(new Text("本地端口"), 0, 2);
-        grid.add(localPort, 1, 2);
-
-        grid.add(new Text("暴露域名"), 0, 3);
-        grid.add(domain, 1, 3);
-
-        grid.add(new Text("访问账户"), 0, 4);
-        grid.add(token, 1, 4);
-
-        grid.add(new Text("暴露端口"), 0, 5);
-        grid.add(remotePort, 1, 5);
-
-        grid.add(new Text("备注"), 0, 6);
-        grid.add(description, 1, 6);
-
-        pair.getValue().getDialogPane().setContent(grid);
-
-        ButtonType buttonType = pair.getValue().showAndWait().orElse(null);
+        ButtonType buttonType = dialog.showAndWait().orElse(null);
         if (Objects.equals(buttonType, pair.getKey())) {
             remoteConfig.setProxyType(proxyType.getValue());
             remoteConfig.setLocalIp(localIp.getText());
@@ -118,17 +134,36 @@ public class ConfigController {
         return null;
     }
 
+    public static boolean confirmDelete(RemoteConfig remoteConfig) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("传输类型: ").append(remoteConfig.getProxyType()).append("\n");
+        sb.append("本地映射: ").append(remoteConfig.getLocalIp()).append(":").append(remoteConfig.getLocalPort()).append("\n");
+        if (Objects.equals(ProxyType.HTTP, remoteConfig.getProxyType())) {
+            sb.append("暴露域名: ").append(remoteConfig.getDomain()).append("\n");
+            if (StringUtils.hasText(remoteConfig.getToken())) {
+                sb.append("访问账户: ").append(remoteConfig.getToken()).append("\n");
+            }
+        } else {
+            sb.append("暴露端口: ").append(remoteConfig.getRemotePort()).append("\n");
+        }
+        if (StringUtils.hasText(remoteConfig.getDescription())) {
+            sb.append("备注: ").append(remoteConfig.getDescription()).append("\n");
+        }
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("删除");
+        alert.setHeaderText("确定删除?");
+        alert.setContentText(sb.toString());
+        alert.initOwner(SystemTrayUtil.getPrimaryStage());
+        return Objects.equals(ButtonType.OK, alert.showAndWait().orElse(null));
+    }
+
     public static ClientConfig buildDialog(String confirm, String headerTex, ClientConfig clientConfig) {
 
         Pair<ButtonType, Dialog<ButtonType>> pair = buildDialog(confirm, headerTex);
 
         TextField serverIp = new TextField(clientConfig.getServerIp());
         TextField serverPort = new TextField(String.valueOf(clientConfig.getServerPort()));
-        serverPort.textProperty().addListener((observable, oldValue, newValue) -> {
-            if (!CHECK_REGEX.matcher(newValue).matches()) {
-                serverPort.setText(REPLACE_REGEX.matcher(newValue).replaceAll(""));
-            }
-        });
+        addPortFilter(serverPort);
         TextField clientKey = new TextField(clientConfig.getClientKey());
         clientKey.setPrefWidth(300);
 
@@ -156,5 +191,27 @@ public class ConfigController {
             return clientConfig;
         }
         return null;
+    }
+
+    private static HBox createRow(String labelText, Node field) {
+        Label label = new Label(labelText);
+        label.setMinWidth(70);
+        label.setPrefWidth(70);
+        HBox row = new HBox(10, label, field);
+        row.setAlignment(Pos.CENTER_LEFT);
+        return row;
+    }
+
+    private static void setNodeVisible(Node node, boolean visible) {
+        node.setVisible(visible);
+        node.setManaged(visible);
+    }
+
+    private static void addPortFilter(TextField field) {
+        field.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!CHECK_REGEX.matcher(newValue).matches()) {
+                field.setText(REPLACE_REGEX.matcher(newValue).replaceAll(""));
+            }
+        });
     }
 }

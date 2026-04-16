@@ -1,31 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.ContextMenu?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.layout.*?>
-<VBox fx:controller="cn.holmes.rpt.desktop.controller.MainController" maxHeight="-Infinity" maxWidth="-Infinity"
-      minHeight="-Infinity" minWidth="-Infinity"
+<VBox fx:controller="cn.holmes.rpt.desktop.controller.MainController" prefWidth="750" prefHeight="500"
       xmlns="http://javafx.com/javafx/11.0.14-internal" xmlns:fx="http://javafx.com/fxml/1">
-    <padding>
-        <Insets/>
-    </padding>
-    <HBox VBox.vgrow="NEVER">
-        <padding>
-            <Insets/>
-        </padding>
-        <fx:include source="menu.fxml" HBox.hgrow="ALWAYS"/>
-    </HBox>
-    <HBox VBox.vgrow="ALWAYS">
-        <padding>
-            <Insets/>
-        </padding>
-        <TableView fx:id="tableView" prefWidth="750" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS"/>
-    </HBox>
-    <HBox VBox.vgrow="ALWAYS">
-        <padding>
-            <Insets/>
-        </padding>
-        <TextArea fx:id="textArea" prefWidth="750" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS"/>
-    </HBox>
+    <fx:include source="menu.fxml"/>
+    <SplitPane orientation="VERTICAL" dividerPositions="0.65" VBox.vgrow="ALWAYS">
+        <TableView fx:id="tableView"/>
+        <TextArea fx:id="textArea" editable="false" wrapText="true">
+            <contextMenu>
+                <ContextMenu>
+                    <items>
+                        <MenuItem text="清空" onAction="#clearLog"/>
+                    </items>
+                </ContextMenu>
+            </contextMenu>
+        </TextArea>
+    </SplitPane>
 </VBox>

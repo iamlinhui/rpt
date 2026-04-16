@@ -1,5 +1,6 @@
 package cn.holmes.rpt.desktop.controller;
 
+import cn.holmes.rpt.base.config.ProxyType;
 import cn.holmes.rpt.base.config.RemoteConfig;
 import cn.holmes.rpt.base.utils.Config;
 import cn.holmes.rpt.base.utils.Constants;
@@ -56,7 +57,9 @@ public class MenuController {
             TooltipUtil.show("请先关闭连接!");
             return;
         }
-        RemoteConfig remoteConfig = ConfigController.buildDialog("确定", "新增映射配置", new RemoteConfig());
+        RemoteConfig newConfig = new RemoteConfig();
+        newConfig.setProxyType(ProxyType.TCP);
+        RemoteConfig remoteConfig = ConfigController.buildDialog("确定", "新增映射配置", newConfig);
         if (remoteConfig != null) {
             MainController.INSTANCE.addConfig(remoteConfig);
         }

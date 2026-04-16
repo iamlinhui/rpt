@@ -1,20 +1,17 @@
 package cn.holmes.rpt.desktop.controller;
 
+import cn.holmes.rpt.base.config.ProxyType;
 import cn.holmes.rpt.base.config.RemoteConfig;
 import cn.holmes.rpt.base.utils.Config;
 import cn.holmes.rpt.desktop.cache.ClientConfigCache;
 import cn.holmes.rpt.desktop.utils.TooltipUtil;
-import javafx.beans.property.ReadOnlyDoubleProperty;
+import javafx.beans.binding.Bindings;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableRow;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextArea;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.input.MouseButton;
 
-import java.awt.event.MouseEvent;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,109 +40,105 @@ public class MainController {
     @FXML
     public TextArea textArea;
 
+    @FXML
+    public void clearLog() {
+        textArea.clear();
+    }
+
     public synchronized void addLog(String message) {
-        textArea.appendText(LocalDateTime.now().toString());
-        textArea.appendText("|");
-        textArea.appendText(Optional.ofNullable(message).orElse("NULL"));
-        textArea.appendText("\n");
+        textArea.appendText(LocalDateTime.now() + "|" + Optional.ofNullable(message).orElse("NULL") + "\n");
     }
 
     public void addConfig(RemoteConfig remoteConfig) {
         CONFIG.add(remoteConfig);
-        tableView.getItems().clear();
-        tableView.setItems(FXCollections.observableArrayList(CONFIG));
+        refreshTable();
         Config.getClientConfig().setConfig(CONFIG);
     }
 
-    @SuppressWarnings("unchecked")
     public void initialize() {
         ClientConfigCache.read();
-        ReadOnlyDoubleProperty widthProperty = tableView.widthProperty();
         CONFIG.addAll(Optional.ofNullable(Config.getClientConfig().getConfig()).orElse(new ArrayList<>()));
-        TableColumn<RemoteConfig, String> proxyType = new TableColumn<>("传输类型");
-        proxyType.prefWidthProperty().bind(widthProperty.multiply(.14));
-        proxyType.setCellValueFactory(new PropertyValueFactory<>("proxyType"));
 
-        TableColumn<RemoteConfig, String> localIp = new TableColumn<>("本地地址");
-        localIp.prefWidthProperty().bind(widthProperty.multiply(.14));
-        localIp.setCellValueFactory(new PropertyValueFactory<>("localIp"));
+        addColumn("传输类型", "proxyType", 0.15);
 
-        TableColumn<RemoteConfig, Integer> localPort = new TableColumn<>("本地端口");
-        localPort.prefWidthProperty().bind(widthProperty.multiply(.14));
-        localPort.setCellValueFactory(new PropertyValueFactory<>("localPort"));
+        TableColumn<RemoteConfig, String> localCol = new TableColumn<>("本地映射");
+        localCol.prefWidthProperty().bind(tableView.widthProperty().multiply(0.25));
+        localCol.setCellValueFactory(data -> {
+            RemoteConfig config = data.getValue();
+            return new SimpleStringProperty(config.getLocalIp() + ":" + config.getLocalPort());
+        });
+        tableView.getColumns().add(localCol);
 
-        TableColumn<RemoteConfig, String> domain = new TableColumn<>("暴露域名");
-        domain.prefWidthProperty().bind(widthProperty.multiply(.14));
-        domain.setCellValueFactory(new PropertyValueFactory<>("domain"));
+        TableColumn<RemoteConfig, String> remoteCol = new TableColumn<>("暴露映射");
+        remoteCol.prefWidthProperty().bind(tableView.widthProperty().multiply(0.35));
+        remoteCol.setCellValueFactory(data -> {
+            RemoteConfig config = data.getValue();
+            if (config.getProxyType() == ProxyType.HTTP) {
+                String info = Optional.ofNullable(config.getDomain()).orElse("");
+                String tokenVal = config.getToken();
+                if (tokenVal != null && !tokenVal.isEmpty()) {
+                    info += " (" + tokenVal + ")";
+                }
+                return new SimpleStringProperty(info);
+            }
+            return new SimpleStringProperty(":" + config.getRemotePort());
+        });
+        tableView.getColumns().add(remoteCol);
 
-        TableColumn<RemoteConfig, String> token = new TableColumn<>("访问账户");
-        token.prefWidthProperty().bind(widthProperty.multiply(.14));
-        token.setCellValueFactory(new PropertyValueFactory<>("token"));
+        addColumn("备注", "description", 0.23);
 
-        TableColumn<RemoteConfig, Integer> remotePort = new TableColumn<>("暴露端口");
-        remotePort.prefWidthProperty().bind(widthProperty.multiply(.14));
-        remotePort.setCellValueFactory(new PropertyValueFactory<>("remotePort"));
-
-        TableColumn<RemoteConfig, String> description = new TableColumn<>("备注");
-        description.prefWidthProperty().bind(widthProperty.multiply(.14));
-        description.setCellValueFactory(new PropertyValueFactory<>("description"));
-
-        tableView.getColumns().addAll(proxyType, localIp, localPort, domain, token, remotePort, description);
-
-        tableView.setItems(FXCollections.observableArrayList(CONFIG));
+        refreshTable();
 
         tableView.setRowFactory(param -> {
-            TableRow<RemoteConfig> remoteConfigTableRow = new TableRow<>();
-            remoteConfigTableRow.setOnMousePressed(event -> {
-                MouseButton button = event.getButton();
-                //左键双击操作
-                if (button == MouseButton.PRIMARY && event.getClickCount() == MouseEvent.BUTTON2) {
-                    update(remoteConfigTableRow);
-                }
-                // 右键点击
-                if (button == MouseButton.SECONDARY && event.getClickCount() == MouseEvent.BUTTON1) {
-                    remove(remoteConfigTableRow);
-                }
-            });
-            return remoteConfigTableRow;
+            TableRow<RemoteConfig> row = new TableRow<>();
+            MenuItem editItem = new MenuItem("编辑");
+            MenuItem deleteItem = new MenuItem("删除");
+            editItem.setOnAction(event -> update(row));
+            deleteItem.setOnAction(event -> remove(row));
+            ContextMenu contextMenu = new ContextMenu(editItem, deleteItem);
+            row.contextMenuProperty().bind(Bindings.when(row.emptyProperty()).then((ContextMenu) null).otherwise(contextMenu));
+            return row;
         });
     }
 
-    private void update(TableRow<RemoteConfig> remoteConfigTableRow) {
-        RemoteConfig remoteConfig = remoteConfigTableRow.getItem();
-        if (remoteConfig == null) {
-            return;
-        }
-        if (MenuController.isStart()) {
-            TooltipUtil.show("请先关闭连接!");
-            return;
-        }
-        RemoteConfig result = ConfigController.buildDialog("修改", "修改映射配置", remoteConfig);
-        if (result == null) {
-            return;
-        }
-        tableView.getItems().clear();
-        tableView.setItems(FXCollections.observableArrayList(CONFIG));
-        Config.getClientConfig().setConfig(CONFIG);
-        ClientConfigCache.cache();
+    private void addColumn(String title, String property, double widthRatio) {
+        TableColumn<RemoteConfig, ?> column = new TableColumn<>(title);
+        column.prefWidthProperty().bind(tableView.widthProperty().multiply(widthRatio));
+        column.setCellValueFactory(new PropertyValueFactory<>(property));
+        tableView.getColumns().add(column);
     }
 
-    private void remove(TableRow<RemoteConfig> remoteConfigTableRow) {
-        RemoteConfig remoteConfig = remoteConfigTableRow.getItem();
-        if (remoteConfig == null) {
-            return;
-        }
+    private void refreshTable() {
+        tableView.setItems(FXCollections.observableArrayList(CONFIG));
+    }
+
+    private boolean checkStarted() {
         if (MenuController.isStart()) {
             TooltipUtil.show("请先关闭连接!");
+            return true;
+        }
+        return false;
+    }
+
+    private void update(TableRow<RemoteConfig> row) {
+        RemoteConfig remoteConfig = row.getItem();
+        if (remoteConfig == null || checkStarted()) {
             return;
         }
-        RemoteConfig result = ConfigController.buildDialog("删除", "删除映射配置", remoteConfig);
-        if (result == null) {
+        if (ConfigController.buildDialog("修改", "修改映射配置", remoteConfig) != null) {
+            refreshTable();
+            Config.getClientConfig().setConfig(CONFIG);
+            ClientConfigCache.cache();
+        }
+    }
+
+    private void remove(TableRow<RemoteConfig> row) {
+        RemoteConfig remoteConfig = row.getItem();
+        if (remoteConfig == null || checkStarted()) {
             return;
         }
-        if (CONFIG.remove(remoteConfigTableRow.getItem())) {
-            tableView.getItems().clear();
-            tableView.setItems(FXCollections.observableArrayList(CONFIG));
+        if (ConfigController.confirmDelete(remoteConfig) && CONFIG.remove(remoteConfig)) {
+            refreshTable();
             Config.getClientConfig().setConfig(CONFIG);
             ClientConfigCache.cache();
         }
