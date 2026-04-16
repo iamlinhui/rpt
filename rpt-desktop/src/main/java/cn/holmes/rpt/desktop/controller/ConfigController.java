@@ -11,10 +11,8 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.Text;
 import javafx.util.Pair;
 
 import java.util.Objects;
@@ -22,55 +20,29 @@ import java.util.regex.Pattern;
 
 public class ConfigController {
 
-    private static final Pattern CHECK_REGEX = Pattern.compile("\\d*");
-    private static final Pattern REPLACE_REGEX = Pattern.compile("\\D");
+    private static final int FIELD_WIDTH = 300;
+    private static final int LABEL_WIDTH = 70;
+    private static final Pattern DIGIT_PATTERN = Pattern.compile("\\d*");
+    private static final Pattern NON_DIGIT_PATTERN = Pattern.compile("\\D");
 
-    public static Pair<ButtonType, Dialog<ButtonType>> buildDialog(String confirm, String headerTex) {
-        ButtonType buttonType = new ButtonType(confirm);
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle(Constants.Desktop.TITLE);
-        dialog.setHeaderText(headerTex);
-        dialog.initOwner(SystemTrayUtil.getPrimaryStage());
-        dialog.getDialogPane().getButtonTypes().add(buttonType);
-        return new Pair<>(buttonType, dialog);
-    }
-
-    public static RemoteConfig buildDialog(String confirm, String headerTex, RemoteConfig remoteConfig) {
-        Pair<ButtonType, Dialog<ButtonType>> pair = buildDialog(confirm, headerTex);
+    public static RemoteConfig buildDialog(String confirm, String headerText, RemoteConfig remoteConfig) {
+        Pair<ButtonType, Dialog<ButtonType>> pair = createDialog(confirm, headerText);
         Dialog<ButtonType> dialog = pair.getValue();
 
         ComboBox<ProxyType> proxyType = new ComboBox<>(FXCollections.observableArrayList(ProxyType.values()));
-        proxyType.setPrefWidth(300);
-        TextField localIp = new TextField(remoteConfig.getLocalIp());
-        localIp.setPrefWidth(300);
-        TextField localPort = new TextField(String.valueOf(remoteConfig.getLocalPort()));
-        localPort.setPrefWidth(300);
-        addPortFilter(localPort);
-        TextField domain = new TextField(remoteConfig.getDomain());
-        domain.setPrefWidth(300);
-        TextField token = new TextField(remoteConfig.getToken());
-        token.setPrefWidth(300);
-        TextField remotePort = new TextField(String.valueOf(remoteConfig.getRemotePort()));
-        remotePort.setPrefWidth(300);
-        addPortFilter(remotePort);
-        TextField description = new TextField(remoteConfig.getDescription());
-        description.setPrefWidth(300);
+        proxyType.setPrefWidth(FIELD_WIDTH);
+        TextField localIp = createTextField(remoteConfig.getLocalIp());
+        TextField localPort = createPortField(remoteConfig.getLocalPort());
+        TextField domain = createTextField(remoteConfig.getDomain());
+        TextField token = createTextField(remoteConfig.getToken());
+        TextField remotePort = createPortField(remoteConfig.getRemotePort());
+        TextField description = createTextField(remoteConfig.getDescription());
 
         HBox domainRow = createRow("暴露域名", domain);
         HBox tokenRow = createRow("访问账户", token);
         HBox remotePortRow = createRow("暴露端口", remotePort);
 
-        VBox form = new VBox(10);
-        form.setPadding(new Insets(20));
-        form.getChildren().addAll(
-                createRow("传输类型", proxyType),
-                createRow("本地地址", localIp),
-                createRow("本地端口", localPort),
-                domainRow,
-                tokenRow,
-                remotePortRow,
-                createRow("备注", description)
-        );
+        VBox form = createForm(createRow("传输类型", proxyType), createRow("本地地址", localIp), createRow("本地端口", localPort), domainRow, tokenRow, remotePortRow, createRow("备注", description));
 
         dialog.getDialogPane().setContent(form);
         Button confirmButton = (Button) dialog.getDialogPane().lookupButton(pair.getKey());
@@ -83,11 +55,7 @@ public class ConfigController {
             setNodeVisible(domainRow, isHttp);
             setNodeVisible(tokenRow, isHttp);
             setNodeVisible(remotePortRow, isTcpOrUdp);
-
-            dialog.getDialogPane().requestLayout();
-            if (dialog.getDialogPane().getScene() != null) {
-                dialog.getDialogPane().getScene().getWindow().sizeToScene();
-            }
+            resizeDialog(dialog);
 
             if (type == null) {
                 confirmButton.setDisable(true);
@@ -120,18 +88,17 @@ public class ConfigController {
         proxyType.setValue(remoteConfig.getProxyType());
         validate.run();
 
-        ButtonType buttonType = dialog.showAndWait().orElse(null);
-        if (Objects.equals(buttonType, pair.getKey())) {
-            remoteConfig.setProxyType(proxyType.getValue());
-            remoteConfig.setLocalIp(localIp.getText());
-            remoteConfig.setLocalPort(StringUtils.hasText(localPort.getText()) ? Integer.parseInt(localPort.getText()) : 0);
-            remoteConfig.setDomain(domain.getText());
-            remoteConfig.setToken(token.getText());
-            remoteConfig.setRemotePort(StringUtils.hasText(remotePort.getText()) ? Integer.parseInt(remotePort.getText()) : 0);
-            remoteConfig.setDescription(description.getText());
-            return remoteConfig;
+        if (!Objects.equals(dialog.showAndWait().orElse(null), pair.getKey())) {
+            return null;
         }
-        return null;
+        remoteConfig.setProxyType(proxyType.getValue());
+        remoteConfig.setLocalIp(localIp.getText());
+        remoteConfig.setLocalPort(parsePort(localPort.getText()));
+        remoteConfig.setDomain(domain.getText());
+        remoteConfig.setToken(token.getText());
+        remoteConfig.setRemotePort(parsePort(remotePort.getText()));
+        remoteConfig.setDescription(description.getText());
+        return remoteConfig;
     }
 
     public static boolean confirmDelete(RemoteConfig remoteConfig) {
@@ -157,49 +124,72 @@ public class ConfigController {
         return Objects.equals(ButtonType.OK, alert.showAndWait().orElse(null));
     }
 
-    public static ClientConfig buildDialog(String confirm, String headerTex, ClientConfig clientConfig) {
+    public static ClientConfig buildDialog(String confirm, String headerText, ClientConfig clientConfig) {
+        Pair<ButtonType, Dialog<ButtonType>> pair = createDialog(confirm, headerText);
 
-        Pair<ButtonType, Dialog<ButtonType>> pair = buildDialog(confirm, headerTex);
+        TextField serverIp = createTextField(clientConfig.getServerIp());
+        TextField serverPort = createPortField(clientConfig.getServerPort());
+        TextField clientKey = createTextField(clientConfig.getClientKey());
 
-        TextField serverIp = new TextField(clientConfig.getServerIp());
-        TextField serverPort = new TextField(String.valueOf(clientConfig.getServerPort()));
-        addPortFilter(serverPort);
-        TextField clientKey = new TextField(clientConfig.getClientKey());
-        clientKey.setPrefWidth(300);
+        VBox form = createForm(createRow("服务端地址", serverIp), createRow("服务端端口", serverPort), createRow("连接秘钥", clientKey));
 
-        GridPane grid = new GridPane();
-        grid.setMinWidth(300);
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20));
-        grid.add(new Text("服务端地址"), 0, 0);
-        grid.add(serverIp, 1, 0);
+        pair.getValue().getDialogPane().setContent(form);
 
-        grid.add(new Text("服务端端口"), 0, 1);
-        grid.add(serverPort, 1, 1);
-
-        grid.add(new Text("连接秘钥"), 0, 3);
-        grid.add(clientKey, 1, 3);
-
-        pair.getValue().getDialogPane().setContent(grid);
-
-        ButtonType buttonType = pair.getValue().showAndWait().orElse(null);
-        if (Objects.equals(pair.getKey(), buttonType)) {
-            clientConfig.setServerIp(serverIp.getText());
-            clientConfig.setServerPort(StringUtils.hasText(serverPort.getText()) ? Integer.parseInt(serverPort.getText()) : 0);
-            clientConfig.setClientKey(clientKey.getText());
-            return clientConfig;
+        if (!Objects.equals(pair.getValue().showAndWait().orElse(null), pair.getKey())) {
+            return null;
         }
-        return null;
+        clientConfig.setServerIp(serverIp.getText());
+        clientConfig.setServerPort(parsePort(serverPort.getText()));
+        clientConfig.setClientKey(clientKey.getText());
+        return clientConfig;
+    }
+
+    // ==================== Private Helpers ====================
+
+    private static Pair<ButtonType, Dialog<ButtonType>> createDialog(String confirm, String headerText) {
+        ButtonType buttonType = new ButtonType(confirm);
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle(Constants.Desktop.TITLE);
+        dialog.setHeaderText(headerText);
+        dialog.initOwner(SystemTrayUtil.getPrimaryStage());
+        dialog.getDialogPane().getButtonTypes().add(buttonType);
+        return new Pair<>(buttonType, dialog);
+    }
+
+    private static VBox createForm(Node... rows) {
+        VBox form = new VBox(10);
+        form.setPadding(new Insets(20));
+        form.getChildren().addAll(rows);
+        return form;
     }
 
     private static HBox createRow(String labelText, Node field) {
         Label label = new Label(labelText);
-        label.setMinWidth(70);
-        label.setPrefWidth(70);
+        label.setMinWidth(LABEL_WIDTH);
+        label.setPrefWidth(LABEL_WIDTH);
         HBox row = new HBox(10, label, field);
         row.setAlignment(Pos.CENTER_LEFT);
         return row;
+    }
+
+    private static TextField createTextField(String value) {
+        TextField field = new TextField(value);
+        field.setPrefWidth(FIELD_WIDTH);
+        return field;
+    }
+
+    private static TextField createPortField(int value) {
+        TextField field = createTextField(String.valueOf(value));
+        field.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (!DIGIT_PATTERN.matcher(newVal).matches()) {
+                field.setText(NON_DIGIT_PATTERN.matcher(newVal).replaceAll(""));
+            }
+        });
+        return field;
+    }
+
+    private static int parsePort(String text) {
+        return StringUtils.hasText(text) ? Integer.parseInt(text) : 0;
     }
 
     private static void setNodeVisible(Node node, boolean visible) {
@@ -207,11 +197,10 @@ public class ConfigController {
         node.setManaged(visible);
     }
 
-    private static void addPortFilter(TextField field) {
-        field.textProperty().addListener((observable, oldValue, newValue) -> {
-            if (!CHECK_REGEX.matcher(newValue).matches()) {
-                field.setText(REPLACE_REGEX.matcher(newValue).replaceAll(""));
-            }
-        });
+    private static void resizeDialog(Dialog<?> dialog) {
+        dialog.getDialogPane().requestLayout();
+        if (dialog.getDialogPane().getScene() != null) {
+            dialog.getDialogPane().getScene().getWindow().sizeToScene();
+        }
     }
 }

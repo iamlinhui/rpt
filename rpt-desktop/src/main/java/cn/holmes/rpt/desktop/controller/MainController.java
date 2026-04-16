@@ -13,17 +13,20 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
-
 
 public class MainController {
 
     public static volatile MainController INSTANCE;
 
     private static final List<RemoteConfig> CONFIG = new CopyOnWriteArrayList<>();
+
+    @FXML
+    public TableView<RemoteConfig> tableView;
+    @FXML
+    public TextArea textArea;
 
     public MainController() {
         if (INSTANCE == null) {
@@ -35,18 +38,28 @@ public class MainController {
         }
     }
 
-    @FXML
-    public TableView<RemoteConfig> tableView;
-    @FXML
-    public TextArea textArea;
+    // ==================== FXML Lifecycle ====================
+
+    public void initialize() {
+        ClientConfigCache.read();
+        List<RemoteConfig> saved = Config.getClientConfig().getConfig();
+        if (saved != null) {
+            CONFIG.addAll(saved);
+        }
+        initColumns();
+        initRowFactory();
+        refreshTable();
+    }
 
     @FXML
     public void clearLog() {
         textArea.clear();
     }
 
+    // ==================== Public API ====================
+
     public synchronized void addLog(String message) {
-        textArea.appendText(LocalDateTime.now() + "|" + Optional.ofNullable(message).orElse("NULL") + "\n");
+        textArea.appendText(LocalDateTime.now() + "|" + (message != null ? message : "NULL") + "\n");
     }
 
     public void addConfig(RemoteConfig remoteConfig) {
@@ -55,11 +68,10 @@ public class MainController {
         Config.getClientConfig().setConfig(CONFIG);
     }
 
-    public void initialize() {
-        ClientConfigCache.read();
-        CONFIG.addAll(Optional.ofNullable(Config.getClientConfig().getConfig()).orElse(new ArrayList<>()));
+    // ==================== Private Helpers ====================
 
-        addColumn("传输类型", "proxyType", 0.15);
+    private void initColumns() {
+        addSimpleColumn("传输类型", "proxyType", 0.15);
 
         TableColumn<RemoteConfig, String> localCol = new TableColumn<>("本地映射");
         localCol.prefWidthProperty().bind(tableView.widthProperty().multiply(0.25));
@@ -71,45 +83,52 @@ public class MainController {
 
         TableColumn<RemoteConfig, String> remoteCol = new TableColumn<>("暴露映射");
         remoteCol.prefWidthProperty().bind(tableView.widthProperty().multiply(0.35));
-        remoteCol.setCellValueFactory(data -> {
-            RemoteConfig config = data.getValue();
-            if (config.getProxyType() == ProxyType.HTTP) {
-                String info = Optional.ofNullable(config.getDomain()).orElse("");
-                String tokenVal = config.getToken();
-                if (tokenVal != null && !tokenVal.isEmpty()) {
-                    info += " (" + tokenVal + ")";
-                }
-                return new SimpleStringProperty(info);
-            }
-            return new SimpleStringProperty(":" + config.getRemotePort());
-        });
+        remoteCol.setCellValueFactory(data -> new SimpleStringProperty(formatRemoteMapping(data.getValue())));
         tableView.getColumns().add(remoteCol);
 
-        addColumn("备注", "description", 0.23);
+        addSimpleColumn("备注", "description", 0.23);
+    }
 
-        refreshTable();
-
+    private void initRowFactory() {
         tableView.setRowFactory(param -> {
             TableRow<RemoteConfig> row = new TableRow<>();
             MenuItem editItem = new MenuItem("编辑");
             MenuItem deleteItem = new MenuItem("删除");
-            editItem.setOnAction(event -> update(row));
-            deleteItem.setOnAction(event -> remove(row));
+            editItem.setOnAction(event -> updateConfig(row));
+            deleteItem.setOnAction(event -> removeConfig(row));
             ContextMenu contextMenu = new ContextMenu(editItem, deleteItem);
             row.contextMenuProperty().bind(Bindings.when(row.emptyProperty()).then((ContextMenu) null).otherwise(contextMenu));
             return row;
         });
     }
 
-    private void addColumn(String title, String property, double widthRatio) {
+    private void addSimpleColumn(String title, String property, double widthRatio) {
         TableColumn<RemoteConfig, ?> column = new TableColumn<>(title);
         column.prefWidthProperty().bind(tableView.widthProperty().multiply(widthRatio));
         column.setCellValueFactory(new PropertyValueFactory<>(property));
         tableView.getColumns().add(column);
     }
 
+    private String formatRemoteMapping(RemoteConfig config) {
+        if (config.getProxyType() == ProxyType.HTTP) {
+            String info = Optional.ofNullable(config.getDomain()).orElse("");
+            String tokenVal = config.getToken();
+            if (tokenVal != null && !tokenVal.isEmpty()) {
+                info += " (" + tokenVal + ")";
+            }
+            return info;
+        }
+        return ":" + config.getRemotePort();
+    }
+
     private void refreshTable() {
         tableView.setItems(FXCollections.observableArrayList(CONFIG));
+    }
+
+    private void saveAndRefresh() {
+        refreshTable();
+        Config.getClientConfig().setConfig(CONFIG);
+        ClientConfigCache.cache();
     }
 
     private boolean checkStarted() {
@@ -120,28 +139,23 @@ public class MainController {
         return false;
     }
 
-    private void update(TableRow<RemoteConfig> row) {
+    private void updateConfig(TableRow<RemoteConfig> row) {
         RemoteConfig remoteConfig = row.getItem();
         if (remoteConfig == null || checkStarted()) {
             return;
         }
         if (ConfigController.buildDialog("修改", "修改映射配置", remoteConfig) != null) {
-            refreshTable();
-            Config.getClientConfig().setConfig(CONFIG);
-            ClientConfigCache.cache();
+            saveAndRefresh();
         }
     }
 
-    private void remove(TableRow<RemoteConfig> row) {
+    private void removeConfig(TableRow<RemoteConfig> row) {
         RemoteConfig remoteConfig = row.getItem();
         if (remoteConfig == null || checkStarted()) {
             return;
         }
         if (ConfigController.confirmDelete(remoteConfig) && CONFIG.remove(remoteConfig)) {
-            refreshTable();
-            Config.getClientConfig().setConfig(CONFIG);
-            ClientConfigCache.cache();
+            saveAndRefresh();
         }
     }
-
 }

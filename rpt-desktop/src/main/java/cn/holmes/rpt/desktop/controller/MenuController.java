@@ -31,43 +31,19 @@ public class MenuController {
     @FXML
     public MenuItem addText;
 
-    @FXML
-    public void about() {
-        final Hyperlink hyperlink = new Hyperlink("https://github.com/iamlinhui/rpt");
-        hyperlink.setOnAction(t -> {
-            HostServices hostServices = (HostServices) SystemTrayUtil.getPrimaryStage().getProperties().get("hostServices");
-            hostServices.showDocument(hyperlink.getText());
-        });
-        Alert alert = createAlert("关于");
-        alert.setGraphic(hyperlink);
-        alert.setContentText(String.format("Version %s %nPowered By Lynn", Constants.Desktop.VERSION));
-        alert.showAndWait();
-    }
-
-    @FXML
-    public void instruction() {
-        Alert alert = createAlert("使用说明");
-        alert.setContentText("1.先填写服务器配置信息\n2.再填写映射配置信息\n3.最后点击开启服务");
-        alert.showAndWait();
-    }
+    // ==================== FXML Event Handlers ====================
 
     @FXML
     public void add() {
-        if (isStart()) {
-            TooltipUtil.show("请先关闭连接!");
+        if (checkStarted()) {
             return;
         }
         RemoteConfig newConfig = new RemoteConfig();
         newConfig.setProxyType(ProxyType.TCP);
-        RemoteConfig remoteConfig = ConfigController.buildDialog("确定", "新增映射配置", newConfig);
-        if (remoteConfig != null) {
-            MainController.INSTANCE.addConfig(remoteConfig);
+        RemoteConfig result = ConfigController.buildDialog("确定", "新增映射配置", newConfig);
+        if (result != null) {
+            MainController.INSTANCE.addConfig(result);
         }
-    }
-
-    @FXML
-    public void close() {
-        System.exit(0);
     }
 
     @FXML
@@ -90,8 +66,14 @@ public class MenuController {
         };
         service.setOnSucceeded(event -> {
             boolean success = service.getValue();
-            Platform.runLater(() -> TooltipUtil.show(success ? (isStart() ? "开启成功!" : "关闭成功!") : (isStart() ? "关闭失败!" : "开启失败!")));
             boolean started = isStart();
+            Platform.runLater(() -> {
+                if (success) {
+                    TooltipUtil.show(started ? "开启成功!" : "关闭成功!");
+                } else {
+                    TooltipUtil.show(started ? "关闭失败!" : "开启失败!");
+                }
+            });
             startText.setText(started ? "关闭" : "开启");
             MainController.INSTANCE.tableView.setDisable(started);
             configText.setDisable(started);
@@ -100,8 +82,45 @@ public class MenuController {
         ProgressUtil.of(SystemTrayUtil.getPrimaryStage(), service).show();
     }
 
+    @FXML
+    public void about() {
+        Hyperlink hyperlink = new Hyperlink("https://github.com/iamlinhui/rpt");
+        hyperlink.setOnAction(e -> {
+            HostServices hostServices = (HostServices) SystemTrayUtil.getPrimaryStage().getProperties().get("hostServices");
+            hostServices.showDocument(hyperlink.getText());
+        });
+        Alert alert = createAlert("关于");
+        alert.setGraphic(hyperlink);
+        alert.setContentText(String.format("Version %s %nPowered By Lynn", Constants.Desktop.VERSION));
+        alert.showAndWait();
+    }
+
+    @FXML
+    public void instruction() {
+        Alert alert = createAlert("使用说明");
+        alert.setContentText("1.先填写服务器配置信息\n2.再填写映射配置信息\n3.最后点击开启服务");
+        alert.showAndWait();
+    }
+
+    @FXML
+    public void close() {
+        System.exit(0);
+    }
+
+    // ==================== Public API ====================
+
     public static boolean isStart() {
         return CLIENT_REF.get() != null;
+    }
+
+    // ==================== Private Helpers ====================
+
+    private static boolean checkStarted() {
+        if (isStart()) {
+            TooltipUtil.show("请先关闭连接!");
+            return true;
+        }
+        return false;
     }
 
     private static boolean stop() {
