@@ -346,12 +346,17 @@ func (c *Client) relayLocalToProxy(local net.Conn, proxyConn *protocol.Conn, met
 				return
 			default:
 			}
-			// Notify server of disconnect, then release proxy conn back to pool.
-			proxyConn.Send(&protocol.Message{
+			// Notify server of disconnect. Do NOT return proxy conn to pool here —
+			// relayProxyToLocal is still blocking on Receive(). Let that goroutine
+			// handle the pool return when it receives the server's disconnect reply.
+			if sendErr := proxyConn.Send(&protocol.Message{
 				Type: protocol.TypeDisconnected,
 				Meta: meta,
-			})
-			endSession(true)
+			}); sendErr != nil {
+				// Send failed — proxy conn is broken. endSession(false) will close it
+				// and relayProxyToLocal's Receive will error out too.
+				endSession(false)
+			}
 			return
 		}
 	}
@@ -361,6 +366,7 @@ func (c *Client) relayProxyToLocal(local net.Conn, proxyConn *protocol.Conn, don
 	for {
 		msg, err := proxyConn.Receive()
 		if err != nil {
+			// Read error — connection is broken, close everything.
 			endSession(false)
 			return
 		}
@@ -373,14 +379,12 @@ func (c *Client) relayProxyToLocal(local net.Conn, proxyConn *protocol.Conn, don
 				}
 			}
 		case protocol.TypeDisconnected:
-			// Server indicates session end; proxy conn is reusable.
+			// Server indicates session end. This goroutine is the reader so it's
+			// safe to return the proxy conn to the pool — no one else is reading.
 			endSession(true)
 			return
-		}
-		select {
-		case <-done:
-			return
-		default:
+		case protocol.TypeKeepalive:
+			// ignore keepalive
 		}
 	}
 }
@@ -403,11 +407,8 @@ func (c *Client) relayProxyToUDP(udpConn *net.UDPConn, proxyConn *protocol.Conn,
 		case protocol.TypeDisconnected:
 			endSession(true)
 			return
-		}
-		select {
-		case <-done:
-			return
-		default:
+		case protocol.TypeKeepalive:
+			// ignore keepalive
 		}
 	}
 }

@@ -157,6 +157,49 @@ go build -o rpt-client-go
 
 配置文件格式与Java客户端的`client.yml`完全相同，支持TCP、UDP、HTTP三种代理类型。
 
+### 交叉编译
+
+Go客户端支持交叉编译到多种平台，无需依赖JVM：
+
+```shell
+# Linux amd64
+GOOS=linux GOARCH=amd64 go build -o rpt-client-go
+
+# Linux arm64 (树莓派等)
+GOOS=linux GOARCH=arm64 go build -o rpt-client-go
+
+# Windows
+GOOS=windows GOARCH=amd64 go build -o rpt-client-go.exe
+
+# macOS
+GOOS=darwin GOARCH=amd64 go build -o rpt-client-go
+```
+
+### 注册Linux系统服务
+
+创建 `/etc/systemd/system/rpt-client-go.service`：
+
+```ini
+[Unit]
+Description=RPT Client Go
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/rpt
+ExecStart=/opt/rpt/rpt-client-go -config client.yml -cert client.crt -key pkcs8_client.key -ca ca.crt
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```shell
+systemctl enable rpt-client-go
+systemctl start rpt-client-go
+```
+
 ---
 
 ## 进阶部署
