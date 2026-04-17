@@ -104,23 +104,7 @@ func (c *Client) connect() error {
 		return fmt.Errorf("send register: %w", err)
 	}
 
-	// Start keepalive goroutine (write heartbeat every 30s)
-	stopKeepalive := make(chan struct{})
-	defer close(stopKeepalive)
-	go func() {
-		ticker := time.NewTicker(30 * time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				if err := serverConn.Send(&protocol.Message{Type: protocol.TypeKeepalive}); err != nil {
-					return
-				}
-			case <-stopKeepalive:
-				return
-			}
-		}
-	}()
+	// Keepalive is handled automatically by protocol.Conn (writer-idle 30s).
 
 	// Read messages loop
 	for {
@@ -226,9 +210,26 @@ func (c *Client) connectTCP(serverConn *protocol.Conn, proxyConn *protocol.Conn,
 		Meta: meta,
 	})
 
-	// Bidirectional relay: local <-> proxy
-	go c.relayLocalToProxy(channelId, localConn, proxyConn, meta)
-	go c.relayProxyToLocal(channelId, localConn, proxyConn)
+	// Session end is coordinated via once/done so pool.Put runs exactly once
+	// and the peer goroutine doesn't send on a pooled connection.
+	var once sync.Once
+	done := make(chan struct{})
+	endSession := func(returnToPool bool) {
+		once.Do(func() {
+			close(done)
+			localConn.Close()
+			c.removeChannel(channelId)
+			if returnToPool {
+				c.pool.Put(proxyConn)
+			} else {
+				proxyConn.Close()
+			}
+		})
+	}
+
+	// Bidirectional relay
+	go c.relayLocalToProxy(localConn, proxyConn, meta, done, endSession)
+	go c.relayProxyToLocal(localConn, proxyConn, done, endSession)
 }
 
 func (c *Client) connectUDP(serverConn *protocol.Conn, proxyConn *protocol.Conn, meta *protocol.Meta, rc *protocol.RemoteConfigMsg) {
@@ -266,97 +267,147 @@ func (c *Client) connectUDP(serverConn *protocol.Conn, proxyConn *protocol.Conn,
 		Meta: meta,
 	})
 
+	var once sync.Once
+	done := make(chan struct{})
+	endSession := func(returnToPool bool) {
+		once.Do(func() {
+			close(done)
+			udpConn.Close()
+			c.removeChannel(channelId)
+			if returnToPool {
+				c.pool.Put(proxyConn)
+			} else {
+				proxyConn.Close()
+			}
+		})
+	}
+
 	// Relay: UDP local -> proxy
 	go func() {
 		buf := make([]byte, 65535)
 		for {
 			n, err := udpConn.Read(buf)
 			if err != nil {
+				select {
+				case <-done:
+					return
+				default:
+				}
 				proxyConn.Send(&protocol.Message{
 					Type: protocol.TypeDisconnected,
 					Meta: meta,
 				})
-				c.removeChannel(channelId)
+				endSession(true)
 				return
 			}
 			data := make([]byte, n)
 			copy(data, buf[:n])
-			proxyConn.Send(&protocol.Message{
+			if sendErr := proxyConn.Send(&protocol.Message{
 				Type: protocol.TypeData,
 				Meta: meta,
 				Data: data,
-			})
+			}); sendErr != nil {
+				endSession(false)
+				return
+			}
 		}
 	}()
 
 	// Relay: proxy -> UDP local
-	go c.relayProxyToUDP(channelId, udpConn, proxyConn)
+	go c.relayProxyToUDP(udpConn, proxyConn, done, endSession)
 }
 
-func (c *Client) relayLocalToProxy(channelId string, local net.Conn, proxyConn *protocol.Conn, meta *protocol.Meta) {
+func (c *Client) relayLocalToProxy(local net.Conn, proxyConn *protocol.Conn, meta *protocol.Meta, done <-chan struct{}, endSession func(bool)) {
 	buf := make([]byte, 32*1024)
 	for {
 		n, err := local.Read(buf)
 		if n > 0 {
 			data := make([]byte, n)
 			copy(data, buf[:n])
-			proxyConn.Send(&protocol.Message{
+			// Avoid writing on a pooled connection after session end
+			select {
+			case <-done:
+				return
+			default:
+			}
+			if sendErr := proxyConn.Send(&protocol.Message{
 				Type: protocol.TypeData,
 				Meta: meta,
 				Data: data,
-			})
+			}); sendErr != nil {
+				endSession(false)
+				return
+			}
 		}
 		if err != nil {
+			// Local closed. If session already ended via the other goroutine, skip.
+			select {
+			case <-done:
+				return
+			default:
+			}
+			// Notify server of disconnect, then release proxy conn back to pool.
 			proxyConn.Send(&protocol.Message{
 				Type: protocol.TypeDisconnected,
 				Meta: meta,
 			})
-			c.removeChannel(channelId)
+			endSession(true)
 			return
 		}
 	}
 }
 
-func (c *Client) relayProxyToLocal(channelId string, local net.Conn, proxyConn *protocol.Conn) {
+func (c *Client) relayProxyToLocal(local net.Conn, proxyConn *protocol.Conn, done <-chan struct{}, endSession func(bool)) {
 	for {
 		msg, err := proxyConn.Receive()
 		if err != nil {
-			local.Close()
-			c.removeChannel(channelId)
+			endSession(false)
 			return
 		}
 		switch msg.Type {
 		case protocol.TypeData:
 			if len(msg.Data) > 0 {
-				local.Write(msg.Data)
+				if _, werr := local.Write(msg.Data); werr != nil {
+					endSession(false)
+					return
+				}
 			}
 		case protocol.TypeDisconnected:
-			local.Close()
-			c.pool.Put(proxyConn)
-			c.removeChannel(channelId)
+			// Server indicates session end; proxy conn is reusable.
+			endSession(true)
 			return
+		}
+		select {
+		case <-done:
+			return
+		default:
 		}
 	}
 }
 
-func (c *Client) relayProxyToUDP(channelId string, udpConn *net.UDPConn, proxyConn *protocol.Conn) {
+func (c *Client) relayProxyToUDP(udpConn *net.UDPConn, proxyConn *protocol.Conn, done <-chan struct{}, endSession func(bool)) {
 	for {
 		msg, err := proxyConn.Receive()
 		if err != nil {
-			udpConn.Close()
-			c.removeChannel(channelId)
+			endSession(false)
 			return
 		}
 		switch msg.Type {
 		case protocol.TypeData:
 			if len(msg.Data) > 0 {
-				udpConn.Write(msg.Data)
+				if _, werr := udpConn.Write(msg.Data); werr != nil {
+					endSession(false)
+					return
+				}
 			}
 		case protocol.TypeDisconnected:
-			udpConn.Close()
-			c.pool.Put(proxyConn)
-			c.removeChannel(channelId)
+			endSession(true)
 			return
+		}
+		select {
+		case <-done:
+			return
+		default:
 		}
 	}
 }
