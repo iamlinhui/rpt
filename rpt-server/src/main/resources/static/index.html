@@ -24,10 +24,11 @@
         <p class="hero-subtitle">一个可用于内网穿透的工具，将局域网个人电脑、服务器映射到公网</p>
         <div class="hero-tags">
             <span class="ant-tag ant-tag-primary">TCP</span>
-            <span class="ant-tag ant-tag-primary">UDP</span>
+            <span class="ant-tag ant-tag-cyan">UDP</span>
             <span class="ant-tag ant-tag-green">HTTP / HTTP2</span>
-            <span class="ant-tag ant-tag-gold">SSL</span>
             <span class="ant-tag ant-tag-orange">WebSocket</span>
+            <span class="ant-tag ant-tag-gold">SSL 加密传输</span>
+            <span class="ant-tag ant-tag-purple">IP 地域过滤</span>
         </div>
         <div class="hero-actions">
             <a class="ant-btn ant-btn-primary" href="https://github.com/iamlinhui/rpt/releases" target="_blank">
@@ -126,10 +127,17 @@
             </div>
             <div class="ant-step">
                 <div class="ant-step-indicator">2</div>
-                <h3>启动客户端</h3>
+                <h3>启动客户端（Java）</h3>
                 <div class="code-block">
                     <code><span class="c-cmd">java</span> <span class="c-flag">-jar</span> rpt-client-*.jar <span
                             class="c-flag">-c</span> <span class="c-value">client.yml</span></code>
+                </div>
+            </div>
+            <div class="ant-step">
+                <div class="ant-step-indicator">2</div>
+                <h3>或 启动客户端（Go）</h3>
+                <div class="code-block">
+                    <code><span class="c-cmd">./rpt-client-go</span> <span class="c-flag">-config</span> <span class="c-value">client.yml</span></code>
                 </div>
             </div>
         </div>
@@ -181,6 +189,15 @@
             </div>
             <div class="deploy-card">
                 <div class="deploy-card-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#00ADD8">
+                        <path d="M1.811 10.231c-.047 0-.058-.023-.035-.059l.246-.315c.023-.035.081-.058.128-.058h4.172c.046 0 .058.035.035.07l-.199.303c-.023.036-.081.071-.117.071zM.047 11.306c-.047 0-.059-.023-.035-.058l.245-.316c.023-.035.082-.058.129-.058h5.328c.047 0 .07.035.058.07l-.093.28c-.012.047-.058.07-.105.07zm2.828 1.075c-.047 0-.059-.035-.035-.07l.163-.292c.023-.035.07-.07.117-.07h2.337c.047 0 .07.035.07.082l-.023.28c0 .047-.047.082-.082.082zM17.803 10.022c-.745.187-1.257.315-1.997.502-.176.046-.187.058-.34-.128-.175-.21-.304-.35-.548-.467-.736-.362-1.452-.257-2.107.187-.774.526-1.175 1.3-1.163 2.217.012.92.655 1.68 1.558 1.797.78.105 1.442-.14 1.985-.714.116-.14.222-.292.352-.467H13.28c-.245 0-.304-.152-.222-.351.152-.362.432-.968.596-1.27.035-.07.117-.187.246-.187h3.595c-.024.269-.024.538-.059.808-.105.745-.35 1.452-.745 2.1-.642 1.058-1.523 1.82-2.652 2.264-.934.363-1.903.444-2.885.234-1.116-.245-1.985-.832-2.605-1.82-.537-.854-.724-1.797-.606-2.804.14-1.199.617-2.252 1.43-3.147.96-1.058 2.155-1.703 3.584-1.867 1.175-.14 2.287.035 3.298.678.768.49 1.315 1.152 1.652 2.006.07.105.023.164-.117.199z"/>
+                    </svg>
+                </div>
+                <h3>Go 客户端</h3>
+                <p>轻量级Go实现，交叉编译多平台，无需JVM</p>
+            </div>
+            <div class="deploy-card">
+                <div class="deploy-card-icon">
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="#13c2c2">
                         <path d="M20 7h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zM10 4h4v3h-4V4z"/>
                     </svg>
@@ -194,8 +211,8 @@
                         <path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zM7 15l-2-2 2-2 1.4 1.4L7 13.8l1.4 1.4L7 15zm4 1h-2l3-8h2l-3 8zm5-1l-1.4-1.4 1.4-1.4-1.4-1.4L16 11l2 2-2 2z"/>
                     </svg>
                 </div>
-                <h3>Shell 脚本部署</h3>
-                <p>适合Linux服务器环境，脚本管理进程</p>
+                <h3>Shell 脚本 / Systemd</h3>
+                <p>适合Linux服务器，支持systemd服务管理</p>
             </div>
             <div class="deploy-card">
                 <div class="deploy-card-icon">

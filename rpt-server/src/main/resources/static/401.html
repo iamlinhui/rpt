@@ -355,9 +355,18 @@
             <div class="error-content">
                 <div class="error-code">401</div>
                 <div class="error-title">Unauthorized</div>
-                <p class="error-desc">抱歉，您没有权限访问此页面。服务器拒绝了您的请求。</p>
+                <p class="error-desc">抱歉，您没有权限访问此资源。访问此 HTTP 代理服务需要进行身份认证。</p>
+                <div class="error-suggestions">
+                    <h4>可能的原因</h4>
+                    <ul>
+                        <li>该 HTTP 代理已配置 token 认证（账号:密码），请在浏览器弹窗中输入凭据</li>
+                        <li>提供的用户名或密码不正确</li>
+                        <li>您的客户端未携带正确的 Authorization 请求头</li>
+                    </ul>
+                </div>
                 <div class="btn-group">
                     <a class="ant-btn ant-btn-primary" href="/">返回首页</a>
+                    <a class="ant-btn ant-btn-default" href="https://github.com/iamlinhui/rpt" target="_blank">查看文档</a>
                 </div>
             </div>
         </div>

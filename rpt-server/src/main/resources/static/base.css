@@ -123,7 +123,7 @@ a:hover {
     font-weight: 600;
     padding: 6px 0;
     letter-spacing: 0.3px;
-    box-shadow: var(--shadow-2);
+    box-shadow: none;
     transition: background 0.2s;
 }
 
@@ -244,6 +244,12 @@ a:hover {
     border-color: var(--primary-2);
 }
 
+.ant-tag-cyan {
+    color: #08979c;
+    background: #e6fffb;
+    border-color: #87e8de;
+}
+
 .ant-tag-green {
     color: #389e0d;
     background: #f6ffed;
@@ -260,6 +266,12 @@ a:hover {
     color: #d48806;
     background: #fffbe6;
     border-color: #ffe58f;
+}
+
+.ant-tag-purple {
+    color: #531dab;
+    background: #f9f0ff;
+    border-color: #d3adf7;
 }
 
 /* Ant Button */
@@ -459,7 +471,7 @@ a:hover {
 /* ---------- Steps ---------- */
 .steps-row {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 24px;
 }
 
@@ -570,7 +582,7 @@ a:hover {
 /* ---------- Deploy Grid ---------- */
 .deploy-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 24px;
 }
 

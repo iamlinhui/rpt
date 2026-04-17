@@ -401,9 +401,19 @@
             <div class="error-content">
                 <div class="error-code">404</div>
                 <div class="error-title">Not Found</div>
-                <p class="error-desc">抱歉，您访问的页面不存在或已被移除。</p>
+                <p class="error-desc">抱歉，您访问的页面不存在或所请求的域名未被代理。</p>
+                <div class="error-suggestions">
+                    <h4>可能的原因</h4>
+                    <ul>
+                        <li>该域名尚未在客户端 client.yml 中配置 HTTP 代理映射</li>
+                        <li>客户端未启动或与服务端的连接已断开</li>
+                        <li>请检查域名 DNS 是否正确解析到本服务器</li>
+                        <li>URL 路径拼写有误</li>
+                    </ul>
+                </div>
                 <div class="btn-group">
                     <a class="ant-btn ant-btn-primary" href="/">返回首页</a>
+                    <a class="ant-btn ant-btn-default" href="https://github.com/iamlinhui/rpt" target="_blank">查看文档</a>
                 </div>
             </div>
         </div>
