@@ -16,9 +16,11 @@ func init() {
 	// Set Windows console to UTF-8 for proper Chinese character display
 	if runtime.GOOS == "windows" {
 		cmd := exec.Command("cmd", "/C", "chcp", "65001")
-		cmd.Stdout = os.Stdout
+		cmd.Stdout = nil
 		cmd.Run()
 	}
+	// Direct log output to stdout so it won't appear red in terminals
+	log.SetOutput(os.Stdout)
 }
 
 func main() {
