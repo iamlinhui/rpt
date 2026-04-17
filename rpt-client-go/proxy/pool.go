@@ -40,13 +40,17 @@ func (p *Pool) Init() {
 }
 
 // Get returns an active connection from the pool, or dials a new one.
+// Dead connections (closed by keepalive failure) are automatically discarded.
 func (p *Pool) Get() (*protocol.Conn, error) {
 	p.mu.Lock()
-	if len(p.conns) > 0 {
+	for len(p.conns) > 0 {
 		conn := p.conns[0]
 		p.conns = p.conns[1:]
-		p.mu.Unlock()
-		return conn, nil
+		if !conn.IsClosed() {
+			p.mu.Unlock()
+			return conn, nil
+		}
+		// Connection already dead, skip it
 	}
 	p.mu.Unlock()
 	return p.dialFunc()
@@ -54,6 +58,9 @@ func (p *Pool) Get() (*protocol.Conn, error) {
 
 // Put returns a connection to the pool.
 func (p *Pool) Put(conn *protocol.Conn) {
+	if conn.IsClosed() {
+		return
+	}
 	p.mu.Lock()
 	if len(p.conns) >= maxPoolSize {
 		p.mu.Unlock()

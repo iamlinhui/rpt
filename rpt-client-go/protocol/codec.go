@@ -17,6 +17,10 @@ import (
 // Mirrors Java's IdleCheckHandler(60, 30, 0) - writer idle = 30s.
 const writerIdleTimeout = 30 * time.Second
 
+// readIdleTimeout is how long to wait for any incoming data before considering
+// the connection dead. The server sends idle-check at 60s, so 90s is safe.
+const readIdleTimeout = 90 * time.Second
+
 // Conn wraps a TLS connection with gzip compression and message framing.
 // It automatically sends TYPE_KEEPALIVE if no write occurs for writerIdleTimeout.
 type Conn struct {
@@ -32,6 +36,16 @@ type Conn struct {
 }
 
 func NewConn(raw net.Conn) (*Conn, error) {
+	// Enable TCP keepalive so the OS detects dead connections faster
+	if tc, ok := raw.(*net.TCPConn); ok {
+		tc.SetKeepAlive(true)
+		tc.SetKeepAlivePeriod(30 * time.Second)
+	} else if tlsConn, ok := raw.(*tls.Conn); ok {
+		if tc, ok := tlsConn.NetConn().(*net.TCPConn); ok {
+			tc.SetKeepAlive(true)
+			tc.SetKeepAlivePeriod(30 * time.Second)
+		}
+	}
 	c := &Conn{
 		raw:      raw,
 		gzWriter: gzip.NewWriter(raw),
@@ -59,9 +73,10 @@ func (c *Conn) keepaliveLoop() {
 			if time.Since(last) < writerIdleTimeout {
 				continue
 			}
-			// Send keepalive; if it fails, the connection is dead - the caller's
-			// next Send/Receive will error out as well, so we just exit.
+			// Send keepalive; if it fails, the connection is dead — close it
+			// so that the pool can detect and discard it.
 			if err := c.Send(&Message{Type: TypeKeepalive}); err != nil {
+				c.Close()
 				return
 			}
 		}
@@ -83,12 +98,15 @@ func (c *Conn) lazyReader() (*gzip.Reader, error) {
 func (c *Conn) Send(msg *Message) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	// Set write deadline to avoid blocking forever on a dead connection
+	c.raw.SetWriteDeadline(time.Now().Add(30 * time.Second))
 	if err := msg.Encode(c.gzWriter); err != nil {
 		return err
 	}
 	if err := c.gzWriter.Flush(); err != nil {
 		return err
 	}
+	c.raw.SetWriteDeadline(time.Time{})
 	atomic.StoreInt64(&c.lastWrite, time.Now().UnixNano())
 	return nil
 }
@@ -96,11 +114,19 @@ func (c *Conn) Send(msg *Message) error {
 func (c *Conn) Receive() (*Message, error) {
 	c.rmu.Lock()
 	defer c.rmu.Unlock()
+	// Set a read deadline so we don't block forever on a dead connection
+	c.raw.SetReadDeadline(time.Now().Add(readIdleTimeout))
 	r, err := c.lazyReader()
 	if err != nil {
 		return nil, err
 	}
-	return DecodeMessage(r)
+	msg, err := DecodeMessage(r)
+	if err != nil {
+		return nil, err
+	}
+	// Reset deadline after successful read
+	c.raw.SetReadDeadline(time.Time{})
+	return msg, nil
 }
 
 func (c *Conn) Close() error {
@@ -115,6 +141,11 @@ func (c *Conn) Close() error {
 		c.gzReader.Close()
 	}
 	return c.raw.Close()
+}
+
+// IsClosed returns whether the connection has been closed.
+func (c *Conn) IsClosed() bool {
+	return atomic.LoadInt32(&c.closed) != 0
 }
 
 func (c *Conn) Raw() net.Conn {
@@ -140,9 +171,13 @@ func LoadTLSConfig(certFile, keyFile, caFile string) (*tls.Config, error) {
 	}, nil
 }
 
+// dialTimeout is the maximum time to wait for a TCP+TLS connection to establish.
+const dialTimeout = 15 * time.Second
+
 // DialTLS connects to the server with TLS and returns a gzip-wrapped Conn.
 func DialTLS(addr string, tlsConfig *tls.Config) (*Conn, error) {
-	raw, err := tls.Dial("tcp", addr, tlsConfig)
+	dialer := &net.Dialer{Timeout: dialTimeout}
+	raw, err := tls.DialWithDialer(dialer, "tcp", addr, tlsConfig)
 	if err != nil {
 		return nil, err
 	}
