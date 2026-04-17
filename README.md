@@ -50,9 +50,13 @@
 
 `java -jar rpt-server-*.jar -c server.yml`
 
-- 启动客户端
+- 启动客户端（Java版）
 
 `java -jar rpt-client-*.jar -c client.yml`
+
+- 启动客户端（Go版）
+
+`./rpt-client-go -config client.yml -cert client.crt -key pkcs8_client.key -ca ca.crt`
 
 ## 服务端配置`server.yml`
 
@@ -126,6 +130,34 @@ config:
     token: admin:admin
     description: tomcat
 ```
+
+## Go客户端 rpt-client-go
+
+> 使用Go语言实现的轻量级客户端，功能与Java客户端一致，支持TCP/UDP/HTTP代理，适合不便安装JVM的环境。
+
+### 编译
+
+```shell
+cd rpt-client-go
+go build -o rpt-client-go
+```
+
+### 使用
+
+```shell
+./rpt-client-go -config client.yml -cert client.crt -key pkcs8_client.key -ca ca.crt
+```
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `-config` | `client.yml` | 客户端配置文件路径 |
+| `-cert` | `client.crt` | 客户端证书路径 |
+| `-key` | `pkcs8_client.key` | 客户端私钥路径 |
+| `-ca` | `ca.crt` | CA证书路径 |
+
+配置文件格式与Java客户端的`client.yml`完全相同，支持TCP、UDP、HTTP三种代理类型。
+
+---
 
 ## 进阶部署
 
