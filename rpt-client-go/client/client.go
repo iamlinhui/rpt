@@ -21,9 +21,10 @@ type Client struct {
 	pool       *proxy.Pool
 	serverAddr string
 
-	mu       sync.Mutex
-	channels map[string]io.Closer // channelId -> local connection
-	stopped  bool
+	mu         sync.Mutex
+	channels   map[string]io.Closer // channelId -> local connection
+	stopped    bool
+	resetDelay bool // set to true after successful auth
 }
 
 func New(cfg *config.ClientConfig, tlsConfig *tls.Config) *Client {
@@ -54,8 +55,13 @@ func (c *Client) Run() {
 		if err != nil {
 			log.Printf("[client] connection error: %v", err)
 		}
-		// Clear local channels on disconnect
+		// Clear local channels and pool on disconnect
 		c.clearChannels()
+		c.pool.Clear()
+		if c.resetDelay {
+			c.resetDelay = false
+			delay = 0
+		}
 		delay += 3
 		if delay > 300 {
 			delay = 300
@@ -98,6 +104,24 @@ func (c *Client) connect() error {
 		return fmt.Errorf("send register: %w", err)
 	}
 
+	// Start keepalive goroutine (write heartbeat every 30s)
+	stopKeepalive := make(chan struct{})
+	defer close(stopKeepalive)
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if err := serverConn.Send(&protocol.Message{Type: protocol.TypeKeepalive}); err != nil {
+					return
+				}
+			case <-stopKeepalive:
+				return
+			}
+		}
+	}()
+
 	// Read messages loop
 	for {
 		msg, err := serverConn.Receive()
@@ -133,6 +157,7 @@ func (c *Client) handleAuth(serverConn *protocol.Conn, msg *protocol.Message) {
 	}
 	if msg.Meta.Connection {
 		log.Printf("[auth] connected successfully, clientKey: %s", msg.Meta.ClientKey)
+		c.resetDelay = true
 		c.pool.Init()
 	} else {
 		log.Printf("[auth] connection rejected, clientKey: %s", msg.Meta.ClientKey)

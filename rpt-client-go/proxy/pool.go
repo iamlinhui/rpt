@@ -76,3 +76,13 @@ func (p *Pool) Remove(conn *protocol.Conn) {
 		}
 	}
 }
+
+// Clear closes all connections in the pool.
+func (p *Pool) Clear() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for _, c := range p.conns {
+		c.Close()
+	}
+	p.conns = nil
+}
