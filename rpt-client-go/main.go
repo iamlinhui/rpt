@@ -7,9 +7,9 @@ import (
 	"os/exec"
 	"runtime"
 
-	"github.com/holmes/rpt-client-go/client"
-	"github.com/holmes/rpt-client-go/config"
-	"github.com/holmes/rpt-client-go/protocol"
+	"rpt-client-go/client"
+	"rpt-client-go/config"
+	"rpt-client-go/protocol"
 )
 
 func init() {

@@ -4,7 +4,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/holmes/rpt-client-go/protocol"
+	"rpt-client-go/protocol"
 )
 
 const (

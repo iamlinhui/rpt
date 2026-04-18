@@ -1,4 +1,4 @@
-module github.com/holmes/rpt-client-go
+module rpt-client-go
 
 go 1.21
 

@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/holmes/rpt-client-go/config"
-	"github.com/holmes/rpt-client-go/protocol"
-	"github.com/holmes/rpt-client-go/proxy"
+	"rpt-client-go/config"
+	"rpt-client-go/protocol"
+	"rpt-client-go/proxy"
 )
 
 type Client struct {
