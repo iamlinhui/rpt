@@ -4,6 +4,8 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"image"
+	"image/png"
 	"log"
 	"os"
 	"os/exec"
@@ -24,7 +26,10 @@ import (
 	"rpt-client-go/config"
 	"rpt-client-go/protocol"
 
+	"golang.org/x/image/draw"
 	"gopkg.in/yaml.v3"
+
+	"bytes"
 )
 
 //go:embed frontend/*
@@ -32,6 +37,9 @@ var assets embed.FS
 
 //go:embed icon.ico
 var icoData []byte
+
+//go:embed icon.png
+var pngData []byte
 
 const (
 	appTitle   = "Reverse Proxy Tool"
@@ -141,7 +149,7 @@ func (a *App) startup(ctx context.Context) {
 	log.SetOutput(&logAdapter{app: a})
 	log.SetFlags(0)
 	if a.trayRun != nil {
-		a.trayRun()
+		dispatchOnMainThread(a.trayRun)
 	}
 }
 
@@ -152,8 +160,14 @@ func (a *App) shutdown(_ context.Context) {
 }
 
 func (a *App) onTrayReady() {
-	systray.SetIcon(icoData)
-	systray.SetTitle(appTitle)
+	if runtime.GOOS == "darwin" {
+		systray.SetIcon(resizePNG(pngData, 22, 22))
+	} else {
+		systray.SetIcon(icoData)
+	}
+	if runtime.GOOS != "darwin" {
+		systray.SetTitle(appTitle)
+	}
 	systray.SetTooltip(fmt.Sprintf("%s v%s", appTitle, appVersion))
 
 	showWindow := func() {
@@ -373,6 +387,22 @@ func (a *App) GetLogs() string {
 	s := a.logBuf.String()
 	a.logBuf.Reset()
 	return s
+}
+
+// ==================== Helpers ====================
+
+func resizePNG(data []byte, w, h int) []byte {
+	src, err := png.Decode(bytes.NewReader(data))
+	if err != nil {
+		return data
+	}
+	dst := image.NewRGBA(image.Rect(0, 0, w, h))
+	draw.CatmullRom.Scale(dst, dst.Bounds(), src, src.Bounds(), draw.Over, nil)
+	var buf bytes.Buffer
+	if err = png.Encode(&buf, dst); err != nil {
+		return data
+	}
+	return buf.Bytes()
 }
 
 // ==================== Log Adapter ====================
