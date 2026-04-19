@@ -181,7 +181,7 @@ public class RegisterExecutor implements MessageExecutor {
             return;
         }
         Bootstrap udpBootstrap = new Bootstrap();
-        udpBootstrap.group(REMOTE_WORKER_GROUP).channel(NioDatagramChannel.class).option(ChannelOption.SO_REUSEADDR, true).handler(new ChannelInitializer<DatagramChannel>() {
+        udpBootstrap.group(REMOTE_WORKER_GROUP).channel(NioDatagramChannel.class).option(ChannelOption.SO_REUSEADDR, false).handler(new ChannelInitializer<DatagramChannel>() {
             @Override
             protected void initChannel(DatagramChannel channel) throws Exception {
                 channel.pipeline().addLast(new UdpHandler(serverChannel, remoteConfig));
