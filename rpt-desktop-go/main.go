@@ -33,9 +33,6 @@ var assets embed.FS
 //go:embed icon.ico
 var icoData []byte
 
-//go:embed icon.png
-var pngData []byte
-
 const (
 	appTitle   = "Reverse Proxy Tool"
 	appVersion = "2.6.0"
@@ -43,27 +40,6 @@ const (
 
 func main() {
 	app := NewApp()
-
-	go func() {
-		systray.Run(func() {
-			systray.SetIcon(icoData)
-			systray.SetTitle(appTitle)
-			systray.SetTooltip(fmt.Sprintf("%s v%s", appTitle, appVersion))
-			systray.SetOnClick(func(menu systray.IMenu) { wr.WindowShow(app.ctx) })
-			systray.SetOnDClick(func(menu systray.IMenu) { wr.WindowShow(app.ctx) })
-
-			mShow := systray.AddMenuItem("显示", "显示主窗口")
-			systray.AddSeparator()
-			mQuit := systray.AddMenuItem("退出", "退出程序")
-
-			mShow.Click(func() { wr.WindowShow(app.ctx) })
-			mQuit.Click(func() {
-				app.Stop()
-				systray.Quit()
-				os.Exit(0)
-			})
-		}, nil)
-	}()
 
 	err := wails.Run(&options.App{
 		Title:     appTitle,
@@ -74,8 +50,15 @@ func main() {
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		OnStartup: app.startup,
+		OnStartup:  app.startup,
+		OnShutdown: app.shutdown,
 		OnBeforeClose: func(ctx context.Context) bool {
+			app.mu.Lock()
+			quitting := app.quitting
+			app.mu.Unlock()
+			if quitting {
+				return false
+			}
 			wr.WindowHide(ctx)
 			return true // prevent close, just hide
 		},
@@ -118,36 +101,91 @@ func loadDesktopConfig() *DesktopConfig {
 	if err != nil {
 		return cfg
 	}
-	yaml.Unmarshal(data, cfg)
+	if err = yaml.Unmarshal(data, cfg); err != nil {
+		return cfg
+	}
 	return cfg
 }
 
 func saveDesktopConfig(cfg *DesktopConfig) {
 	data, _ := yaml.Marshal(cfg)
-	os.WriteFile(configFile, data, 0644)
+	if err := os.WriteFile(configFile, data, 0644); err != nil {
+		log.Printf("保存配置失败: %v", err)
+	}
 }
 
 // ==================== App ====================
 
 type App struct {
-	ctx     context.Context
-	cfg     *DesktopConfig
-	mu      sync.Mutex
-	client  *client.Client
-	running bool
-	done    chan struct{} // signals when Run() goroutine exits
-	logBuf  strings.Builder
-	logMu   sync.Mutex
+	ctx      context.Context
+	cfg      *DesktopConfig
+	mu       sync.Mutex
+	client   *client.Client
+	running  bool
+	quitting bool
+	done     chan struct{} // signals when Run() goroutine exits
+	trayRun  func()
+	trayEnd  func()
+	logBuf   strings.Builder
+	logMu    sync.Mutex
 }
 
 func NewApp() *App {
-	return &App{cfg: loadDesktopConfig()}
+	app := &App{cfg: loadDesktopConfig()}
+	app.trayRun, app.trayEnd = systray.RunWithExternalLoop(app.onTrayReady, app.onTrayExit)
+	return app
 }
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	log.SetOutput(&logAdapter{app: a})
 	log.SetFlags(0)
+	if a.trayRun != nil {
+		a.trayRun()
+	}
+}
+
+func (a *App) shutdown(_ context.Context) {
+	if a.trayEnd != nil {
+		a.trayEnd()
+	}
+}
+
+func (a *App) onTrayReady() {
+	systray.SetIcon(icoData)
+	systray.SetTitle(appTitle)
+	systray.SetTooltip(fmt.Sprintf("%s v%s", appTitle, appVersion))
+
+	showWindow := func() {
+		if a.ctx == nil {
+			return
+		}
+		wr.WindowShow(a.ctx)
+		wr.WindowUnminimise(a.ctx)
+	}
+
+	systray.SetOnClick(func(menu systray.IMenu) { showWindow() })
+	systray.SetOnDClick(func(menu systray.IMenu) { showWindow() })
+
+	mShow := systray.AddMenuItem("显示", "显示主窗口")
+	systray.AddSeparator()
+	mQuit := systray.AddMenuItem("退出", "退出程序")
+
+	mShow.Click(func() { showWindow() })
+	mQuit.Click(func() {
+		a.mu.Lock()
+		a.quitting = true
+		a.mu.Unlock()
+		a.Stop()
+		if a.ctx != nil {
+			wr.Quit(a.ctx)
+			return
+		}
+		systray.Quit()
+	})
+}
+
+func (a *App) onTrayExit() {
 }
 
 func (a *App) GetConfig() *DesktopConfig {
@@ -240,11 +278,17 @@ func (a *App) SelectFile(title string) string {
 func (a *App) OpenURL(url string) {
 	switch runtime.GOOS {
 	case "windows":
-		exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+		if err := exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start(); err != nil {
+			log.Printf("打开链接失败: %v", err)
+		}
 	case "darwin":
-		exec.Command("open", url).Start()
+		if err := exec.Command("open", url).Start(); err != nil {
+			log.Printf("打开链接失败: %v", err)
+		}
 	default:
-		exec.Command("xdg-open", url).Start()
+		if err := exec.Command("xdg-open", url).Start(); err != nil {
+			log.Printf("打开链接失败: %v", err)
+		}
 	}
 }
 
