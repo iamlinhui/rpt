@@ -1,0 +1,16 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "Reverse Proxy Tool",
+  "outputfilename": "rpt-desktop-go",
+  "frontend:dir": "frontend",
+  "author": {
+    "name": "Lynn"
+  },
+  "info": {
+    "companyName": "Lynn",
+    "productName": "Reverse Proxy Tool",
+    "productVersion": "2.6.0",
+    "copyright": "Copyright © 2026 Lynn",
+    "comments": "Reverse Proxy Tool Desktop Client"
+  }
+}

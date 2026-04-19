@@ -24,7 +24,8 @@ type Client struct {
 	mu         sync.Mutex
 	channels   map[string]io.Closer // channelId -> local connection
 	stopped    bool
-	resetDelay bool // set to true after successful auth
+	resetDelay bool           // set to true after successful auth
+	serverConn *protocol.Conn // active server connection, for forced close
 }
 
 func New(cfg *config.ClientConfig, tlsConfig *tls.Config) *Client {
@@ -70,8 +71,15 @@ func (c *Client) Run() {
 }
 
 func (c *Client) Stop() {
+	c.mu.Lock()
 	c.stopped = true
+	sc := c.serverConn
+	c.mu.Unlock()
+	if sc != nil {
+		sc.Close()
+	}
 	c.clearChannels()
+	c.pool.Clear()
 }
 
 func (c *Client) clearChannels() {
@@ -89,7 +97,15 @@ func (c *Client) connect() error {
 	if err != nil {
 		return fmt.Errorf("dial server: %w", err)
 	}
-	defer serverConn.Close()
+	c.mu.Lock()
+	c.serverConn = serverConn
+	c.mu.Unlock()
+	defer func() {
+		c.mu.Lock()
+		c.serverConn = nil
+		c.mu.Unlock()
+		serverConn.Close()
+	}()
 
 	// Send register message
 	rcList, _ := json.Marshal(c.cfg.Config)

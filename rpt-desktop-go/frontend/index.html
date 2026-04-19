@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Reverse Proxy Tool</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#f5f7fa;--card:#fff;--border:#e4e7ed;--primary:#409eff;--primary-h:#66b1ff;--danger:#f56c6c;--danger-h:#f89898;--success:#67c23a;--text:#303133;--text2:#909399;--shadow:0 2px 12px rgba(0,0,0,.1)}
+body{font-family:"Microsoft YaHei","PingFang SC","Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;user-select:none}
+
+.toolbar{display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0}
+.toolbar .spacer{flex:1}
+.status-dot{width:8px;height:8px;border-radius:50%;background:#ddd;display:inline-block;margin-right:4px}
+.status-dot.on{background:var(--success);box-shadow:0 0 6px var(--success)}
+.status-text{font-size:13px;color:var(--text2)}
+.status-text.on{color:var(--success);font-weight:600}
+
+.btn{padding:5px 14px;border:1px solid var(--border);border-radius:4px;background:var(--card);color:var(--text);font-size:13px;cursor:pointer;transition:all .15s;white-space:nowrap;outline:none}
+.btn:hover{border-color:var(--primary);color:var(--primary)}
+.btn:active{transform:scale(.97)}
+.btn-p{background:var(--primary);color:#fff;border-color:var(--primary)}.btn-p:hover{background:var(--primary-h);border-color:var(--primary-h);color:#fff}
+.btn-d{color:var(--danger);border-color:var(--danger)}.btn-d:hover{background:var(--danger);color:#fff}
+.btn-s{background:var(--success);color:#fff;border-color:var(--success)}.btn-s:hover{background:#85ce61;border-color:#85ce61;color:#fff}
+.btn-sm{padding:3px 10px;font-size:12px}
+
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* Table */
+.table-wrap{flex:1;overflow:auto;min-height:0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead{position:sticky;top:0;z-index:1}
+thead th{background:#f0f2f5;padding:9px 14px;text-align:left;font-weight:600;border-bottom:2px solid var(--border);color:var(--text2);font-size:12px;letter-spacing:.3px}
+tbody tr{transition:background .12s;cursor:default}
+tbody tr:hover{background:#ecf5ff}
+tbody tr.sel{background:#d9ecff}
+tbody td{padding:9px 14px;border-bottom:1px solid #f0f0f0}
+.tag{display:inline-block;padding:1px 8px;border-radius:3px;font-size:12px;font-weight:600}
+.tag-tcp{background:#e8f4fd;color:#1890ff}.tag-udp{background:#fff7e6;color:#fa8c16}.tag-http{background:#f6ffed;color:#52c41a}
+.empty-row td{text-align:center;color:var(--text2);padding:50px;font-size:14px}
+
+/* Context Menu */
+.ctx-menu{position:fixed;background:var(--card);border:1px solid var(--border);border-radius:6px;box-shadow:var(--shadow);padding:4px 0;z-index:9999;min-width:110px;display:none}
+.ctx-item{padding:7px 20px;font-size:13px;cursor:pointer;transition:background .12s}
+.ctx-item:hover{background:#ecf5ff;color:var(--primary)}
+.ctx-item.danger:hover{background:#fef0f0;color:var(--danger)}
+
+/* Log */
+.log-wrap{height:170px;flex-shrink:0;border-top:2px solid var(--border);display:flex;flex-direction:column}
+.log-header{display:flex;align-items:center;padding:5px 16px;background:#f0f2f5;font-size:12px;color:var(--text2);flex-shrink:0;gap:8px}
+.log-header span{font-weight:600}
+.log-content{flex:1;overflow-y:auto;padding:0;background:#1a1a2e;color:#c9d1d9;font-family:"Cascadia Code","Consolas","Courier New",monospace;font-size:12px;line-height:1.8}
+.log-line{padding:0 14px;border-bottom:1px solid rgba(255,255,255,.04)}
+.log-line:hover{background:rgba(255,255,255,.05)}
+
+/* Modal */
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:5000}
+.modal{background:var(--card);border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.18);width:460px;max-height:85vh;overflow-y:auto;animation:modalIn .2s}
+@keyframes modalIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:none}}
+.modal-hd{padding:16px 20px;font-size:15px;font-weight:600;border-bottom:1px solid var(--border)}
+.modal-bd{padding:20px}
+.modal-ft{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+
+.form-row{display:flex;align-items:center;margin-bottom:12px}
+.form-row:last-child{margin-bottom:0}
+.form-lb{width:76px;font-size:13px;color:var(--text2);flex-shrink:0}
+.form-in{flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:4px;font-size:13px;outline:none;transition:border .15s;font-family:inherit}
+.form-in:focus{border-color:var(--primary)}
+select.form-in{background:var(--card)}
+.file-row{display:flex;gap:6px;flex:1}
+.file-row .form-in{flex:1}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button class="btn" onclick="showServerDialog()">⚙ 服务器配置</button>
+  <button class="btn btn-p" onclick="showAddDialog()">＋ 新增</button>
+  <button class="btn btn-s" id="startBtn" onclick="toggleConn()">▶ 开启</button>
+  <button class="btn" onclick="showAbout()">关于</button>
+  <div class="spacer"></div>
+  <span class="status-dot" id="statusDot"></span>
+  <span class="status-text" id="statusText">已停止</span>
+</div>
+
+<div class="main">
+  <div class="table-wrap">
+    <table><thead><tr>
+      <th style="width:8%">类型</th>
+      <th style="width:20%">本地映射</th>
+      <th style="width:32%">暴露映射</th>
+      <th>备注</th>
+    </tr></thead><tbody id="tbody"></tbody></table>
+  </div>
+  <div class="log-wrap">
+    <div class="log-header"><span>日志输出</span></div>
+    <div class="log-content" id="logArea" oncontextmenu="showLogCtx(event)"></div>
+  </div>
+</div>
+
+<div class="ctx-menu" id="tableCtx">
+  <div class="ctx-item" onclick="editCtx()">编辑</div>
+  <div class="ctx-item danger" onclick="deleteCtx()">删除</div>
+</div>
+<div class="ctx-menu" id="logCtx">
+  <div class="ctx-item" onclick="clearLogs()">清空日志</div>
+</div>
+
+<div id="mc"></div>
+
+<script>
+const go = window.go.main.App;
+let cfg = [], started = false, ctxIdx = -1;
+
+// ==================== Init ====================
+async function init() {
+  const c = await go.GetConfig();
+  cfg = c.config || [];
+  render();
+  setInterval(pollLogs, 400);
+}
+
+// ==================== Logs ====================
+async function pollLogs() {
+  const s = await go.GetLogs();
+  if (!s) return;
+  const el = document.getElementById('logArea');
+  const lines = s.split('\n').filter(l => l);
+  lines.forEach(l => {
+    const div = document.createElement('div');
+    div.className = 'log-line';
+    div.textContent = l;
+    el.appendChild(div);
+  });
+  el.scrollTop = el.scrollHeight;
+}
+function clearLogs() { document.getElementById('logArea').innerHTML = ''; hideCtx(); }
+
+function showLogCtx(e) {
+  e.preventDefault();
+  const m = document.getElementById('logCtx');
+  m.style.display = 'block';
+  m.style.left = e.clientX + 'px';
+  m.style.top = e.clientY + 'px';
+}
+
+// ==================== Table ====================
+function render() {
+  const tb = document.getElementById('tbody');
+  if (!cfg.length) { tb.innerHTML = '<tr class="empty-row"><td colspan="4">暂无映射配置，点击 ＋新增 添加</td></tr>'; return; }
+  tb.innerHTML = cfg.map((r, i) => {
+    let remote = r.proxyType === 'HTTP' ? (r.domain||'') + (r.token ? ' ('+r.token+')' : '') : ':'+(r.remotePort||0);
+    const tagCls = r.proxyType === 'TCP' ? 'tag-tcp' : r.proxyType === 'UDP' ? 'tag-udp' : 'tag-http';
+    return `<tr class="${i===ctxIdx?'sel':''}" oncontextmenu="showTableCtx(event,${i})">
+      <td><span class="tag ${tagCls}">${r.proxyType}</span></td>
+      <td>${r.localIp||'127.0.0.1'}:${r.localPort||0}</td>
+      <td>${remote}</td>
+      <td>${r.description||''}</td></tr>`;
+  }).join('');
+}
+
+function showTableCtx(e, i) {
+  e.preventDefault();
+  if (started) { showTip('请先关闭连接'); return; }
+  ctxIdx = i; render();
+  const m = document.getElementById('tableCtx');
+  m.style.display = 'block';
+  m.style.left = e.clientX + 'px';
+  m.style.top = e.clientY + 'px';
+}
+
+function editCtx() { hideCtx(); if (ctxIdx >= 0) showEditDialog(ctxIdx); }
+async function deleteCtx() {
+  hideCtx();
+  if (ctxIdx < 0) return;
+  const r = cfg[ctxIdx];
+  showConfirm('删除确认', `确定删除 [${r.proxyType}] ${r.localIp}:${r.localPort} ?`, async () => {
+    await go.DeleteProxyConfig(ctxIdx);
+    cfg.splice(ctxIdx, 1);
+    ctxIdx = -1; render();
+  });
+}
+
+document.addEventListener('click', hideCtx);
+function hideCtx() { document.querySelectorAll('.ctx-menu').forEach(m => m.style.display = 'none'); }
+
+// ==================== Connection ====================
+async function toggleConn() {
+  const btn = document.getElementById('startBtn');
+  if (started) {
+    await go.Stop();
+    started = false;
+    btn.innerHTML = '▶ 开启'; btn.className = 'btn btn-s';
+    document.getElementById('statusDot').className = 'status-dot';
+    const st = document.getElementById('statusText'); st.textContent = '已停止'; st.className = 'status-text';
+  } else {
+    const err = await go.Start();
+    if (err) { showTip(err); return; }
+    started = true;
+    btn.innerHTML = '⏹ 关闭'; btn.className = 'btn btn-d';
+    document.getElementById('statusDot').className = 'status-dot on';
+    const st = document.getElementById('statusText'); st.textContent = '运行中'; st.className = 'status-text on';
+  }
+}
+
+// ==================== Custom Modal (no native alert/confirm) ====================
+function showModal(title, body, onOk, hideCancel) {
+  document.getElementById('mc').innerHTML = `<div class="modal-mask" onclick="if(event.target===this)closeModal()">
+    <div class="modal"><div class="modal-hd">${title}</div><div class="modal-bd">${body}</div>
+    <div class="modal-ft">${hideCancel?'':'<button class="btn" onclick="closeModal()">取消</button>'}
+    <button class="btn btn-p" id="mOk">确定</button></div></div></div>`;
+  document.getElementById('mOk').onclick = onOk || closeModal;
+}
+function closeModal() { document.getElementById('mc').innerHTML = ''; }
+
+function showTip(msg) {
+  showModal('提示', `<p style="text-align:center;padding:10px 0;font-size:14px">${msg}</p>`, closeModal, true);
+}
+function showConfirm(title, msg, onOk) {
+  showModal(title, `<p style="padding:8px 0;font-size:14px">${msg}</p>`, () => { closeModal(); onOk(); });
+}
+
+// ==================== Proxy Config Dialog ====================
+function proxyForm(r) {
+  const h = r.proxyType === 'HTTP';
+  const req = '<span style="color:var(--danger);margin-left:2px">*</span>';
+  return `<div class="form-row"><span class="form-lb">传输类型${req}</span>
+    <select class="form-in" id="f_pt" onchange="tpf()">
+      <option value="TCP" ${r.proxyType==='TCP'?'selected':''}>TCP</option>
+      <option value="UDP" ${r.proxyType==='UDP'?'selected':''}>UDP</option>
+      <option value="HTTP" ${r.proxyType==='HTTP'?'selected':''}>HTTP</option></select></div>
+  <div class="form-row"><span class="form-lb">本地地址</span><input class="form-in" id="f_ip" value="${r.localIp||'127.0.0.1'}" placeholder="127.0.0.1"></div>
+  <div class="form-row"><span class="form-lb">本地端口${req}</span><input class="form-in" id="f_lp" type="number" value="${r.localPort||''}" placeholder="1-65535"></div>
+  <div class="form-row" id="rpr" style="display:${h?'none':'flex'}"><span class="form-lb">暴露端口${req}</span><input class="form-in" id="f_rp" type="number" value="${r.remotePort||''}" placeholder="1024-65535"></div>
+  <div class="form-row" id="dmr" style="display:${h?'flex':'none'}"><span class="form-lb">暴露域名${req}</span><input class="form-in" id="f_dm" value="${r.domain||''}" placeholder="域名"></div>
+  <div class="form-row" id="tkr" style="display:${h?'flex':'none'}"><span class="form-lb">访问账户</span><input class="form-in" id="f_tk" value="${r.token||''}" placeholder="user:pass"></div>
+  <div class="form-row"><span class="form-lb">备注</span><input class="form-in" id="f_ds" value="${r.description||''}" placeholder="备注"></div>`;
+}
+function tpf() {
+  const h = document.getElementById('f_pt').value === 'HTTP';
+  document.getElementById('rpr').style.display = h ? 'none' : 'flex';
+  document.getElementById('dmr').style.display = h ? 'flex' : 'none';
+  document.getElementById('tkr').style.display = h ? 'flex' : 'none';
+}
+function gfv() {
+  return { proxyType: document.getElementById('f_pt').value, localIp: document.getElementById('f_ip').value||'127.0.0.1',
+    localPort: parseInt(document.getElementById('f_lp').value)||0, remotePort: parseInt(document.getElementById('f_rp').value)||0,
+    domain: document.getElementById('f_dm').value, token: document.getElementById('f_tk').value, description: document.getElementById('f_ds').value };
+}
+
+function showAddDialog() {
+  if (started) { showTip('请先关闭连接'); return; }
+  showModal('新增映射配置', proxyForm({proxyType:'TCP',localIp:'127.0.0.1'}), async () => {
+    const v = gfv();
+    const err = await go.AddProxyConfig(v.proxyType, v.localIp, v.localPort, v.remotePort, v.domain, v.token, v.description);
+    if (err) { showFormErr(err); return; }
+    cfg.push(v); render(); closeModal();
+  });
+}
+function showEditDialog(idx) {
+  showModal('修改映射配置', proxyForm(cfg[idx]), async () => {
+    const v = gfv();
+    const err = await go.UpdateProxyConfig(idx, v.proxyType, v.localIp, v.localPort, v.remotePort, v.domain, v.token, v.description);
+    if (err) { showFormErr(err); return; }
+    cfg[idx] = v; render(); closeModal();
+  });
+}
+
+function showFormErr(msg) {
+  let el = document.getElementById('formErrMsg');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'formErrMsg';
+    el.style.cssText = 'color:var(--danger);font-size:13px;padding:8px 0 0;text-align:center';
+    const bd = document.querySelector('.modal-bd');
+    if (bd) bd.appendChild(el);
+  }
+  el.textContent = msg;
+  setTimeout(() => { if (el) el.textContent = ''; }, 3000);
+}
+
+// ==================== Server Config Dialog (with file picker) ====================
+async function showServerDialog() {
+  const c = await go.GetConfig();
+  showModal('连接配置', `
+    <div class="form-row"><span class="form-lb">服务端地址</span><input class="form-in" id="s_ip" value="${c.serverIp}"></div>
+    <div class="form-row"><span class="form-lb">服务端端口</span><input class="form-in" id="s_port" type="number" value="${c.serverPort}"></div>
+    <div class="form-row"><span class="form-lb">连接秘钥</span><input class="form-in" id="s_key" value="${c.clientKey||''}"></div>
+    <div class="form-row"><span class="form-lb">证书文件</span><div class="file-row"><input class="form-in" id="s_cert" value="${c.certFile}"><button class="btn btn-sm" onclick="pickFile('s_cert','选择证书文件')">选择</button></div></div>
+    <div class="form-row"><span class="form-lb">密钥文件</span><div class="file-row"><input class="form-in" id="s_keyf" value="${c.keyFile}"><button class="btn btn-sm" onclick="pickFile('s_keyf','选择密钥文件')">选择</button></div></div>
+    <div class="form-row"><span class="form-lb">CA文件</span><div class="file-row"><input class="form-in" id="s_ca" value="${c.caFile}"><button class="btn btn-sm" onclick="pickFile('s_ca','选择CA文件')">选择</button></div></div>`,
+  async () => {
+    await go.SaveServerConfig(
+      document.getElementById('s_ip').value, parseInt(document.getElementById('s_port').value)||0,
+      document.getElementById('s_key').value, document.getElementById('s_cert').value,
+      document.getElementById('s_keyf').value, document.getElementById('s_ca').value);
+    closeModal();
+  });
+}
+async function pickFile(inputId, title) {
+  const f = await go.SelectFile(title);
+  if (f) document.getElementById(inputId).value = f;
+}
+
+// ==================== About ====================
+async function showAbout() {
+  const ver = await go.GetVersion();
+  showModal('关于', `<div style="text-align:center;padding:12px 0">
+    <div style="font-size:20px;font-weight:700;margin-bottom:6px">Reverse Proxy Tool</div>
+    <div style="color:var(--text2);margin-bottom:10px">Version ${ver}</div>
+    <div><a href="#" onclick="go.OpenURL('https://github.com/iamlinhui/rpt');return false" style="color:var(--primary);cursor:pointer">https://github.com/iamlinhui/rpt</a></div>
+    <div style="color:var(--text2);margin-top:10px">Powered By Lynn</div></div>`, closeModal, true);
+}
+
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
+
