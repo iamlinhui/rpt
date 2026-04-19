@@ -9,7 +9,7 @@ public class ServerToken {
     private int maxPort = 65535;
 
     public boolean authorize(int remotePort) {
-        if (remotePort < 1024) {
+        if (remotePort < 1024 || remotePort > 65535) {
             return false;
         }
         return remotePort >= minPort && remotePort <= maxPort;
