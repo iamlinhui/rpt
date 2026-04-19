@@ -78,7 +78,7 @@ ipFilter: true
 #授权给客户端的秘钥
 token:
   - clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
-    # 限制绑定端口范围 左右闭区间  默认值[1,65535]
+    # 限制绑定端口范围 左右闭区间  默认值[1024,65535]
     minPort: 4000
     maxPort: 8000
   - clientKey: 4befea7e-a61c-4979-b012-47659bab6f21

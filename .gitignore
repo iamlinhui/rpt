@@ -4,3 +4,4 @@ log
 dependency-*.xml
 client.json
 *.iml
+go.sum

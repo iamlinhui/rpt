@@ -2,8 +2,8 @@ serverIp: 0.0.0.0
 serverPort: 6167
 httpPort: 80
 httpsPort: 443
-domainCert: server.crt
-domainKey: pkcs8_server.key
+domainCert: domain.crt
+domainKey: pkcs8_domain.key
 ipFilter: true
 token:
   - clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
