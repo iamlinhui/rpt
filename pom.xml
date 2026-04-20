@@ -12,7 +12,6 @@
         <module>rpt-base</module>
         <module>rpt-server</module>
         <module>rpt-client</module>
-        <module>rpt-desktop</module>
     </modules>
 
     <properties>

@@ -1,181 +1,398 @@
-<img alt="rpt" height="120" src="doc/rpt.png" width="120"/> 
+<p align="center">
+  <img alt="rpt" height="120" src="doc/rpt.png" width="120"/>
+</p>
 
-### 内网穿透工具
+<h1 align="center">RPT - Reverse Proxy Tool</h1>
 
-> 一个可用于内网穿透的工具，将局域网个人电脑、服务器映射到公网。
+<p align="center">
+  <strong>一个高性能的内网穿透工具，将局域网个人电脑、服务器代理映射到公网</strong>
+</p>
 
-> 支持任何TCP上层协议，可用于远程桌面、访问内网网站、SSH访问、远程连接打印机、本地支付接口调试、微信小程序调试...
-
-> 支持任何UDP上层协议，可用于DNS转发、游戏服务器代理...
-
-> 支持HTTP端口复用，可用于内网反向代理，共用服务端80/443端口。支持HTTP请求升级为WebSocket，HTTP2。
-
-> SSL双端验证，数据加密传输。
-
-> 部署简单，提供桌面客户端。
-
----
-
-## GUI客户端
-
-- 主界面
-
-![main.png](doc/desktop/main.png)
-
-- 系统配置
-
-![config.png](doc/desktop/config.png)
-
-- TCP映射配置
-
-![tcp.png](doc/desktop/tcp.png)
-
-- HTTP映射配置
-
-![http.png](doc/desktop/http.png)
-
-- 删除映射配置
-
-![delete.png](doc/desktop/delete.png)
-
-- 控制台输出
-
-![start.png](doc/desktop/start.png)
+<p align="center">
+  <img src="https://img.shields.io/badge/version-2.6.0-blue.svg" alt="version"/>
+  <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="license"/>
+  <img src="https://img.shields.io/badge/Java-8+-orange.svg" alt="java"/>
+  <img src="https://img.shields.io/badge/Go-1.20+-00ADD8.svg" alt="go"/>
+  <img src="https://img.shields.io/badge/Netty-4.1-red.svg" alt="netty"/>
+</p>
 
 ---
 
-## 快速体验 Quick Start
+## 📖 目录
 
-- 启动服务端
+- [项目简介](#-项目简介)
+- [功能特性](#-功能特性)
+- [项目架构](#-项目架构)
+- [使用场景](#-使用场景)
+- [快速开始](#-快速开始)
+- [GUI 桌面客户端](#-gui-桌面客户端)
+- [配置详解](#-配置详解)
+- [部署指南](#-部署指南)
+- [Go 客户端](#-go-客户端)
+- [SSL 证书](#-ssl-证书)
+- [常见问题](#-常见问题)
+- [Star History](#-star-history)
 
-`java -jar rpt-server-*.jar -c server.yml`
+---
 
-- 启动客户端（Java版）
+## 🚀 项目简介
 
-`java -jar rpt-client-*.jar -c client.yml`
+**RPT (Reverse Proxy Tool)** 是一款基于 Netty 的内网穿透工具，通过在公网服务器与内网客户端之间建立安全隧道，将内网服务暴露到公网，实现外部访问。
 
-- 启动客户端（Go版）
+### 工作原理
 
-`./rpt-client-go -config client.yml -cert client.crt -key pkcs8_client.key -ca ca.crt`
+```
+外部用户 ──► 公网服务器 (rpt-server) ◄──SSL隧道──► 内网客户端 (rpt-client) ──► 内网服务
+              │                                          │
+              ├─ TCP端口转发                               ├─ 远程桌面 (RDP)
+              ├─ UDP端口转发                               ├─ SSH服务器
+              └─ HTTP/HTTPS反向代理                        ├─ Web应用
+                                                          ├─ 数据库
+                                                          └─ 其他TCP/UDP服务
+```
 
-## 服务端配置`server.yml`
+![数据传输流程](doc/process.png)
+
+---
+
+## ✨ 功能特性
+
+| 特性 | 说明 |
+|------|------|
+| 🔌 **TCP 代理** | 支持任何 TCP 上层协议：RDP远程桌面、SSH、FTP、数据库连接等 |
+| 📡 **UDP 代理** | 支持任何 UDP 上层协议：DNS转发、游戏服务器代理等 |
+| 🌐 **HTTP 端口复用** | 多个客户端共用服务端 80/443 端口，通过域名区分路由 |
+| 🔒 **SSL 双向认证** | 客户端与服务端双向 SSL 验证，数据加密传输 |
+| 🌍 **IP 地域过滤** | 基于 MaxMind GeoIP 数据库限制访问来源国家 |
+| 🔑 **Token 授权** | 每个客户端独立密钥，可限制端口绑定范围 |
+| ⬆️ **协议升级** | HTTP 请求支持升级为 WebSocket、HTTP/2 |
+| 🖥️ **桌面客户端** | 提供 GUI 桌面客户端，开箱即用 |
+| 🐳 **Docker 部署** | 提供 Docker 镜像，一键启动 |
+| 🐹 **Go 客户端** | 轻量级 Go 实现，无需 JVM 环境 |
+
+---
+
+## 🏗️ 项目架构
+
+```
+rpt/
+├── rpt-base/          # 基础模块 - 公共协议、编解码、工具类
+├── rpt-server/        # 服务端 (Java) - 部署在公网服务器
+├── rpt-client/        # 客户端 (Java) - 部署在内网机器
+├── rpt-client-go/     # 客户端 (Go) - 轻量级Go实现
+├── rpt-desktop/       # 桌面客户端 (JavaFX)
+├── rpt-desktop-go/    # 桌面客户端 (Wails + Go)
+└── doc/               # 文档资源
+```
+
+### 技术栈
+
+| 组件 | 技术 |
+|------|------|
+| 服务端 | Java 8+, Netty 4.1, Protostuff |
+| Java 客户端 | Java 8+, Netty 4.1 |
+| Go 客户端 | Go 1.20+ |
+| 桌面客户端 | Wails (Go + Web前端) |
+| 序列化 | Protostuff |
+| 配置文件 | YAML (SnakeYAML / Jackson) |
+| 日志 | Logback |
+| IP 地域库 | MaxMind GeoIP2 |
+| 构建工具 | Maven / Go Modules |
+
+---
+
+## 🎯 使用场景
+
+- **远程桌面** — 在外网通过 RDP 远程连接公司/家中电脑
+- **Web 开发调试** — 本地支付接口回调调试、微信公众号/小程序本地调试
+- **SSH 远程访问** — 远程连接内网 Linux 服务器
+- **数据库连接** — 远程连接内网 MySQL、Redis 等数据库
+- **HTTP 反向代理** — 共享 80/443 端口为多个内网 Web 服务提供公网访问
+- **DNS 转发** — UDP 代理实现 DNS 请求转发
+- **游戏联机** — 代理游戏服务器实现公网联机
+- **打印机共享** — 远程连接内网打印机
+
+---
+
+## ⚡ 快速开始
+
+### 前置条件
+
+| 组件 | 要求 |
+|------|------|
+| 公网服务器 | 一台具有公网 IP 的服务器 |
+| Java 客户端 | JDK/JRE 8+ |
+| Go 客户端 | 无需额外运行环境 (独立二进制) |
+| 服务端 | JDK/JRE 8+ |
+
+### 第一步：编译构建
+
+```bash
+# 克隆项目
+git clone https://github.com/iamlinhui/rpt.git
+cd rpt
+
+# 构建 Java 服务端和客户端
+mvn clean package -Dmaven.test.skip=true
+
+# 构建 Go 客户端 (可选)
+cd rpt-client-go
+go build -o rpt-client-go
+```
+
+### 第二步：部署服务端
+
+将 `rpt-server/target/rpt-server-*.jar` 和 `server.yml` 上传到公网服务器：
+
+```bash
+java -jar rpt-server-2.6.0.jar -c server.yml
+```
+
+### 第三步：启动客户端
+
+**Java 客户端：**
+
+```bash
+java -jar rpt-client-2.6.0.jar -c client.yml
+```
+
+**Go 客户端：**
+
+```bash
+./rpt-client-go -config client.yml -cert client.crt -key pkcs8_client.key -ca ca.crt
+```
+
+### 第四步：验证连接
+
+客户端启动后会自动连接服务端并注册端口映射。例如配置了 `localPort: 3389 → remotePort: 4389`，则可以通过 `公网IP:4389` 访问内网的 3389 端口服务。
+
+---
+
+## 🖥️ GUI 桌面客户端
+
+提供基于 Wails 的图形界面客户端，无需手动编辑配置文件。
+
+| 界面 | 截图 |
+|------|------|
+| 主界面 | ![main](doc/desktop/go/main.png) |
+| 系统配置 | ![config](doc/desktop/go/config.png) |
+| TCP 映射配置 | ![tcp](doc/desktop/go/tcp.png) |
+| HTTP 映射配置 | ![http](doc/desktop/go/http.png) |
+| 删除映射配置 | ![delete](doc/desktop/go/delete.png) |
+| 控制台输出 | ![start](doc/desktop/go/start.png) |
+
+### 编译桌面客户端
+
+```bash
+cd rpt-desktop-go
+wails build
+```
+
+编译后的可执行文件在 `build/bin/` 目录下。
+
+---
+
+## 📝 配置详解
+
+### 服务端配置 `server.yml`
 
 ```yaml
-#服务端绑定IP
+# 服务端绑定IP (0.0.0.0表示监听所有网卡)
 serverIp: 0.0.0.0
-#服务端与客户端通讯端口
+
+# 服务端与客户端通讯端口
 serverPort: 6167
-#服务端暴露的HTTP重定向端口 为0则不开启 默认值0
+
+# HTTP重定向端口 (为0则不开启，默认0)
 httpPort: 80
-#服务端暴露的HTTPS复用端口 为0则不开启 默认值0
-httpsPort: 0
-# 域名证书公钥(需替换) httpsPort为0时不生效 默认值server.crt
-domainCert: server.crt
-# 域名证书私钥(需替换) httpsPort为0时不生效 默认值pkcs8_server.key
-domainKey: pkcs8_server.key
-# 是否限制连接暴露端口的IP必须在当前地区国家 默认值false
+
+# HTTPS复用端口 (为0则不开启，默认0)
+httpsPort: 443
+
+# 域名证书公钥 (httpsPort为0时不生效)
+domainCert: domain.crt
+
+# 域名证书私钥 (httpsPort为0时不生效)
+domainKey: pkcs8_domain.key
+
+# 是否限制连接暴露端口的IP必须在当前地区国家 (默认false)
 ipFilter: true
-#授权给客户端的秘钥
+
+# 客户端授权Token列表
 token:
   - clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
-    # 限制绑定端口范围 左右闭区间  默认值[1024,65535]
-    minPort: 4000
-    maxPort: 8000
+    minPort: 4000    # 允许绑定的最小端口 (默认1024)
+    maxPort: 8000    # 允许绑定的最大端口 (默认65535)
   - clientKey: 4befea7e-a61c-4979-b012-47659bab6f21
     minPort: 9000
     maxPort: 9999
 ```
 
-## 客户端配置`client.yml`
+#### 服务端配置参数说明
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `serverIp` | String | `0.0.0.0` | 服务端绑定的IP地址 |
+| `serverPort` | int | `6167` | 服务端与客户端通讯端口 |
+| `httpPort` | int | `0` | HTTP重定向端口，为0不开启 |
+| `httpsPort` | int | `0` | HTTPS复用端口，为0不开启 |
+| `domainCert` | String | `server.crt` | 域名证书公钥路径 |
+| `domainKey` | String | `pkcs8_server.key` | 域名证书私钥路径 |
+| `ipFilter` | boolean | `false` | 是否启用IP地域过滤 |
+| `token[].clientKey` | String | - | 客户端授权密钥 (UUID) |
+| `token[].minPort` | int | `1024` | 允许绑定的最小端口号 |
+| `token[].maxPort` | int | `65535` | 允许绑定的最大端口号 |
+
+### 客户端配置 `client.yml`
 
 ```yaml
-#服务端IP
-serverIp: 127.0.0.1
-#服务端与客户端通讯端口
+# 服务端IP (公网服务器IP或域名)
+serverIp: 123.45.67.89
+
+# 服务端通讯端口 (与server.yml的serverPort一致)
 serverPort: 6167
-#授权给客户端的秘钥
+
+# 授权密钥 (与server.yml中token列表对应)
 clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
 
-# remotePort与localPort映射配置
+# 端口映射配置列表
 config:
-  - # 传输协议类型 (TCP或者HTTP或者UDP)
-    proxyType: TCP
-    # 客户端连接目标IP
+  # TCP代理示例：远程桌面
+  - proxyType: TCP
     localIp: 127.0.0.1
-    # 客户端连接目标端口
     localPort: 3389
-    # 服务暴露端口
     remotePort: 4389
-    # 描述
     description: rdp-tcp
 
+  # UDP代理示例：远程桌面UDP
   - proxyType: UDP
     localIp: 127.0.0.1
     localPort: 3389
     remotePort: 4389
     description: rdp-udp
 
+  # TCP代理示例：Redis
   - proxyType: TCP
     localIp: 127.0.0.1
     localPort: 6379
     remotePort: 7379
     description: redis
 
+  # HTTP代理示例：Web应用
   - proxyType: HTTP
     localIp: 127.0.0.1
     localPort: 8080
-    # 访问域名(*.domain.com 用二级域名指向 eg:test.domain.com)
-    domain: test.domain.com
-    # 访问资源时登录的账号和密码(账号:密码) 非必填
-    token: admin:admin
+    domain: test.domain.com       # 访问域名
+    token: admin:admin            # Basic认证 (可选)
     description: tomcat
 ```
 
-## Go客户端 rpt-client-go
+#### 客户端配置参数说明
 
-> 使用Go语言实现的轻量级客户端，功能与Java客户端一致，支持TCP/UDP/HTTP代理，适合不便安装JVM的环境。
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `serverIp` | String | 服务端公网IP或域名 |
+| `serverPort` | int | 服务端通讯端口 |
+| `clientKey` | String | 客户端授权密钥 |
+| `config[].proxyType` | String | 代理类型：`TCP` / `UDP` / `HTTP` |
+| `config[].localIp` | String | 内网目标服务IP |
+| `config[].localPort` | int | 内网目标服务端口 |
+| `config[].remotePort` | int | 服务端暴露端口 (TCP/UDP模式) |
+| `config[].domain` | String | 访问域名 (HTTP模式，支持 `*.domain.com` 通配符) |
+| `config[].token` | String | HTTP Basic 认证 `用户名:密码` (可选) |
+| `config[].description` | String | 映射描述信息 |
 
-### 编译
+### 三种代理类型对比
 
-```shell
-cd rpt-client-go
-go build -o rpt-client-go
+| 类型 | 协议 | 端口 | 域名 | 适用场景 |
+|------|------|------|------|----------|
+| **TCP** | TCP | 需要指定 `remotePort` | 不需要 | RDP、SSH、数据库、FTP 等 |
+| **UDP** | UDP | 需要指定 `remotePort` | 不需要 | DNS转发、游戏服务器 等 |
+| **HTTP** | HTTP/HTTPS | 复用服务端 80/443 端口 | 需要配置 `domain` | Web应用、API接口 等 |
+
+---
+
+## 📦 部署指南
+
+### 方式一：直接运行 (推荐快速体验)
+
+```bash
+# 服务端
+java -jar rpt-server-2.6.0.jar -c server.yml
+
+# 客户端
+java -jar rpt-client-2.6.0.jar -c client.yml
 ```
 
-### 使用
+### 方式二：生产环境部署 (Java)
 
-```shell
-./rpt-client-go -config client.yml -cert client.crt -key pkcs8_client.key -ca ca.crt
+> 在 jar 包的当前目录下，新建 `conf` 文件夹，将配置文件和证书放入其中。
+
+#### 目录结构
+
+```
+/opt/rpt-server/
+├── rpt-server-2.6.0.jar
+├── conf/
+│   ├── server.yml
+│   ├── ca.crt
+│   ├── server.crt
+│   ├── pkcs8_server.key
+│   ├── domain.crt          # HTTPS域名证书 (可选)
+│   ├── pkcs8_domain.key    # HTTPS域名私钥 (可选)
+│   └── Country.mmdb        # GeoIP数据库 (可选)
+└── logs/
+
+/opt/rpt-client/
+├── rpt-client-2.6.0.jar
+├── conf/
+│   ├── client.yml
+│   ├── ca.crt
+│   ├── client.crt
+│   └── pkcs8_client.key
+└── logs/
 ```
 
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| `-config` | `client.yml` | 客户端配置文件路径 |
-| `-cert` | `client.crt` | 客户端证书路径 |
-| `-key` | `pkcs8_client.key` | 客户端私钥路径 |
-| `-ca` | `ca.crt` | CA证书路径 |
+#### 启动脚本 `start.sh`
 
-配置文件格式与Java客户端的`client.yml`完全相同，支持TCP、UDP、HTTP三种代理类型。
-
-### 交叉编译
-
-Go客户端支持交叉编译到多种平台，无需依赖JVM：
-
-```shell
-# Linux amd64
-GOOS=linux GOARCH=amd64 go build -o rpt-client-go
-
-# Linux arm64 (树莓派等)
-GOOS=linux GOARCH=arm64 go build -o rpt-client-go
-
-# Windows
-GOOS=windows GOARCH=amd64 go build -o rpt-client-go.exe
-
-# macOS
-GOOS=darwin GOARCH=amd64 go build -o rpt-client-go
+```bash
+java -server -d64 -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Dnetworkaddress.cache.ttl=600 \
+     -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -Duser.timezone=Asia/Shanghai -Duser.country=CN \
+     -Dclient.encoding.override=UTF-8 -Dfile.encoding=UTF-8 -Xbootclasspath/a:./conf \
+     -jar rpt*.jar > /dev/null 2>&1 & echo $! > pid.file &
 ```
 
-### 注册Linux系统服务
+#### 停止脚本 `stop.sh`
+
+```bash
+kill $(cat pid.file)
+```
+
+### 方式三：Docker 部署
+
+```bash
+# 1. 构建镜像
+cd rpt-client
+mvn clean package -Dmaven.test.skip=true
+docker build -f Dockerfile -t rpt-client .
+
+# 2. 准备配置文件目录
+mkdir -p /opt/rpt/conf
+# 将 client.yml、ca.crt、client.crt、pkcs8_client.key 放入 /opt/rpt/conf/
+
+# 3. 启动容器
+docker run -d \
+  -v /opt/rpt/conf:/home/rpt/conf \
+  --restart=always \
+  --name rpt-client \
+  rpt-client
+```
+
+Docker Hub 镜像地址: https://hub.docker.com/r/promptness/rpt-client
+
+### 方式四：注册 Linux 系统服务
+
+#### Go 客户端 systemd 服务
 
 创建 `/etc/systemd/system/rpt-client-go.service`：
 
@@ -195,85 +412,260 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-```shell
-systemctl enable rpt-client-go
-systemctl start rpt-client-go
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable rpt-client-go
+sudo systemctl start rpt-client-go
+sudo systemctl status rpt-client-go
+```
+
+#### Java 客户端 systemd 服务
+
+创建 `/etc/systemd/system/rpt-client.service`：
+
+```ini
+[Unit]
+Description=RPT Client Java
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/rpt-client
+ExecStart=/usr/bin/java -server -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Dnetworkaddress.cache.ttl=600 -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -Duser.timezone=Asia/Shanghai -Dclient.encoding.override=UTF-8 -Dfile.encoding=UTF-8 -Xbootclasspath/a:./conf -jar rpt-client-2.6.0.jar
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### 方式五：注册 Windows 服务
+
+1. 下载 [WinSW](https://github.com/winsw/winsw/releases)，将 `WinSW-x64.exe` 重命名为 `rpt-client.exe`
+2. 与 `rpt-client.jar` 放在同一目录
+3. 创建 `rpt-client.xml`：
+
+```xml
+<service>
+    <id>rpt-client</id>
+    <name>rpt-client</name>
+    <description>RPT Client - Reverse Proxy Tool</description>
+    <executable>java</executable>
+    <arguments>-server -d64 -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Dnetworkaddress.cache.ttl=600 -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -Duser.timezone=Asia/Shanghai -Duser.country=CN -Dclient.encoding.override=UTF-8 -Dfile.encoding=UTF-8 -Xbootclasspath/a:./conf -jar rpt-client.jar</arguments>
+</service>
+```
+
+4. 执行注册：
+
+```cmd
+rpt-client.exe install
+rpt-client.exe start
 ```
 
 ---
 
-## 进阶部署
+## 🐹 Go 客户端
 
-首先在jar包的当前目录,新建conf文件夹,并将相应的配置文件(`client.yml`或者`server.yml`)放进去
+使用 Go 语言实现的轻量级客户端，功能与 Java 客户端一致，适合不便安装 JVM 的环境。
 
-启动脚本`start.sh`
+### 命令行参数
 
-```shell
-java -server -d64 -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Dnetworkaddress.cache.ttl=600 \
-     -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -Duser.timezone=Asia/Shanghai -Duser.country=CN \
-     -Dclient.encoding.override=UTF-8 -Dfile.encoding=UTF-8 -Xbootclasspath/a:./conf \
-     -jar rpt*.jar  > /dev/null 2>&1 & echo $! > pid.file &
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `-config` | `client.yml` | 客户端配置文件路径 |
+| `-cert` | `client.crt` | 客户端证书路径 |
+| `-key` | `pkcs8_client.key` | 客户端私钥路径 |
+| `-ca` | `ca.crt` | CA证书路径 |
+
+### 编译
+
+```bash
+cd rpt-client-go
+go build -o rpt-client-go
 ```
 
-关闭脚本`stop.sh`
+### 交叉编译
 
-```shell
-kill $(cat pid.file)
+```bash
+# Linux amd64
+GOOS=linux GOARCH=amd64 go build -o rpt-client-go
+
+# Linux arm64 (树莓派等)
+GOOS=linux GOARCH=arm64 go build -o rpt-client-go
+
+# Windows
+GOOS=windows GOARCH=amd64 go build -o rpt-client-go.exe
+
+# macOS (Intel)
+GOOS=darwin GOARCH=amd64 go build -o rpt-client-go
+
+# macOS (Apple Silicon)
+GOOS=darwin GOARCH=arm64 go build -o rpt-client-go
 ```
 
-## Docker 镜像地址
+---
 
-https://hub.docker.com/r/promptness/rpt-client
+## 🔐 SSL 证书
 
-## 更新IP库
+RPT 使用 SSL 双向认证确保通讯安全。项目自带测试用证书，**生产环境请务必替换**。
 
-https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
+### 证书生成流程
 
-https://github.com/Loyalsoldier/geoip/releases
+> 自建CA → 生成服务端/客户端私钥 → 生成CSR → 签发x509证书 → PKCS#8编码
 
-https://github.com/Dreamacro/maxmind-geoip/releases
+#### 1. 安装 OpenSSL
 
-将下载的Country.mmdb放入server端的conf文件夹中
+- Linux: `apt install openssl` 或 `yum install openssl`
+- Windows: 下载 [Win32OpenSSL](http://slproweb.com/products/Win32OpenSSL.html)
+- macOS: `brew install openssl`
 
-## SSL证书申请
+#### 2. 建立 CA
 
-详细操作步骤看这里
-[OpenSSL申请证书](doc/OpenSSL.md)
-
-## 替换证书
-
-如果需要替换证书则:
-
-client端需要在conf文件夹里面放置`client.crt`和`pkcs8_client.key`和`ca.crt`
-
-server端需要在conf文件夹里面放置`server.crt`和`pkcs8_server.key`和`ca.crt`
-
-## 注册Windows服务
-
-将rpt-client.jar注册Windows服务可开机自启动
-
-下载 [winsw工具](https://github.com/winsw/winsw/releases) ,将WinSW-x64.exe文件重命名为rpt-client.exe, 和rpt-client.jar放在同一个目录中,
-在该目录中新建文件rpt-client.xml文件,写入如下内容
-
-```xml
-
-<service>
-    <id>rpt-client</id>
-    <name>rpt-client</name>
-    <description>rpt-client</description>
-    <executable>java</executable>
-    <arguments>-server -d64 -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Dnetworkaddress.cache.ttl=600 -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -Duser.timezone=Asia/Shanghai -Duser.country=CN -Dclient.encoding.override=UTF-8 -Dfile.encoding=UTF-8 -Xbootclasspath/a:./conf -jar rpt-client.jar
-    </arguments>
-</service>
+```bash
+openssl req -new -x509 -keyout ca.key -out ca.crt -days 36500
 ```
 
-执行`rpt-client.exe install`即可完成注册为Windows服务
+#### 3. 生成私钥
 
-## 其他
+```bash
+# 服务端
+openssl genrsa -des3 -out server.key 1024
 
-[补充说明](doc/OTHER.md)
+# 客户端
+openssl genrsa -des3 -out client.key 1024
+```
 
+#### 4. 生成 CSR
 
-## Star History
+```bash
+# 服务端
+openssl req -new -key server.key -out server.csr
+
+# 客户端
+openssl req -new -key client.key -out client.csr
+```
+
+> ⚠️ 如果生成 `server.csr` 后再生成 `client.csr` 提示错误，请关闭当前终端重新打开执行。
+
+#### 5. 签发证书
+
+```bash
+# 服务端
+openssl x509 -req -days 3650 -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt
+
+# 客户端
+openssl x509 -req -days 3650 -in client.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out client.crt
+```
+
+#### 6. PKCS#8 编码
+
+```bash
+# 服务端
+openssl pkcs8 -topk8 -in server.key -out pkcs8_server.key -nocrypt
+
+# 客户端
+openssl pkcs8 -topk8 -in client.key -out pkcs8_client.key -nocrypt
+```
+
+### 证书分发
+
+| 端 | 所需文件 |
+|----|----------|
+| **Server** | `ca.crt`、`server.crt`、`pkcs8_server.key` |
+| **Client** | `ca.crt`、`client.crt`、`pkcs8_client.key` |
+
+> ⚠️ Server 和 Client 使用同一个 `ca.crt`，即由同一 CA 签发。
+
+---
+
+## 🔄 更新 IP 地域库
+
+服务端支持基于 MaxMind GeoIP 数据库的 IP 地域过滤功能。
+
+下载地址：
+- [MaxMind GeoLite2](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data)
+- [Loyalsoldier/geoip](https://github.com/Loyalsoldier/geoip/releases)
+- [Dreamacro/maxmind-geoip](https://github.com/Dreamacro/maxmind-geoip/releases)
+
+将下载的 `Country.mmdb` 放入服务端的 `conf` 文件夹中。
+
+---
+
+## ❓ 常见问题
+
+<details>
+<summary><b>Q: 客户端连接不上服务端？</b></summary>
+
+1. 检查服务端防火墙是否开放 `serverPort` 端口（默认 6167）
+2. 检查 `client.yml` 中 `serverIp` 和 `serverPort` 是否正确
+3. 检查 `clientKey` 是否与服务端 `token` 列表匹配
+4. 检查 SSL 证书是否由同一 CA 签发
+</details>
+
+<details>
+<summary><b>Q: TCP 端口映射后无法访问？</b></summary>
+
+1. 检查服务端防火墙是否开放 `remotePort` 对应端口
+2. 检查 `remotePort` 是否在服务端 token 配置的 `minPort` ~ `maxPort` 范围内
+3. 检查内网目标服务是否正常运行
+4. 如果启用了 `ipFilter`，确认访问者 IP 所在国家是否匹配
+</details>
+
+<details>
+<summary><b>Q: HTTP 代理如何配置域名？</b></summary>
+
+1. 将域名 DNS 解析到公网服务器 IP（A 记录）
+2. 支持通配符域名 `*.domain.com`，例如 `test.domain.com`
+3. 客户端 `client.yml` 中 `domain` 字段填写完整域名
+4. 服务端需开启 `httpPort` 或 `httpsPort`
+</details>
+
+<details>
+<summary><b>Q: JavaFX 桌面客户端界面变黑？</b></summary>
+
+JavaFX 硬件渲染在屏幕分辨率变化时可能出现控件变黑问题，添加 JVM 参数启用软件渲染：
+
+```bash
+-Dprism.order=sw
+```
+</details>
+
+<details>
+<summary><b>Q: 如何使用 HTTPS？</b></summary>
+
+1. 申请域名 SSL 证书（如 Let's Encrypt）
+2. 将证书公钥和私钥（PKCS#8 格式）放入服务端 `conf` 目录
+3. 在 `server.yml` 中配置 `httpsPort`、`domainCert`、`domainKey`
+</details>
+
+---
+
+## 📋 支持的 TCP 上层协议
+
+| 协议 | 用途 |
+|------|------|
+| HTTP/HTTPS | Web 浏览 |
+| FTP | 文件传输 |
+| SSH | 安全远程登录 |
+| RDP | 远程桌面 |
+| SMTP/POP3 | 邮件收发 |
+| Telnet | 远程登录 |
+| SOCKS | 代理协议 |
+
+---
+
+## 📋 TODO
+
+- [ ] 集群运维版本
+
+---
+
+## ⭐ Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=iamlinhui/rpt&type=Date)](https://star-history.com/#iamlinhui/rpt&Date)
+
+---
+
+## 📄 License
+
+[MIT License](LICENSE)
