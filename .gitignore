@@ -5,3 +5,4 @@ dependency-*.xml
 client.json
 *.iml
 go.sum
+go.work.sum

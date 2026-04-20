@@ -204,7 +204,7 @@ async function toggleConn() {
 
 // ==================== Custom Modal (no native alert/confirm) ====================
 function showModal(title, body, onOk, hideCancel) {
-  document.getElementById('mc').innerHTML = `<div class="modal-mask" onclick="if(event.target===this)closeModal()">
+  document.getElementById('mc').innerHTML = `<div class="modal-mask" >
     <div class="modal"><div class="modal-hd">${title}</div><div class="modal-bd">${body}</div>
     <div class="modal-ft">${hideCancel?'':'<button class="btn" onclick="closeModal()">取消</button>'}
     <button class="btn btn-p" id="mOk">确定</button></div></div></div>`;
