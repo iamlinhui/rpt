@@ -41,17 +41,75 @@
 
 ### 工作原理
 
-```
-外部用户 ──► 公网服务器 (rpt-server) ◄──SSL隧道──► 内网客户端 (rpt-client) ──► 内网服务
-              │                                          │
-              ├─ TCP端口转发                               ├─ 远程桌面 (RDP)
-              ├─ UDP端口转发                               ├─ SSH服务器
-              └─ HTTP/HTTPS反向代理                        ├─ Web应用
-                                                          ├─ 数据库
-                                                          └─ 其他TCP/UDP服务
+```mermaid
+sequenceDiagram
+    participant U as 🌐 外部用户
+    participant S as 🖥️ rpt-server (公网)
+    participant C as 💻 rpt-client (内网)
+    participant L as 🏠 内网服务
+
+    Note over C,S: 1️⃣ 建立连接阶段
+    C->>S: SSL 双向认证握手
+    S->>S: 验证客户端证书 + Token
+    S-->>C: 认证通过，隧道建立
+    C->>S: 上报端口映射配置 (TCP/UDP/HTTP)
+    S->>S: 绑定公网端口 & 注册域名路由
+
+    Note over U,L: 2️⃣ TCP/UDP 代理流程
+    U->>S: 连接公网 remotePort (如 4389)
+    S->>S: 匹配端口映射规则 & IP地域过滤
+    S->>C: 通过 SSL 隧道转发请求
+    C->>L: 连接本地服务 localIp:localPort (如 127.0.0.1:3389)
+    L-->>C: 返回响应数据
+    C-->>S: 通过 SSL 隧道回传
+    S-->>U: 返回给外部用户
+
+    Note over U,L: 3️⃣ HTTP 代理流程 (端口复用)
+    U->>S: HTTP 请求 test.domain.com:80
+    S->>S: 解析 Host 域名路由 & Basic Auth 验证
+    S->>C: 通过 SSL 隧道转发 HTTP 请求
+    C->>L: 转发到本地 Web 服务 (如 127.0.0.1:8080)
+    L-->>C: 返回 HTTP 响应
+    C-->>S: 通过 SSL 隧道回传
+    S-->>U: 返回 HTTP 响应
+
+    Note over U,L: 4️⃣ 连接保活
+    loop 心跳检测
+        C->>S: 心跳包
+        S-->>C: 心跳响应
+    end
 ```
 
-![数据传输流程](doc/process.png)
+```mermaid
+graph TB
+    subgraph "公网服务器 rpt-server"
+        S["rpt-server<br/>Netty 服务端"]
+        S --> TCP_BIND["TCP 端口监听<br/>remotePort: 4389, 7379..."]
+        S --> UDP_BIND["UDP 端口监听<br/>remotePort: 4389..."]
+        S --> HTTP_BIND["HTTP/HTTPS 端口复用<br/>80 / 443"]
+        HTTP_BIND --> ROUTE["域名路由<br/>Host → 客户端映射"]
+        S --> AUTH["Token 授权<br/>端口范围限制"]
+        S --> GEO["IP 地域过滤<br/>MaxMind GeoIP"]
+        S --> SSL_S["SSL 双向认证"]
+    end
+
+    subgraph "SSL 加密隧道"
+        TUNNEL["🔒 加密数据通道<br/>Protostuff 序列化"]
+    end
+
+    subgraph "内网环境 rpt-client"
+        C["rpt-client<br/>Netty / Go 客户端"]
+        C --> P1["代理连接池"]
+        P1 --> RDP["远程桌面<br/>127.0.0.1:3389"]
+        P1 --> SSH["SSH 服务<br/>127.0.0.1:22"]
+        P1 --> WEB["Web 应用<br/>127.0.0.1:8080"]
+        P1 --> DB["数据库<br/>127.0.0.1:3306"]
+        P1 --> OTHER["其他服务<br/>FTP/SMTP/打印机..."]
+    end
+
+    SSL_S <--> TUNNEL
+    TUNNEL <--> C
+```
 
 ---
 
