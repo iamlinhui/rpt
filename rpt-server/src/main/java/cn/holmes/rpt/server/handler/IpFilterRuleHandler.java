@@ -19,13 +19,15 @@ import java.util.Objects;
 
 public class IpFilterRuleHandler implements IpFilterRule {
 
-    private final Logger logger = LoggerFactory.getLogger(IpFilterRuleHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(IpFilterRuleHandler.class);
+
+    private static final IpFilterRuleHandler INSTANCE = new IpFilterRuleHandler();
 
     private Reader reader;
 
     private static final List<String> WHITE_COUNTRY = Collections.singletonList(Locale.getDefault().getCountry());
 
-    public IpFilterRuleHandler() {
+    private IpFilterRuleHandler() {
         try (InputStream inputStream = ClassLoader.getSystemResourceAsStream("Country.mmdb")) {
             if (inputStream == null) {
                 return;
@@ -34,6 +36,10 @@ public class IpFilterRuleHandler implements IpFilterRule {
         } catch (IOException ioException) {
             logger.error(ioException.getMessage());
         }
+    }
+
+    public static IpFilterRuleHandler getInstance() {
+        return INSTANCE;
     }
 
     @Override

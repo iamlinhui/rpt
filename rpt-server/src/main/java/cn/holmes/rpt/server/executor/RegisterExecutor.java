@@ -35,7 +35,7 @@ import java.util.concurrent.CountDownLatch;
 
 public class RegisterExecutor implements MessageExecutor {
 
-    private static final RuleBasedIpFilter RULE_BASED_IP_FILTER = new RuleBasedIpFilter(new IpFilterRuleHandler());
+    private static final RuleBasedIpFilter RULE_BASED_IP_FILTER = new RuleBasedIpFilter(IpFilterRuleHandler.getInstance());
 
     private static final NioEventLoopGroup REMOTE_BOSS_GROUP = new NioEventLoopGroup();
 

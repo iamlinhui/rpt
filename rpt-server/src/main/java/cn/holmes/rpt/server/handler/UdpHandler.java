@@ -37,7 +37,7 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
     private static final Logger logger = LoggerFactory.getLogger(UdpHandler.class);
 
-    private static final IpFilterRule IP_FILTER_RULE_HANDLER = new IpFilterRuleHandler();
+    private static final IpFilterRule IP_FILTER_RULE_HANDLER = IpFilterRuleHandler.getInstance();
 
     private static final long SESSION_TIMEOUT = 60;
 
