@@ -7,10 +7,10 @@ import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.base.utils.FireEvent;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.util.internal.EmptyArrays;
 
 import java.util.Collections;
 import java.util.Map;
@@ -44,6 +44,6 @@ public class DisconnectedExecutor implements MessageExecutor {
             localChannel.pipeline().fireUserEventTriggered(fireEvent);
             return;
         }
-        localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
+        localChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
     }
 }

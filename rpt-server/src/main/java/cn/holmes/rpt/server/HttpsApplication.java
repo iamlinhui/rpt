@@ -17,7 +17,6 @@ import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
-import io.netty.handler.stream.ChunkedWriteHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +43,6 @@ public class HttpsApplication extends Application<ServerBootstrap> {
                 ch.pipeline().addLast(sslContext.newHandler(ch.alloc()));
                 ch.pipeline().addLast(new HttpServerCodec());
                 ch.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
-                ch.pipeline().addLast(new ChunkedWriteHandler());
                 ch.pipeline().addLast(new RequestHandler());
             }
         });

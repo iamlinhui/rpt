@@ -1,6 +1,5 @@
 package cn.holmes.rpt.server.executor;
 
-import cn.holmes.rpt.base.coder.ByteArrayCodec;
 import cn.holmes.rpt.base.config.ProxyType;
 import cn.holmes.rpt.base.config.RemoteConfig;
 import cn.holmes.rpt.base.config.ServerToken;
@@ -24,7 +23,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.ipfilter.RuleBasedIpFilter;
-import io.netty.handler.stream.ChunkedWriteHandler;
 
 import java.util.Collections;
 import java.util.List;
@@ -149,8 +147,6 @@ public class RegisterExecutor implements MessageExecutor {
                 if (Config.getServerConfig().ipFilter()) {
                     channel.pipeline().addLast(RULE_BASED_IP_FILTER);
                 }
-                channel.pipeline().addLast(new ByteArrayCodec());
-                channel.pipeline().addLast(new ChunkedWriteHandler());
                 channel.pipeline().addLast(new TcpHandler(serverChannel, remoteConfig));
             }
         });

@@ -9,12 +9,12 @@ import cn.holmes.rpt.base.utils.Config;
 import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.base.utils.FireEvent;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.handler.ipfilter.IpFilterRule;
-import io.netty.util.internal.EmptyArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,24 +47,15 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
     private final RemoteConfig remoteConfig;
 
-    /**
-     * channelId → 发送者地址
-     */
     private final Map<String, InetSocketAddress> senderAddressMap = new ConcurrentHashMap<>();
 
-    /**
-     * channelId → 对应的代理通道（代理建立后设置）
-     */
     private final Map<String, Channel> proxyChannelMap = new ConcurrentHashMap<>();
 
     /**
-     * channelId → 代理建立前缓冲的数据
+     * channelId → 代理建立前缓冲的数据（retain的ByteBuf）
      */
-    private final Map<String, Queue<byte[]>> channelBufferMap = new ConcurrentHashMap<>();
+    private final Map<String, Queue<ByteBuf>> channelBufferMap = new ConcurrentHashMap<>();
 
-    /**
-     * channelId → 最后活跃时间
-     */
     private final Map<String, Long> lastActiveMap = new ConcurrentHashMap<>();
 
     private ScheduledFuture<?> timeoutChecker;
@@ -121,22 +112,21 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
         lastActiveMap.put(channelId, System.currentTimeMillis());
 
-        ByteBuf content = packet.content();
-        byte[] data = new byte[content.readableBytes()];
-        content.readBytes(data);
+        ByteBuf data = packet.content().retainedDuplicate();
 
         if (!senderAddressMap.containsKey(channelId)) {
             // 新的发送者，创建虚拟会话
             senderAddressMap.put(channelId, sender);
             Map<String, Channel> localChannelMap = serverChannel.attr(Server.CHANNELS).get();
             if (localChannelMap == null) {
+                data.release();
                 return;
             }
             localChannelMap.put(channelId, ctx.channel());
             // 缓冲数据，等待代理通道建立
             addToBuffer(channelId, data);
             // 通知客户端建立连接
-            sendMessage(serverChannel, MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES, channelId);
+            sendMessage(serverChannel, MessageType.TYPE_CONNECTED, Unpooled.EMPTY_BUFFER, channelId);
             return;
         }
 
@@ -162,9 +152,9 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
         proxyChannel.attr(Server.UDP_SENDER).set(address);
         proxyChannelMap.put(channelId, proxyChannel);
         // 刷新缓冲的数据
-        Queue<byte[]> buffer = channelBufferMap.remove(channelId);
+        Queue<ByteBuf> buffer = channelBufferMap.remove(channelId);
         if (buffer != null) {
-            byte[] data;
+            ByteBuf data;
             while ((data = buffer.poll()) != null) {
                 sendMessage(proxyChannel, MessageType.TYPE_DATA, data, channelId);
             }
@@ -177,14 +167,21 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
     private void removeSession(String channelId) {
         Optional.ofNullable(serverChannel.attr(Server.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(channelId));
         senderAddressMap.remove(channelId);
-        channelBufferMap.remove(channelId);
+        // 释放缓冲区中未发送的ByteBuf
+        Queue<ByteBuf> buffer = channelBufferMap.remove(channelId);
+        if (buffer != null) {
+            ByteBuf buf;
+            while ((buf = buffer.poll()) != null) {
+                buf.release();
+            }
+        }
         lastActiveMap.remove(channelId);
         Channel proxyChannel = proxyChannelMap.remove(channelId);
         // 通过代理通道通知客户端断开，客户端会关闭本地通道并将proxyChannel归还连接池复用
         if (proxyChannel != null && proxyChannel.isActive()) {
             proxyChannel.attr(Server.LOCAL).set(null);
             proxyChannel.attr(Server.UDP_SENDER).set(null);
-            sendMessage(proxyChannel, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES, channelId);
+            sendMessage(proxyChannel, MessageType.TYPE_DISCONNECTED, Unpooled.EMPTY_BUFFER, channelId);
         }
     }
 
@@ -205,20 +202,18 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
         }
     }
 
-    private void addToBuffer(String channelId, byte[] data) {
-        Queue<byte[]> queue = channelBufferMap.computeIfAbsent(channelId, k -> new ConcurrentLinkedQueue<>());
+    private void addToBuffer(String channelId, ByteBuf data) {
+        Queue<ByteBuf> queue = channelBufferMap.computeIfAbsent(channelId, k -> new ConcurrentLinkedQueue<>());
         if (queue.size() < MAX_BUFFER_SIZE) {
             queue.add(data);
+        } else {
+            data.release();
         }
     }
 
-    private void sendMessage(Channel target, MessageType type, byte[] data, String channelId) {
+    private void sendMessage(Channel target, MessageType type, ByteBuf data, String channelId) {
         Meta meta = new Meta(channelId, remoteConfig).setServerId(serverChannel.id().asLongText());
-        Message message = new Message();
-        message.setType(type);
-        message.setMeta(meta);
-        message.setData(data);
-        target.writeAndFlush(message);
+        target.writeAndFlush(new Message(type, meta, data));
     }
 
     private String toChannelId(InetSocketAddress address) {

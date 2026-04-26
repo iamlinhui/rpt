@@ -5,14 +5,13 @@ import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.utils.Constants.Client;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
-import io.netty.util.internal.EmptyArrays;
 
 import java.net.InetSocketAddress;
 import java.util.Objects;
-import java.util.Optional;
 
 public class DataExecutor implements MessageExecutor {
 
@@ -27,15 +26,14 @@ public class DataExecutor implements MessageExecutor {
         if (Objects.isNull(localChannel)) {
             return;
         }
-        byte[] data = Optional.ofNullable(message.getData()).orElse(EmptyArrays.EMPTY_BYTES);
+        ByteBuf data = message.hasDataBuf() ? message.getDataBuf().retain() : Unpooled.EMPTY_BUFFER;
         InetSocketAddress udpTarget = localChannel.attr(Client.UDP_TARGET).get();
         if (udpTarget != null) {
-            // UDP: 将字节数据包装为DatagramPacket发送到本地UDP服务
-            ByteBuf buf = localChannel.alloc().buffer(data.length);
-            buf.writeBytes(data);
-            localChannel.writeAndFlush(new DatagramPacket(buf, udpTarget));
+            // UDP: 直接转发ByteBuf，零拷贝
+            localChannel.writeAndFlush(new DatagramPacket(data, udpTarget));
             return;
         }
+        // TCP/HTTP: 直接写ByteBuf，零拷贝
         localChannel.writeAndFlush(data);
     }
 }

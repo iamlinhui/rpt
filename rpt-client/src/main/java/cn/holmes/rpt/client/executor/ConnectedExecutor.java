@@ -1,6 +1,5 @@
 package cn.holmes.rpt.client.executor;
 
-import cn.holmes.rpt.base.coder.ByteArrayCodec;
 import cn.holmes.rpt.base.config.ProxyType;
 import cn.holmes.rpt.base.config.RemoteConfig;
 import cn.holmes.rpt.base.executor.MessageExecutor;
@@ -14,16 +13,14 @@ import cn.holmes.rpt.client.cache.ProxyChannelCache;
 import cn.holmes.rpt.client.handler.TcpHandler;
 import cn.holmes.rpt.client.handler.UdpHandler;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.stream.ChunkedWriteHandler;
-import io.netty.util.internal.EmptyArrays;
 
-import java.util.Collections;
 import java.util.Objects;
 
 public class ConnectedExecutor implements MessageExecutor, Listener<Meta> {
@@ -58,7 +55,7 @@ public class ConnectedExecutor implements MessageExecutor, Listener<Meta> {
 
     @Override
     public void fail(Channel serverChannel, Meta meta) {
-        serverChannel.writeAndFlush(new Message(MessageType.TYPE_DISCONNECTED, meta, EmptyArrays.EMPTY_BYTES));
+        serverChannel.writeAndFlush(new Message(MessageType.TYPE_DISCONNECTED, meta, Unpooled.EMPTY_BUFFER));
     }
 
     @Override
@@ -77,8 +74,6 @@ public class ConnectedExecutor implements MessageExecutor, Listener<Meta> {
         localBootstrap.group(LOOP_GROUP).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel channel) throws Exception {
-                channel.pipeline().addLast(new ByteArrayCodec());
-                channel.pipeline().addLast(new ChunkedWriteHandler());
                 channel.pipeline().addLast(new TcpHandler(serverChannel, meta));
             }
         });
@@ -88,7 +83,7 @@ public class ConnectedExecutor implements MessageExecutor, Listener<Meta> {
                 proxyChannel.attr(Client.LOCAL).set(future.channel());
             } else {
                 ProxyChannelCache.put(proxyChannel);
-                serverChannel.writeAndFlush(new Message(MessageType.TYPE_DISCONNECTED, meta, EmptyArrays.EMPTY_BYTES));
+                serverChannel.writeAndFlush(new Message(MessageType.TYPE_DISCONNECTED, meta, Unpooled.EMPTY_BUFFER));
             }
         });
     }
@@ -108,7 +103,7 @@ public class ConnectedExecutor implements MessageExecutor, Listener<Meta> {
                 future.channel().attr(Client.PROXY).set(proxyChannel);
             } else {
                 ProxyChannelCache.put(proxyChannel);
-                serverChannel.writeAndFlush(new Message(MessageType.TYPE_DISCONNECTED, meta, EmptyArrays.EMPTY_BYTES));
+                serverChannel.writeAndFlush(new Message(MessageType.TYPE_DISCONNECTED, meta, Unpooled.EMPTY_BUFFER));
             }
         });
     }

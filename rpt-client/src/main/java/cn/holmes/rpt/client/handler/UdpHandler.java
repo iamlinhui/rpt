@@ -5,12 +5,11 @@ import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
 import cn.holmes.rpt.base.utils.Constants.Client;
-import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.socket.DatagramPacket;
-import io.netty.util.internal.EmptyArrays;
 
 import java.net.InetSocketAddress;
 import java.util.Objects;
@@ -51,7 +50,7 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
         RemoteConfig remoteConfig = meta.getRemoteConfig();
         // 设置UDP目标地址，用于DataExecutor将数据发送到本地服务
         ctx.channel().attr(Client.UDP_TARGET).set(new InetSocketAddress(remoteConfig.getLocalIp(), remoteConfig.getLocalPort()));
-        proxyChannel.writeAndFlush(new Message(MessageType.TYPE_CONNECTED, meta, EmptyArrays.EMPTY_BYTES));
+        proxyChannel.writeAndFlush(new Message(MessageType.TYPE_CONNECTED, meta, Unpooled.EMPTY_BUFFER));
         ctx.channel().config().setAutoRead(true);
     }
 
@@ -61,10 +60,7 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
         if (Objects.isNull(proxyChannel)) {
             return;
         }
-        ByteBuf content = packet.content();
-        byte[] data = new byte[content.readableBytes()];
-        content.readBytes(data);
-        proxyChannel.writeAndFlush(new Message(MessageType.TYPE_DATA, meta, data));
+        proxyChannel.writeAndFlush(new Message(MessageType.TYPE_DATA, meta, packet.content().retainedDuplicate()));
     }
 
     @Override
@@ -72,7 +68,7 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
         Optional.ofNullable(serverChannel.attr(Client.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(meta.getChannelId()));
         Channel proxyChannel = ctx.channel().attr(Client.PROXY).get();
         if (Objects.nonNull(proxyChannel) && proxyChannel.isActive()) {
-            proxyChannel.writeAndFlush(new Message(MessageType.TYPE_DISCONNECTED, meta, EmptyArrays.EMPTY_BYTES));
+            proxyChannel.writeAndFlush(new Message(MessageType.TYPE_DISCONNECTED, meta, Unpooled.EMPTY_BUFFER));
         }
     }
 

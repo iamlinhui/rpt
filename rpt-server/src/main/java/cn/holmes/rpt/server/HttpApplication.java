@@ -14,7 +14,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
-import io.netty.handler.stream.ChunkedWriteHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +37,6 @@ public class HttpApplication extends Application<ServerBootstrap> {
             public void initChannel(SocketChannel ch) throws Exception {
                 ch.pipeline().addLast(new HttpServerCodec());
                 ch.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
-                ch.pipeline().addLast(new ChunkedWriteHandler());
                 ch.pipeline().addLast(serverConfig.getHttpsPort() == 0 ? new RequestHandler() : new RedirectHandler());
             }
         });

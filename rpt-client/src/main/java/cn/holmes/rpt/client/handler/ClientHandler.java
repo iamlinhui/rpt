@@ -8,11 +8,11 @@ import cn.holmes.rpt.base.utils.Config;
 import cn.holmes.rpt.base.utils.Constants.Client;
 import cn.holmes.rpt.client.cache.ProxyChannelCache;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.util.internal.EmptyArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +67,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
             if (udpTarget != null) {
                 localChannel.close();
             } else {
-                localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
+                localChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
             }
         }
     }

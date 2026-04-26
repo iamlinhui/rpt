@@ -6,10 +6,11 @@ import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
 import cn.holmes.rpt.base.utils.Constants.Server;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.util.internal.EmptyArrays;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -17,7 +18,7 @@ import java.util.Optional;
 /**
  * 处理服务器接收到的外部请求
  */
-public class TcpHandler extends SimpleChannelInboundHandler<byte[]> {
+public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
     private final Channel serverChannel;
     private final RemoteConfig remoteConfig;
@@ -53,18 +54,18 @@ public class TcpHandler extends SimpleChannelInboundHandler<byte[]> {
         ctx.channel().attr(Server.PROXY_TYPE).set(ProxyType.TCP);
         serverChannel.attr(Server.CHANNELS).get().put(ctx.channel().id().asLongText(), ctx.channel());
         ctx.channel().config().setAutoRead(false);
-        send(serverChannel, MessageType.TYPE_CONNECTED, EmptyArrays.EMPTY_BYTES, ctx);
+        send(serverChannel, MessageType.TYPE_CONNECTED, Unpooled.EMPTY_BUFFER, ctx);
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, byte[] bytes) throws Exception {
+    protected void channelRead0(ChannelHandlerContext ctx, ByteBuf buf) throws Exception {
         // 从外部连接接收到的数据 转发到客户端
         Channel proxyChannel = ctx.channel().attr(Server.PROXY).get();
         if (Objects.isNull(proxyChannel)) {
             ctx.close();
             return;
         }
-        send(proxyChannel, MessageType.TYPE_DATA, bytes, ctx);
+        send(proxyChannel, MessageType.TYPE_DATA, buf.retain(), ctx);
     }
 
     /**
@@ -77,7 +78,7 @@ public class TcpHandler extends SimpleChannelInboundHandler<byte[]> {
         if (Objects.nonNull(proxyChannel) && proxyChannel.isActive()) {
             proxyChannel.attr(Server.LOCAL).set(null);
             proxyChannel.config().setAutoRead(true);
-            send(proxyChannel, MessageType.TYPE_DISCONNECTED, EmptyArrays.EMPTY_BYTES, ctx);
+            send(proxyChannel, MessageType.TYPE_DISCONNECTED, Unpooled.EMPTY_BUFFER, ctx);
         }
     }
 
@@ -92,12 +93,8 @@ public class TcpHandler extends SimpleChannelInboundHandler<byte[]> {
     /**
      * 发送数据到内网客户端流程封装
      **/
-    public void send(Channel complex, MessageType type, byte[] data, ChannelHandlerContext ctx) {
+    public void send(Channel complex, MessageType type, ByteBuf data, ChannelHandlerContext ctx) {
         Meta meta = new Meta(ctx.channel().id().asLongText(), remoteConfig).setServerId(serverChannel.id().asLongText());
-        Message message = new Message();
-        message.setType(type);
-        message.setMeta(meta);
-        message.setData(data);
-        complex.writeAndFlush(message);
+        complex.writeAndFlush(new Message(type, meta, data));
     }
 }

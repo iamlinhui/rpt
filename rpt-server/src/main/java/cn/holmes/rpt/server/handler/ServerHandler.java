@@ -6,8 +6,8 @@ import cn.holmes.rpt.base.executor.MessageExecutorFactory;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
-import io.netty.util.internal.EmptyArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +59,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                 ProxyType proxyType = localChannel.attr(Server.PROXY_TYPE).get();
                 localChannel.attr(Server.PROXY).set(null);
                 if (!Objects.equals(proxyType, ProxyType.UDP)) {
-                    localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
+                    localChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
                 }
             }
             return;

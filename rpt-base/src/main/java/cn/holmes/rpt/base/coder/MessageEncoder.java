@@ -31,8 +31,8 @@ public class MessageEncoder extends MessageToByteEncoder<Message> {
         out.writeInt(metaByte.length);
         out.writeBytes(metaByte);
 
-        if (message.getData() != null && message.getData().length > 0) {
-            out.writeBytes(message.getData());
+        if (message.hasDataBuf()) {
+            out.writeBytes(message.getDataBuf());
         }
     }
 }

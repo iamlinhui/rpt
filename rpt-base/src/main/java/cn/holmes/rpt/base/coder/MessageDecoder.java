@@ -7,7 +7,6 @@ import cn.holmes.rpt.base.serialize.SerializerDispatcher;
 import cn.holmes.rpt.base.serialize.api.SerializationType;
 import cn.holmes.rpt.base.utils.Constants;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
 
@@ -36,8 +35,7 @@ public class MessageDecoder extends MessageToMessageDecoder<ByteBuf> {
             message.setMeta(meta);
         }
         if (byteBuf.isReadable()) {
-            byte[] data = ByteBufUtil.getBytes(byteBuf);
-            message.setData(data);
+            message.setDataBuf(byteBuf.retainedSlice());
         }
         list.add(message);
     }

@@ -5,10 +5,10 @@ import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.utils.Constants.Client;
 import cn.holmes.rpt.client.cache.ProxyChannelCache;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.util.internal.EmptyArrays;
 
 import java.net.InetSocketAddress;
 import java.util.Objects;
@@ -34,7 +34,7 @@ public class DisconnectedExecutor implements MessageExecutor {
             ProxyChannelCache.put(context.channel());
             return;
         }
-        localChannel.writeAndFlush(EmptyArrays.EMPTY_BYTES).addListener(ChannelFutureListener.CLOSE);
+        localChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         ProxyChannelCache.put(context.channel());
     }
 }

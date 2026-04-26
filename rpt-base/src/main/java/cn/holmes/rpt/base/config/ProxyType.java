@@ -1,8 +1,5 @@
 package cn.holmes.rpt.base.config;
 
-import java.util.Locale;
-import java.util.Objects;
-
 public enum ProxyType {
 
     /**
@@ -32,15 +29,6 @@ public enum ProxyType {
     public static ProxyType getInstance(int code) {
         for (ProxyType value : ProxyType.values()) {
             if (value.code == code) {
-                return value;
-            }
-        }
-        return null;
-    }
-
-    public static ProxyType getInstance(String desc) {
-        for (ProxyType value : ProxyType.values()) {
-            if (Objects.equals(value.desc, desc.toLowerCase(Locale.ROOT))) {
                 return value;
             }
         }
