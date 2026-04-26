@@ -25,10 +25,34 @@ type RemoteConfig struct {
 }
 
 type ClientConfig struct {
-	ServerIp   string         `yaml:"serverIp"`
-	ServerPort int            `yaml:"serverPort"`
-	ClientKey  string         `yaml:"clientKey"`
-	Config     []RemoteConfig `yaml:"config"`
+	ServerIp       string         `yaml:"serverIp"`
+	ServerPort     int            `yaml:"serverPort"`
+	ClientCaPath   string         `yaml:"clientCaPath"`
+	ClientCertPath string         `yaml:"clientCertPath"`
+	ClientKeyPath  string         `yaml:"clientKeyPath"`
+	ClientKey      string         `yaml:"clientKey"`
+	Config         []RemoteConfig `yaml:"config"`
+}
+
+func (c *ClientConfig) GetCaPath() string {
+	if c.ClientCaPath != "" {
+		return c.ClientCaPath
+	}
+	return "ca.crt"
+}
+
+func (c *ClientConfig) GetCertPath() string {
+	if c.ClientCertPath != "" {
+		return c.ClientCertPath
+	}
+	return "client.crt"
+}
+
+func (c *ClientConfig) GetKeyPath() string {
+	if c.ClientKeyPath != "" {
+		return c.ClientKeyPath
+	}
+	return "pkcs8_client.key"
 }
 
 func (c *ClientConfig) GetHttpConfig(domain string) *RemoteConfig {

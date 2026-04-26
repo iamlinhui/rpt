@@ -25,9 +25,6 @@ func init() {
 
 func main() {
 	configPath := flag.String("config", "client.yml", "path to client config file")
-	certFile := flag.String("cert", "client.crt", "path to client certificate")
-	keyFile := flag.String("key", "pkcs8_client.key", "path to client private key")
-	caFile := flag.String("ca", "ca.crt", "path to CA certificate")
 	flag.Parse()
 
 	cfg, err := config.LoadClientConfig(*configPath)
@@ -35,7 +32,7 @@ func main() {
 		log.Fatalf("load config: %v", err)
 	}
 
-	tlsConfig, err := protocol.LoadTLSConfig(*certFile, *keyFile, *caFile)
+	tlsConfig, err := protocol.LoadTLSConfig(cfg.GetCertPath(), cfg.GetKeyPath(), cfg.GetCaPath())
 	if err != nil {
 		log.Fatalf("load tls config: %v", err)
 	}
