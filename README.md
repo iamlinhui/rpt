@@ -222,7 +222,7 @@ java -jar rpt-client-2.6.1.jar -c client.yml
 **Go 客户端：**
 
 ```bash
-./rpt-client-go -config client.yml -cert client.crt -key pkcs8_client.key -ca ca.crt
+./rpt-client-go -config client.yml
 ```
 
 ### 第四步：验证连接
@@ -266,6 +266,15 @@ serverIp: 0.0.0.0
 # 服务端与客户端通讯端口
 serverPort: 6167
 
+# 服务端CA证书路径 (默认ca.crt)
+serverCaPath: ca.crt
+
+# 服务端证书路径 (默认server.crt)
+serverCertPath: server.crt
+
+# 服务端私钥路径 (默认pkcs8_server.key)
+serverKeyPath: pkcs8_server.key
+
 # HTTP重定向端口 (为0则不开启，默认0)
 httpPort: 80
 
@@ -306,6 +315,9 @@ token:
 |------|------|--------|------|
 | `serverIp` | String | `0.0.0.0` | 服务端绑定的IP地址 |
 | `serverPort` | int | `6167` | 服务端与客户端通讯端口 |
+| `serverCaPath` | String | `ca.crt` | 服务端CA证书路径 |
+| `serverCertPath` | String | `server.crt` | 服务端证书路径 |
+| `serverKeyPath` | String | `pkcs8_server.key` | 服务端私钥路径 |
 | `httpPort` | int | `0` | HTTP重定向端口，为0不开启 |
 | `httpsPort` | int | `0` | HTTPS复用端口，为0不开启 |
 | `domainCert` | String | `server.crt` | 域名证书公钥路径 |
@@ -326,6 +338,15 @@ serverIp: 123.45.67.89
 
 # 服务端通讯端口 (与server.yml的serverPort一致)
 serverPort: 6167
+
+# 客户端CA证书路径 (默认ca.crt)
+clientCaPath: ca.crt
+
+# 客户端证书路径 (默认client.crt)
+clientCertPath: client.crt
+
+# 客户端私钥路径 (默认pkcs8_client.key)
+clientKeyPath: pkcs8_client.key
 
 # 授权密钥 (与server.yml中token列表对应)
 clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
@@ -368,6 +389,9 @@ config:
 |------|------|------|
 | `serverIp` | String | 服务端公网IP或域名 |
 | `serverPort` | int | 服务端通讯端口 |
+| `clientCaPath` | String | 客户端CA证书路径（默认 `ca.crt`） |
+| `clientCertPath` | String | 客户端证书路径（默认 `client.crt`） |
+| `clientKeyPath` | String | 客户端私钥路径（默认 `pkcs8_client.key`） |
 | `clientKey` | String | 客户端授权密钥 |
 | `config[].proxyType` | String | 代理类型：`TCP` / `UDP` / `HTTP` |
 | `config[].localIp` | String | 内网目标服务IP |
@@ -479,7 +503,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/rpt
-ExecStart=/opt/rpt/rpt-client-go -config client.yml -cert client.crt -key pkcs8_client.key -ca ca.crt
+ExecStart=/opt/rpt/rpt-client-go -config client.yml
 Restart=always
 RestartSec=5
 
@@ -588,9 +612,8 @@ dashboardPassword: admin
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
 | `-config` | `client.yml` | 客户端配置文件路径 |
-| `-cert` | `client.crt` | 客户端证书路径 |
-| `-key` | `pkcs8_client.key` | 客户端私钥路径 |
-| `-ca` | `ca.crt` | CA证书路径 |
+
+> 证书路径已移至 `client.yml` 配置文件中（`clientCaPath`、`clientCertPath`、`clientKeyPath`），不配置则使用默认值。
 
 ### 编译
 
