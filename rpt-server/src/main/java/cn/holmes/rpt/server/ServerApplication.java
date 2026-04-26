@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 public class ServerApplication extends Application<ServerBootstrap> {
@@ -97,7 +98,11 @@ public class ServerApplication extends Application<ServerBootstrap> {
     }
 
     private static SslContext buildServerSslContext() throws IOException {
-        try (InputStream certChainFile = ClassLoader.getSystemResourceAsStream("server.crt"); InputStream keyFile = ClassLoader.getSystemResourceAsStream("pkcs8_server.key"); InputStream rootFile = ClassLoader.getSystemResourceAsStream("ca.crt")) {
+        ServerConfig serverConfig = Config.getServerConfig();
+        String serverCaPath = Optional.ofNullable(serverConfig.getServerCaPath()).orElse("ca.crt");
+        String serverCertPath = Optional.ofNullable(serverConfig.getServerCertPath()).orElse("server.crt");
+        String serverKeyPath = Optional.ofNullable(serverConfig.getServerKeyPath()).orElse("pkcs8_server.key");
+        try (InputStream certChainFile = ClassLoader.getSystemResourceAsStream(serverCaPath); InputStream keyFile = ClassLoader.getSystemResourceAsStream(serverCertPath); InputStream rootFile = ClassLoader.getSystemResourceAsStream(serverKeyPath)) {
             return SslContextBuilder.forServer(certChainFile, keyFile).trustManager(rootFile).clientAuth(ClientAuth.REQUIRE).sslProvider(SslProvider.OPENSSL).build();
         }
     }

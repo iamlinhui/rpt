@@ -7,6 +7,9 @@ public class ServerConfig {
 
     private String serverIp;
     private int serverPort;
+    private String serverCaPath;
+    private String serverCertPath;
+    private String serverKeyPath;
     private int httpPort;
     private int httpsPort;
     private String domainCert;
@@ -49,6 +52,30 @@ public class ServerConfig {
 
     public void setServerPort(int serverPort) {
         this.serverPort = serverPort;
+    }
+
+    public String getServerCaPath() {
+        return serverCaPath;
+    }
+
+    public void setServerCaPath(String serverCaPath) {
+        this.serverCaPath = serverCaPath;
+    }
+
+    public String getServerCertPath() {
+        return serverCertPath;
+    }
+
+    public void setServerCertPath(String serverCertPath) {
+        this.serverCertPath = serverCertPath;
+    }
+
+    public String getServerKeyPath() {
+        return serverKeyPath;
+    }
+
+    public void setServerKeyPath(String serverKeyPath) {
+        this.serverKeyPath = serverKeyPath;
     }
 
     public List<ServerToken> getToken() {

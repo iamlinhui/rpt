@@ -122,7 +122,8 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
-        domain = Optional.ofNullable(domain).orElse(COLON.split(fullHttpRequest.headers().get(HttpHeaderNames.HOST))[0]);
+        String host = fullHttpRequest.headers().get(HttpHeaderNames.HOST);
+        domain = Optional.ofNullable(domain).orElse(host != null ? COLON.split(host)[0] : null);
         if (!StringUtils.hasText(domain)) {
             StaticDispatcher.dispatch(fullHttpRequest, ctx);
             return;

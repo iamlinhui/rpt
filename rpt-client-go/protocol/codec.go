@@ -1,7 +1,6 @@
 package protocol
 
 import (
-	"compress/gzip"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -21,14 +20,12 @@ const writerIdleTimeout = 30 * time.Second
 // the connection dead. The server sends idle-check at 60s, so 90s is safe.
 const readIdleTimeout = 90 * time.Second
 
-// Conn wraps a TLS connection with gzip compression and message framing.
+// Conn wraps a TLS connection with message framing.
 // It automatically sends TYPE_KEEPALIVE if no write occurs for writerIdleTimeout.
 type Conn struct {
-	raw      net.Conn
-	gzWriter *gzip.Writer
-	gzReader *gzip.Reader
-	mu       sync.Mutex // protects writes
-	rmu      sync.Mutex // protects reads/lazy init
+	raw net.Conn
+	mu  sync.Mutex // protects writes
+	rmu sync.Mutex // protects reads
 
 	lastWrite int64 // unix nano of last successful write
 	closed    int32 // atomic flag
@@ -47,9 +44,8 @@ func NewConn(raw net.Conn) (*Conn, error) {
 		}
 	}
 	c := &Conn{
-		raw:      raw,
-		gzWriter: gzip.NewWriter(raw),
-		stopKA:   make(chan struct{}),
+		raw:    raw,
+		stopKA: make(chan struct{}),
 	}
 	atomic.StoreInt64(&c.lastWrite, time.Now().UnixNano())
 	go c.keepaliveLoop()
@@ -83,27 +79,11 @@ func (c *Conn) keepaliveLoop() {
 	}
 }
 
-// lazyReader initializes the gzip reader on first read (avoids blocking on construction).
-func (c *Conn) lazyReader() (*gzip.Reader, error) {
-	if c.gzReader == nil {
-		r, err := gzip.NewReader(c.raw)
-		if err != nil {
-			return nil, fmt.Errorf("gzip reader: %w", err)
-		}
-		c.gzReader = r
-	}
-	return c.gzReader, nil
-}
-
 func (c *Conn) Send(msg *Message) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	// Set write deadline to avoid blocking forever on a dead connection
 	c.raw.SetWriteDeadline(time.Now().Add(30 * time.Second))
-	if err := msg.Encode(c.gzWriter); err != nil {
-		return err
-	}
-	if err := c.gzWriter.Flush(); err != nil {
+	if err := msg.Encode(c.raw); err != nil {
 		return err
 	}
 	c.raw.SetWriteDeadline(time.Time{})
@@ -114,17 +94,11 @@ func (c *Conn) Send(msg *Message) error {
 func (c *Conn) Receive() (*Message, error) {
 	c.rmu.Lock()
 	defer c.rmu.Unlock()
-	// Set a read deadline so we don't block forever on a dead connection
 	c.raw.SetReadDeadline(time.Now().Add(readIdleTimeout))
-	r, err := c.lazyReader()
+	msg, err := DecodeMessage(c.raw)
 	if err != nil {
 		return nil, err
 	}
-	msg, err := DecodeMessage(r)
-	if err != nil {
-		return nil, err
-	}
-	// Reset deadline after successful read
 	c.raw.SetReadDeadline(time.Time{})
 	return msg, nil
 }
@@ -134,12 +108,6 @@ func (c *Conn) Close() error {
 		return nil
 	}
 	close(c.stopKA)
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.gzWriter.Close()
-	if c.gzReader != nil {
-		c.gzReader.Close()
-	}
 	return c.raw.Close()
 }
 
@@ -174,7 +142,7 @@ func LoadTLSConfig(certFile, keyFile, caFile string) (*tls.Config, error) {
 // dialTimeout is the maximum time to wait for a TCP+TLS connection to establish.
 const dialTimeout = 15 * time.Second
 
-// DialTLS connects to the server with TLS and returns a gzip-wrapped Conn.
+// DialTLS connects to the server with TLS and returns a framed Conn.
 func DialTLS(addr string, tlsConfig *tls.Config) (*Conn, error) {
 	dialer := &net.Dialer{Timeout: dialTimeout}
 	raw, err := tls.DialWithDialer(dialer, "tcp", addr, tlsConfig)

@@ -84,7 +84,8 @@ public class HttpsApplication extends Application<ServerBootstrap> {
         ServerConfig serverConfig = Config.getServerConfig();
         String domainCert = Optional.ofNullable(serverConfig.getDomainCert()).orElse("domain.crt");
         String domainKey = Optional.ofNullable(serverConfig.getDomainKey()).orElse("pkcs8_domain.key");
-        try (InputStream certChainFile = ClassLoader.getSystemResourceAsStream(domainCert); InputStream keyFile = ClassLoader.getSystemResourceAsStream(domainKey)) {
+        try (InputStream certChainFile = ClassLoader.getSystemResourceAsStream(domainCert);
+             InputStream keyFile = ClassLoader.getSystemResourceAsStream(domainKey)) {
             return SslContextBuilder.forServer(certChainFile, keyFile).clientAuth(ClientAuth.NONE).sslProvider(SslProvider.OPENSSL).build();
         }
     }

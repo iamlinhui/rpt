@@ -70,7 +70,6 @@ type Message struct {
 
 // Encode writes the message to writer in the wire format:
 // [4-byte total length][4-byte type][4-byte serialization][4-byte meta length][meta bytes][data bytes]
-// The outer length-field framing (4-byte length prefix) wraps the inner content.
 func (msg *Message) Encode(w io.Writer) error {
 	serType := SerializationJSON
 
@@ -83,23 +82,30 @@ func (msg *Message) Encode(w io.Writer) error {
 		}
 	}
 
-	// Inner frame: type(4) + serialization(4) + metaLen(4) + meta + data
+	// Write header (length prefix + type + serialization + metaLen + meta) in one buffer,
+	// then write data separately to avoid copying large data payloads.
 	innerLen := 4 + 4 + 4 + len(metaBytes) + len(msg.Data)
-	buf := make([]byte, 4+innerLen) // 4 bytes length prefix + inner
+	hdrLen := 16 + len(metaBytes) // 4 (length prefix) + 4 (type) + 4 (ser) + 4 (metaLen) + meta
+	hdr := make([]byte, hdrLen)
 
-	binary.BigEndian.PutUint32(buf[0:4], uint32(innerLen))
-	binary.BigEndian.PutUint32(buf[4:8], uint32(msg.Type))
-	binary.BigEndian.PutUint32(buf[8:12], uint32(serType))
-	binary.BigEndian.PutUint32(buf[12:16], uint32(len(metaBytes)))
-	copy(buf[16:16+len(metaBytes)], metaBytes)
-	copy(buf[16+len(metaBytes):], msg.Data)
+	binary.BigEndian.PutUint32(hdr[0:4], uint32(innerLen))
+	binary.BigEndian.PutUint32(hdr[4:8], uint32(msg.Type))
+	binary.BigEndian.PutUint32(hdr[8:12], uint32(serType))
+	binary.BigEndian.PutUint32(hdr[12:16], uint32(len(metaBytes)))
+	copy(hdr[16:], metaBytes)
 
-	_, err := w.Write(buf)
-	return err
+	if _, err := w.Write(hdr); err != nil {
+		return err
+	}
+	if len(msg.Data) > 0 {
+		if _, err := w.Write(msg.Data); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // DecodeMessage reads one message from a length-prefixed stream.
-// Caller must handle the gzip layer externally.
 func DecodeMessage(r io.Reader) (*Message, error) {
 	// Read 4-byte length
 	var lenBuf [4]byte

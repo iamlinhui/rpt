@@ -316,8 +316,7 @@ func (c *Client) connectUDP(serverConn *protocol.Conn, proxyConn *protocol.Conn,
 				endSession(true)
 				return
 			}
-			data := make([]byte, n)
-			copy(data, buf[:n])
+			data := buf[:n]
 			if sendErr := proxyConn.Send(&protocol.Message{
 				Type: protocol.TypeData,
 				Meta: meta,
@@ -338,9 +337,8 @@ func (c *Client) relayLocalToProxy(local net.Conn, proxyConn *protocol.Conn, met
 	for {
 		n, err := local.Read(buf)
 		if n > 0 {
-			data := make([]byte, n)
-			copy(data, buf[:n])
-			// Avoid writing on a pooled connection after session end
+			// Zero-copy: use buf[:n] directly; Send completes synchronously
+			// before the next Read reuses the buffer.
 			select {
 			case <-done:
 				return
@@ -349,7 +347,7 @@ func (c *Client) relayLocalToProxy(local net.Conn, proxyConn *protocol.Conn, met
 			if sendErr := proxyConn.Send(&protocol.Message{
 				Type: protocol.TypeData,
 				Meta: meta,
-				Data: data,
+				Data: buf[:n],
 			}); sendErr != nil {
 				endSession(false)
 				return

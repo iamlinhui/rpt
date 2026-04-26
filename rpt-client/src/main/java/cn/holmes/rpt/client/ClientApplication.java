@@ -2,6 +2,7 @@ package cn.holmes.rpt.client;
 
 import cn.holmes.rpt.base.coder.MessageCodec;
 import cn.holmes.rpt.base.config.ClientConfig;
+import cn.holmes.rpt.base.config.ServerConfig;
 import cn.holmes.rpt.base.handler.IdleCheckHandler;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
@@ -27,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 public class ClientApplication extends Application<Bootstrap> {
@@ -101,7 +103,11 @@ public class ClientApplication extends Application<Bootstrap> {
     }
 
     private SslContext buildSslContext() throws IOException {
-        try (InputStream certChainFile = ClassLoader.getSystemResourceAsStream("client.crt"); InputStream keyFile = ClassLoader.getSystemResourceAsStream("pkcs8_client.key"); InputStream rootFile = ClassLoader.getSystemResourceAsStream("ca.crt")) {
+        ClientConfig clientConfig = Config.getClientConfig();
+        String clientCaPath = Optional.ofNullable(clientConfig.getClientCaPath()).orElse("ca.crt");
+        String clientCertPath = Optional.ofNullable(clientConfig.getClientCertPath()).orElse("client.crt");
+        String clientKeyPath = Optional.ofNullable(clientConfig.getClientKeyPath()).orElse("pkcs8_client.key");
+        try (InputStream certChainFile = ClassLoader.getSystemResourceAsStream(clientCertPath); InputStream keyFile = ClassLoader.getSystemResourceAsStream(clientKeyPath); InputStream rootFile = ClassLoader.getSystemResourceAsStream(clientCaPath)) {
             return SslContextBuilder.forClient().keyManager(certChainFile, keyFile).trustManager(rootFile).sslProvider(SslProvider.OPENSSL).build();
         }
     }
