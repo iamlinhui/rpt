@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.6.0-blue.svg" alt="version"/>
+  <img src="https://img.shields.io/badge/version-2.6.1-blue.svg" alt="version"/>
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="license"/>
   <img src="https://img.shields.io/badge/Java-8+-orange.svg" alt="java"/>
   <img src="https://img.shields.io/badge/Go-1.20+-00ADD8.svg" alt="go"/>
@@ -203,7 +203,7 @@ go build -o rpt-client-go
 将 `rpt-server/target/rpt-server-*.jar` 和 `server.yml` 上传到公网服务器：
 
 ```bash
-java -jar rpt-server-2.6.0.jar -c server.yml
+java -jar rpt-server-2.6.1.jar -c server.yml
 ```
 
 ### 第三步：启动客户端
@@ -211,7 +211,7 @@ java -jar rpt-server-2.6.0.jar -c server.yml
 **Java 客户端：**
 
 ```bash
-java -jar rpt-client-2.6.0.jar -c client.yml
+java -jar rpt-client-2.6.1.jar -c client.yml
 ```
 
 **Go 客户端：**
@@ -376,10 +376,10 @@ config:
 
 ```bash
 # 服务端
-java -jar rpt-server-2.6.0.jar -c server.yml
+java -jar rpt-server-2.6.1.jar -c server.yml
 
 # 客户端
-java -jar rpt-client-2.6.0.jar -c client.yml
+java -jar rpt-client-2.6.1.jar -c client.yml
 ```
 
 ### 方式二：生产环境部署 (Java)
@@ -390,7 +390,7 @@ java -jar rpt-client-2.6.0.jar -c client.yml
 
 ```
 /opt/rpt-server/
-├── rpt-server-2.6.0.jar
+├── rpt-server-2.6.1.jar
 ├── conf/
 │   ├── server.yml
 │   ├── ca.crt
@@ -402,7 +402,7 @@ java -jar rpt-client-2.6.0.jar -c client.yml
 └── logs/
 
 /opt/rpt-client/
-├── rpt-client-2.6.0.jar
+├── rpt-client-2.6.1.jar
 ├── conf/
 │   ├── client.yml
 │   ├── ca.crt
@@ -489,7 +489,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/rpt-client
-ExecStart=/usr/bin/java -server -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Dnetworkaddress.cache.ttl=600 -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -Duser.timezone=Asia/Shanghai -Dclient.encoding.override=UTF-8 -Dfile.encoding=UTF-8 -Xbootclasspath/a:./conf -jar rpt-client-2.6.0.jar
+ExecStart=/usr/bin/java -server -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Dnetworkaddress.cache.ttl=600 -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -Duser.timezone=Asia/Shanghai -Dclient.encoding.override=UTF-8 -Dfile.encoding=UTF-8 -Xbootclasspath/a:./conf -jar rpt-client-2.6.1.jar
 Restart=always
 RestartSec=5
 

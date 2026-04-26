@@ -39,7 +39,7 @@ public interface Constants {
 
     interface Desktop {
         String TITLE = "Reverse Proxy Tool";
-        String VERSION = "2.6.0";
+        String VERSION = "2.6.1";
     }
 
 }
