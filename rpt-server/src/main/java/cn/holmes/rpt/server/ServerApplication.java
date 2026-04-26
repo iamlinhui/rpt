@@ -102,8 +102,10 @@ public class ServerApplication extends Application<ServerBootstrap> {
         String serverCaPath = Optional.ofNullable(serverConfig.getServerCaPath()).orElse("ca.crt");
         String serverCertPath = Optional.ofNullable(serverConfig.getServerCertPath()).orElse("server.crt");
         String serverKeyPath = Optional.ofNullable(serverConfig.getServerKeyPath()).orElse("pkcs8_server.key");
-        try (InputStream certChainFile = ClassLoader.getSystemResourceAsStream(serverCaPath); InputStream keyFile = ClassLoader.getSystemResourceAsStream(serverCertPath); InputStream rootFile = ClassLoader.getSystemResourceAsStream(serverKeyPath)) {
-            return SslContextBuilder.forServer(certChainFile, keyFile).trustManager(rootFile).clientAuth(ClientAuth.REQUIRE).sslProvider(SslProvider.OPENSSL).build();
+        try (InputStream caFile = ClassLoader.getSystemResourceAsStream(serverCaPath);
+             InputStream certFile = ClassLoader.getSystemResourceAsStream(serverCertPath);
+             InputStream keyFile = ClassLoader.getSystemResourceAsStream(serverKeyPath)) {
+            return SslContextBuilder.forServer(certFile, keyFile).trustManager(caFile).clientAuth(ClientAuth.REQUIRE).sslProvider(SslProvider.OPENSSL).build();
         }
     }
 }
