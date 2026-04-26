@@ -11,6 +11,7 @@ import cn.holmes.rpt.base.utils.Config;
 import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.base.utils.StringUtils;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
+import cn.holmes.rpt.server.cache.TrafficStatsCache;
 import cn.holmes.rpt.server.handler.IpFilterRuleHandler;
 import cn.holmes.rpt.server.handler.TcpHandler;
 import cn.holmes.rpt.server.handler.UdpHandler;
@@ -71,6 +72,8 @@ public class RegisterExecutor implements MessageExecutor {
         logger.info("授权注册成功,客户端使用的秘钥:{}", meta.getClientKey());
         ServerChannelCache.getServerChannelMap().put(context.channel().id().asLongText(), context.channel());
         context.channel().attr(Server.CHANNELS).setIfAbsent(new ConcurrentHashMap<>(1024));
+        context.channel().attr(Server.CONNECT_TIME).set(System.currentTimeMillis());
+        TrafficStatsCache.incrementConnections();
     }
 
     private void fillRemoteResult(Channel serverChannel, Meta meta) throws Exception {

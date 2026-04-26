@@ -21,6 +21,7 @@ public interface Constants {
         AttributeKey<Map<Integer, ChannelFuture>> TCP_PORT_CHANNEL_FUTURE = AttributeKey.newInstance("TCP_PORT_CHANNEL_FUTURE");
         AttributeKey<Map<Integer, ChannelFuture>> UDP_PORT_CHANNEL_FUTURE = AttributeKey.newInstance("UDP_PORT_CHANNEL_FUTURE");
 
+        AttributeKey<Long> CONNECT_TIME = AttributeKey.newInstance("CONNECT_TIME");
         AttributeKey<Map<String, Channel>> CHANNELS = AttributeKey.newInstance("CHANNELS");
         AttributeKey<Channel> PROXY = AttributeKey.newInstance("PROXY");
         AttributeKey<Channel> LOCAL = AttributeKey.newInstance("LOCAL");

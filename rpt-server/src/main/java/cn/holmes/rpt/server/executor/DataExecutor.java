@@ -5,6 +5,7 @@ import cn.holmes.rpt.base.executor.MessageExecutor;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.utils.Constants.Server;
+import cn.holmes.rpt.server.cache.TrafficStatsCache;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -13,9 +14,6 @@ import io.netty.channel.socket.DatagramPacket;
 
 import java.net.InetSocketAddress;
 import java.util.Objects;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class DataExecutor implements MessageExecutor {
 
@@ -33,6 +31,9 @@ public class DataExecutor implements MessageExecutor {
         ProxyType proxyType = localChannel.attr(Server.PROXY_TYPE).get();
         Channel proxyChannel = context.channel();
         ByteBuf data = message.hasDataBuf() ? message.getDataBuf().retain() : Unpooled.EMPTY_BUFFER;
+        if (message.getMeta() != null && message.getMeta().getServerId() != null) {
+            TrafficStatsCache.recordOut(message.getMeta().getServerId(), data.readableBytes());
+        }
         if (Objects.equals(ProxyType.UDP, proxyType)) {
             InetSocketAddress udpSender = proxyChannel.attr(Server.UDP_SENDER).get();
             if (udpSender == null) {

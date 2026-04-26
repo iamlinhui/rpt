@@ -8,6 +8,7 @@ import cn.holmes.rpt.base.protocol.Meta;
 import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.base.utils.StringUtils;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
+import cn.holmes.rpt.server.cache.TrafficStatsCache;
 import cn.holmes.rpt.server.coder.HttpEncoder;
 import cn.holmes.rpt.server.page.StaticDispatcher;
 import io.netty.buffer.ByteBuf;
@@ -168,6 +169,12 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     }
 
     private void send(Channel complex, ChannelHandlerContext ctx, String domain, MessageType typeConnect, ByteBuf data) {
+        if (typeConnect == MessageType.TYPE_DATA && data.readableBytes() > 0) {
+            Channel serverChannel = ServerChannelCache.getServerDomainChannelMap().get(domain);
+            if (serverChannel != null) {
+                TrafficStatsCache.recordIn(serverChannel.id().asLongText(), data.readableBytes());
+            }
+        }
         RemoteConfig remoteConfig = new RemoteConfig();
         remoteConfig.setProxyType(ProxyType.HTTP);
         remoteConfig.setDomain(domain);

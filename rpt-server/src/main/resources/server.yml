@@ -5,6 +5,9 @@ httpsPort: 443
 domainCert: domain.crt
 domainKey: pkcs8_domain.key
 ipFilter: true
+dashboardPort: 8000
+dashboardUser: admin
+dashboardPassword: admin
 token:
   - clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
     minPort: 4000

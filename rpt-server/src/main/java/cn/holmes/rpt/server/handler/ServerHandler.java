@@ -6,6 +6,7 @@ import cn.holmes.rpt.base.executor.MessageExecutorFactory;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
+import cn.holmes.rpt.server.cache.TrafficStatsCache;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import org.slf4j.Logger;
@@ -66,6 +67,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         }
         logger.info("服务端-客户端连接中断,{}", clientKey);
         ServerChannelCache.getServerChannelMap().remove(ctx.channel().id().asLongText());
+        TrafficStatsCache.remove(ctx.channel().id().asLongText());
         Optional.ofNullable(ctx.channel().attr(Server.CHANNELS).getAndSet(null)).ifPresent(this::clear);
         Optional.ofNullable(ctx.channel().attr(Server.TCP_PORT_CHANNEL_FUTURE).getAndSet(null)).ifPresent(this::close);
         Optional.ofNullable(ctx.channel().attr(Server.UDP_PORT_CHANNEL_FUTURE).getAndSet(null)).ifPresent(this::close);

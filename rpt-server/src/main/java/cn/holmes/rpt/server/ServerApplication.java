@@ -38,7 +38,7 @@ public class ServerApplication extends Application<ServerBootstrap> {
     private final RuleBasedIpFilter ruleBasedIpFilter = new RuleBasedIpFilter(IpFilterRuleHandler.getInstance());
 
     public static void main(String[] args) throws Exception {
-        Application.run(args, new ServerApplication(), new HttpApplication(), new HttpsApplication());
+        Application.run(args, new ServerApplication(), new HttpApplication(), new HttpsApplication(), new DashboardApplication());
     }
 
     @Override

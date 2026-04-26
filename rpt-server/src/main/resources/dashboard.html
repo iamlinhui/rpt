@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPT Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; color: #333; }
+        .header { background: linear-gradient(135deg, #1a73e8, #0d47a1); color: #fff; padding: 20px 30px; display: flex; align-items: center; justify-content: space-between; }
+        .header h1 { font-size: 22px; font-weight: 600; }
+        .header .refresh { font-size: 13px; opacity: 0.8; }
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .card .label { font-size: 13px; color: #888; margin-bottom: 6px; }
+        .card .value { font-size: 26px; font-weight: 700; color: #1a73e8; }
+        .card .value.small { font-size: 18px; }
+        .section { background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px; overflow-x: auto; }
+        .section-title { font-size: 16px; font-weight: 600; padding: 16px 20px; border-bottom: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #fafafa; font-weight: 600; text-align: left; padding: 10px 16px; font-size: 13px; color: #666; border-bottom: 1px solid #eee; white-space: nowrap; }
+        td { padding: 12px 16px; font-size: 14px; border-bottom: 1px solid #f5f5f5; word-break: break-all; }
+        tr:hover td { background: #f8f9fa; }
+        .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin: 1px 2px; }
+        .tag-tcp { background: #e3f2fd; color: #1565c0; }
+        .tag-udp { background: #fff3e0; color: #e65100; }
+        .tag-http { background: #e8f5e9; color: #2e7d32; }
+        .tag-online { background: #e8f5e9; color: #2e7d32; }
+        .tag-offline { background: #ffebee; color: #c62828; }
+        .btn-kick { background: #ef5350; color: #fff; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-kick:hover { background: #d32f2f; }
+        .traffic { font-family: monospace; font-size: 13px; white-space: nowrap; }
+        .traffic .in { color: #2e7d32; }
+        .traffic .out { color: #1565c0; }
+        .empty { text-align: center; padding: 40px; color: #999; }
+        @media (max-width: 768px) {
+            .cards { grid-template-columns: repeat(2, 1fr); }
+            .header { padding: 14px 16px; }
+            .header h1 { font-size: 18px; }
+            .container { padding: 0 10px; }
+            /* 客户端表格在移动端改为卡片布局 */
+            #clientsTable table { display: block; width: 100%; }
+            #clientsTable thead { display: none; }
+            #clientsTable tbody { display: block; }
+            #clientsTable tr {
+                display: block; padding: 14px 16px; border-bottom: 1px solid #eee; position: relative;
+            }
+            #clientsTable td {
+                display: block; padding: 3px 0; border: none; font-size: 13px;
+            }
+            #clientsTable td::before {
+                content: attr(data-label);
+                font-weight: 600; color: #888; font-size: 12px; display: inline-block; min-width: 70px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>⚡ RPT Dashboard</h1>
+    <div class="refresh">自动刷新: <span id="countdown">5</span>s</div>
+</div>
+<div class="container">
+    <div class="cards" id="statusCards"></div>
+    <div class="section">
+        <div class="section-title">在线客户端</div>
+        <div id="clientsTable"></div>
+    </div>
+    <div class="section">
+        <div class="section-title">HTTP 域名绑定</div>
+        <div id="domainsTable"></div>
+    </div>
+</div>
+
+<script>
+    let countdown = 5;
+
+    async function fetchApi(path) {
+        const resp = await fetch(path);
+        return resp.json();
+    }
+
+    function renderStatus(data) {
+        const cards = [
+            { label: '运行时间', value: data.uptimeText, small: true },
+            { label: '在线客户端', value: data.onlineClients },
+            { label: '历史连接数', value: data.totalConnections },
+            { label: '服务端口', value: data.serverPort },
+            { label: 'HTTP端口', value: data.httpPort || '-' },
+            { label: 'HTTPS端口', value: data.httpsPort || '-' }
+        ];
+        document.getElementById('statusCards').innerHTML = cards.map(c =>
+            `<div class="card"><div class="label">${c.label}</div><div class="value${c.small ? ' small' : ''}">${c.value}</div></div>`
+        ).join('');
+    }
+
+    function renderClients(data) {
+        if (!data.length) {
+            document.getElementById('clientsTable').innerHTML = '<div class="empty">暂无在线客户端</div>';
+            return;
+        }
+        let html = '<table><thead><tr><th>ClientKey</th><th>远程地址</th><th>连接时间</th><th>代理端口</th><th>活跃会话</th><th>流量</th><th>流速</th><th>操作</th></tr></thead><tbody>';
+        data.forEach(c => {
+            const key = c.clientKey.length > 12 ? c.clientKey.substring(0, 12) + '...' : c.clientKey;
+            let ports = '';
+            (c.tcpPorts || []).forEach(p => ports += `<span class="tag tag-tcp">TCP:${p}</span>`);
+            (c.udpPorts || []).forEach(p => ports += `<span class="tag tag-udp">UDP:${p}</span>`);
+            (c.domains || []).forEach(d => ports += `<span class="tag tag-http">${d}</span>`);
+            html += `<tr>
+                <td data-label="Key" title="${c.clientKey}">${key}</td>
+                <td data-label="地址">${c.remoteAddress}</td>
+                <td data-label="时间">${c.connectTime}</td>
+                <td data-label="代理">${ports || '-'}</td>
+                <td data-label="会话">${c.activeSessions}</td>
+                <td data-label="流量" class="traffic">↑${c.bytesInText} ↓${c.bytesOutText}</td>
+                <td data-label="流速" class="traffic">↑${c.speedInText} ↓${c.speedOutText}</td>
+                <td data-label=""><button class="btn-kick" onclick="kickClient('${c.channelId}')">踢出</button></td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+        document.getElementById('clientsTable').innerHTML = html;
+    }
+
+    function renderDomains(data) {
+        if (!data.length) {
+            document.getElementById('domainsTable').innerHTML = '<div class="empty">暂无域名绑定</div>';
+            return;
+        }
+        let html = '<table><thead><tr><th>域名</th><th>ClientKey</th><th>状态</th><th>Token</th></tr></thead><tbody>';
+        data.forEach(d => {
+            const status = d.online ? '<span class="tag tag-online">在线</span>' : '<span class="tag tag-offline">离线</span>';
+            html += `<tr><td>${d.domain}</td><td>${d.clientKey || '-'}</td><td>${status}</td><td>${d.token ? '已设置' : '-'}</td></tr>`;
+        });
+        html += '</tbody></table>';
+        document.getElementById('domainsTable').innerHTML = html;
+    }
+
+    async function kickClient(channelId) {
+        if (!confirm('确定要断开此客户端？')) return;
+        await fetch('/api/clients/' + channelId, { method: 'DELETE' });
+        refresh();
+    }
+
+    async function refresh() {
+        try {
+            const [status, clients, domains] = await Promise.all([
+                fetchApi('/api/status'),
+                fetchApi('/api/clients'),
+                fetchApi('/api/domains')
+            ]);
+            renderStatus(status);
+            renderClients(clients);
+            renderDomains(domains);
+        } catch (e) {
+            console.error('Refresh failed:', e);
+        }
+        countdown = 5;
+    }
+
+    refresh();
+    setInterval(() => {
+        countdown--;
+        document.getElementById('countdown').textContent = countdown;
+        if (countdown <= 0) refresh();
+    }, 1000);
+</script>
+</body>
+</html>
+

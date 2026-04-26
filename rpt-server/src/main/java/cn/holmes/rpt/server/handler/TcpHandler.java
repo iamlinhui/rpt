@@ -6,6 +6,7 @@ import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
 import cn.holmes.rpt.base.utils.Constants.Server;
+import cn.holmes.rpt.server.cache.TrafficStatsCache;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -65,6 +66,7 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
             ctx.close();
             return;
         }
+        TrafficStatsCache.recordIn(serverChannel.id().asLongText(), buf.readableBytes());
         send(proxyChannel, MessageType.TYPE_DATA, buf.retain(), ctx);
     }
 

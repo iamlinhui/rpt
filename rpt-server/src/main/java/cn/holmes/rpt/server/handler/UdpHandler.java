@@ -8,6 +8,7 @@ import cn.holmes.rpt.base.protocol.Meta;
 import cn.holmes.rpt.base.utils.Config;
 import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.base.utils.FireEvent;
+import cn.holmes.rpt.server.cache.TrafficStatsCache;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -113,6 +114,8 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
         lastActiveMap.put(channelId, System.currentTimeMillis());
 
         ByteBuf data = packet.content().retainedDuplicate();
+
+        TrafficStatsCache.recordIn(serverChannel.id().asLongText(), data.readableBytes());
 
         if (!senderAddressMap.containsKey(channelId)) {
             // 新的发送者，创建虚拟会话

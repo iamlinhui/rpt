@@ -16,6 +16,9 @@ public class ServerConfig {
     private String domainKey;
     private boolean ipFilter;
     private List<ServerToken> token;
+    private int dashboardPort;
+    private String dashboardUser;
+    private String dashboardPassword;
 
     public boolean authorize(String clientKey) {
         if (token == null || token.isEmpty()) {
@@ -124,5 +127,29 @@ public class ServerConfig {
 
     public void setIpFilter(boolean ipFilter) {
         this.ipFilter = ipFilter;
+    }
+
+    public int getDashboardPort() {
+        return dashboardPort;
+    }
+
+    public void setDashboardPort(int dashboardPort) {
+        this.dashboardPort = dashboardPort;
+    }
+
+    public String getDashboardUser() {
+        return dashboardUser;
+    }
+
+    public void setDashboardUser(String dashboardUser) {
+        this.dashboardUser = dashboardUser;
+    }
+
+    public String getDashboardPassword() {
+        return dashboardPassword;
+    }
+
+    public void setDashboardPassword(String dashboardPassword) {
+        this.dashboardPassword = dashboardPassword;
     }
 }
