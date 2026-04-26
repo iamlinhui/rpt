@@ -56,7 +56,7 @@ public class ClientApplication extends Application<Bootstrap> {
             public void initChannel(SocketChannel ch) throws Exception {
                 ch.pipeline().addLast(sslContext.newHandler(ch.alloc()));
                 //固定帧长解码器
-                ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4));
+                ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(16 * 1024 * 1024, 0, 4, 0, 4));
                 ch.pipeline().addLast(new LengthFieldPrepender(4));
                 //自定义协议编解码器
                 ch.pipeline().addLast(new MessageCodec());

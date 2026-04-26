@@ -6,3 +6,5 @@ client.json
 *.iml
 go.sum
 go.work.sum
+rpt-client-go
+rpt-desktop-go

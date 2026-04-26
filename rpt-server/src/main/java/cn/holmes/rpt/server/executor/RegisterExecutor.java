@@ -30,6 +30,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class RegisterExecutor implements MessageExecutor {
 
@@ -97,7 +98,11 @@ public class RegisterExecutor implements MessageExecutor {
                 default:
             }
         }
-        countDownLatch.await();
+        boolean await = countDownLatch.await(30, TimeUnit.SECONDS);
+        if (!await) {
+            logger.info("服务端处理注册请求超时,客户端秘钥:{}", meta.getClientKey());
+            meta.setConnection(false).addRemoteResult("服务端处理注册请求超时");
+        }
     }
 
     private void registerHttp(Channel serverChannel, Meta meta, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {

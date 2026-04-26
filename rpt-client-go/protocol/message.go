@@ -116,6 +116,9 @@ func DecodeMessage(r io.Reader) (*Message, error) {
 	if frameLen < 12 {
 		return nil, fmt.Errorf("frame too short: %d", frameLen)
 	}
+	if frameLen > 16*1024*1024 {
+		return nil, fmt.Errorf("frame too large: %d", frameLen)
+	}
 
 	frameBuf := make([]byte, frameLen)
 	if _, err := io.ReadFull(r, frameBuf); err != nil {
