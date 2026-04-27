@@ -6,53 +6,31 @@ import cn.holmes.rpt.base.utils.Config;
 import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
+import cn.holmes.rpt.server.utils.FullHttpUtils;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Dashboard HTTP API + 静态页面处理器
  */
 public class DashboardHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
-    private static final Logger logger = LoggerFactory.getLogger(DashboardHandler.class);
-
-    private static final String DASHBOARD_HTML;
-
-    static {
-        String html;
-        try (InputStream is = DashboardHandler.class.getClassLoader().getResourceAsStream("dashboard.html")) {
-            if (is != null) {
-                html = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))
-                        .lines().collect(Collectors.joining("\n"));
-            } else {
-                html = "<html><body><h1>RPT Dashboard</h1><p>dashboard.html not found</p></body></html>";
-            }
-        } catch (Exception e) {
-            html = "<html><body><h1>RPT Dashboard</h1><p>Error loading page</p></body></html>";
-        }
-        DASHBOARD_HTML = html;
-    }
-
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest req) throws Exception {
         if (!checkAuth(req)) {
-            FullHttpResponse resp = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.UNAUTHORIZED,
-                    Unpooled.copiedBuffer("Unauthorized", StandardCharsets.UTF_8));
+            FullHttpResponse resp = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.UNAUTHORIZED, Unpooled.copiedBuffer("Unauthorized", StandardCharsets.UTF_8));
             resp.headers().set(HttpHeaderNames.WWW_AUTHENTICATE, "Basic realm=\"RPT Dashboard\"");
             resp.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=UTF-8");
             resp.headers().set(HttpHeaderNames.CONTENT_LENGTH, resp.content().readableBytes());
-            ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
+            FullHttpUtils.writeKeepAlive(ctx, req, resp);
             return;
         }
 
@@ -60,17 +38,19 @@ public class DashboardHandler extends SimpleChannelInboundHandler<FullHttpReques
         HttpMethod method = req.method();
 
         if (method == HttpMethod.GET && "/api/status".equals(uri)) {
-            handleStatus(ctx);
+            handleStatus(ctx, req);
         } else if (method == HttpMethod.GET && "/api/clients".equals(uri)) {
-            handleClients(ctx);
+            handleClients(ctx, req);
         } else if (method == HttpMethod.DELETE && uri.startsWith("/api/clients/")) {
-            handleKick(ctx, uri.substring("/api/clients/".length()));
+            handleKick(ctx, req, uri.substring("/api/clients/".length()));
         } else if (method == HttpMethod.GET && "/api/domains".equals(uri)) {
-            handleDomains(ctx);
+            handleDomains(ctx, req);
+        } else if (method == HttpMethod.GET && "/favicon.ico".equals(uri)) {
+            serveFavicon(ctx, req);
         } else if (method == HttpMethod.GET) {
-            serveDashboard(ctx);
+            serveDashboard(ctx, req);
         } else {
-            sendJson(ctx, HttpResponseStatus.NOT_FOUND, Collections.singletonMap("error", "Not Found"));
+            sendJson(ctx, req, HttpResponseStatus.NOT_FOUND, Collections.singletonMap("error", "Not Found"));
         }
     }
 
@@ -81,15 +61,10 @@ public class DashboardHandler extends SimpleChannelInboundHandler<FullHttpReques
         if (user == null || user.isEmpty()) {
             return true;
         }
-        String auth = req.headers().get(HttpHeaderNames.AUTHORIZATION);
-        if (auth == null || !auth.startsWith("Basic ")) {
-            return false;
-        }
-        String decoded = new String(Base64.getDecoder().decode(auth.substring(6)), StandardCharsets.UTF_8);
-        return decoded.equals(user + ":" + pass);
+        return FullHttpUtils.verifyToken(req, user + ":" + pass);
     }
 
-    private void handleStatus(ChannelHandlerContext ctx) throws Exception {
+    private void handleStatus(ChannelHandlerContext ctx, FullHttpRequest req) throws Exception {
         ServerConfig config = Config.getServerConfig();
         long uptime = TrafficStatsCache.uptime();
         Map<String, Object> data = new LinkedHashMap<>();
@@ -101,10 +76,10 @@ public class DashboardHandler extends SimpleChannelInboundHandler<FullHttpReques
         data.put("httpPort", config.getHttpPort());
         data.put("httpsPort", config.getHttpsPort());
         data.put("dashboardPort", config.getDashboardPort());
-        sendJson(ctx, HttpResponseStatus.OK, data);
+        sendJson(ctx, req, HttpResponseStatus.OK, data);
     }
 
-    private void handleClients(ChannelHandlerContext ctx) throws Exception {
+    private void handleClients(ChannelHandlerContext ctx, FullHttpRequest req) throws Exception {
         List<Map<String, Object>> clients = new ArrayList<>();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
@@ -149,7 +124,7 @@ public class DashboardHandler extends SimpleChannelInboundHandler<FullHttpReques
             client.put("bytesInText", formatBytes(traffic[0]));
             client.put("bytesOutText", formatBytes(traffic[1]));
 
-            // Speed (bytes/s, 5s sliding window average)
+            // Speed
             long[] speed = TrafficStatsCache.getSpeed(entry.getKey());
             client.put("speedIn", speed[0]);
             client.put("speedOut", speed[1]);
@@ -158,10 +133,10 @@ public class DashboardHandler extends SimpleChannelInboundHandler<FullHttpReques
 
             clients.add(client);
         }
-        sendJson(ctx, HttpResponseStatus.OK, clients);
+        sendJson(ctx, req, HttpResponseStatus.OK, clients);
     }
 
-    private void handleKick(ChannelHandlerContext ctx, String channelId) throws Exception {
+    private void handleKick(ChannelHandlerContext ctx, FullHttpRequest req, String channelId) throws Exception {
         Channel ch = ServerChannelCache.getServerChannelMap().get(channelId);
         Map<String, Object> result = new LinkedHashMap<>();
         if (ch != null && ch.isActive()) {
@@ -172,10 +147,10 @@ public class DashboardHandler extends SimpleChannelInboundHandler<FullHttpReques
             result.put("success", false);
             result.put("message", "Client not found or already disconnected");
         }
-        sendJson(ctx, HttpResponseStatus.OK, result);
+        sendJson(ctx, req, HttpResponseStatus.OK, result);
     }
 
-    private void handleDomains(ChannelHandlerContext ctx) throws Exception {
+    private void handleDomains(ChannelHandlerContext ctx, FullHttpRequest req) throws Exception {
         List<Map<String, Object>> domains = new ArrayList<>();
         for (Map.Entry<String, Channel> entry : ServerChannelCache.getServerDomainChannelMap().entrySet()) {
             Map<String, Object> domain = new LinkedHashMap<>();
@@ -186,24 +161,31 @@ public class DashboardHandler extends SimpleChannelInboundHandler<FullHttpReques
             domain.put("token", ServerChannelCache.getServerDomainToken().containsKey(entry.getKey()));
             domains.add(domain);
         }
-        sendJson(ctx, HttpResponseStatus.OK, domains);
+        sendJson(ctx, req, HttpResponseStatus.OK, domains);
     }
 
-    private void serveDashboard(ChannelHandlerContext ctx) {
-        byte[] bytes = DASHBOARD_HTML.getBytes(StandardCharsets.UTF_8);
-        FullHttpResponse resp = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, Unpooled.wrappedBuffer(bytes));
+    private void serveDashboard(ChannelHandlerContext ctx, FullHttpRequest req) {
+        byte[] bytes = FullHttpUtils.loadResource("static/dashboard.html");
+        FullHttpResponse resp = FullHttpUtils.buildResponse(ctx, HttpResponseStatus.OK, bytes);
         resp.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/html; charset=UTF-8");
-        resp.headers().set(HttpHeaderNames.CONTENT_LENGTH, bytes.length);
-        ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
+        FullHttpUtils.writeKeepAlive(ctx, req, resp);
     }
 
-    private void sendJson(ChannelHandlerContext ctx, HttpResponseStatus status, Object data) throws Exception {
+    private void serveFavicon(ChannelHandlerContext ctx, FullHttpRequest req) {
+        byte[] bytes = FullHttpUtils.loadResource("static/favicon.ico");
+        FullHttpResponse resp = FullHttpUtils.buildResponse(ctx, HttpResponseStatus.OK, bytes);
+        resp.headers().set(HttpHeaderNames.CONTENT_TYPE, "image/x-icon");
+        resp.headers().set(HttpHeaderNames.CACHE_CONTROL, "max-age=86400");
+        FullHttpUtils.writeKeepAlive(ctx, req, resp);
+    }
+
+    private void sendJson(ChannelHandlerContext ctx, FullHttpRequest req, HttpResponseStatus status, Object data) throws Exception {
         byte[] json = JacksonUtil.getJsonMapper().writeValueAsBytes(data);
         FullHttpResponse resp = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, Unpooled.wrappedBuffer(json));
         resp.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/json; charset=UTF-8");
         resp.headers().set(HttpHeaderNames.CONTENT_LENGTH, json.length);
         resp.headers().set(HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
-        ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
+        FullHttpUtils.writeKeepAlive(ctx, req, resp);
     }
 
     private static String formatDuration(long millis) {
@@ -235,8 +217,6 @@ public class DashboardHandler extends SimpleChannelInboundHandler<FullHttpReques
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        logger.error("Dashboard handler error", cause);
         ctx.close();
     }
 }
-
