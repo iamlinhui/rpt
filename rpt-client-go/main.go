@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 
 	"rpt-client-go/client"
@@ -24,7 +25,7 @@ func init() {
 }
 
 func main() {
-	configPath := flag.String("config", "client.yml", "path to client config file")
+	configPath := flag.String("config", defaultConfigPath(), "path to client config file")
 	flag.Parse()
 
 	cfg, err := config.LoadClientConfig(*configPath)
@@ -41,4 +42,12 @@ func main() {
 	log.Printf("rpt-client-go starting, server: %s:%d, clientKey: %s",
 		cfg.ServerIp, cfg.ServerPort, cfg.ClientKey)
 	c.Run()
+}
+
+func defaultConfigPath() string {
+	configPath := filepath.Join("conf", "client.yml")
+	if _, err := os.Stat(configPath); err == nil {
+		return configPath
+	}
+	return "client.yml"
 }

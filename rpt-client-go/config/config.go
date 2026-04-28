@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 )
@@ -32,27 +33,30 @@ type ClientConfig struct {
 	ClientKeyPath  string         `yaml:"clientKeyPath"`
 	ClientKey      string         `yaml:"clientKey"`
 	Config         []RemoteConfig `yaml:"config"`
+	configDir      string
 }
 
 func (c *ClientConfig) GetCaPath() string {
-	if c.ClientCaPath != "" {
-		return c.ClientCaPath
-	}
-	return "ca.crt"
+	return c.resolvePath(c.ClientCaPath, "ca.crt")
 }
 
 func (c *ClientConfig) GetCertPath() string {
-	if c.ClientCertPath != "" {
-		return c.ClientCertPath
-	}
-	return "client.crt"
+	return c.resolvePath(c.ClientCertPath, "client.crt")
 }
 
 func (c *ClientConfig) GetKeyPath() string {
-	if c.ClientKeyPath != "" {
-		return c.ClientKeyPath
+	return c.resolvePath(c.ClientKeyPath, "pkcs8_client.key")
+}
+
+func (c *ClientConfig) resolvePath(value, fallback string) string {
+	path := value
+	if path == "" {
+		path = fallback
 	}
-	return "pkcs8_client.key"
+	if filepath.IsAbs(path) || c.configDir == "" {
+		return path
+	}
+	return filepath.Join(c.configDir, path)
 }
 
 func (c *ClientConfig) GetHttpConfig(domain string) *RemoteConfig {
@@ -73,6 +77,11 @@ func LoadClientConfig(path string) (*ClientConfig, error) {
 	var cfg ClientConfig
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
+	}
+	if absPath, err := filepath.Abs(path); err == nil {
+		cfg.configDir = filepath.Dir(absPath)
+	} else {
+		cfg.configDir = filepath.Dir(path)
 	}
 	return &cfg, nil
 }

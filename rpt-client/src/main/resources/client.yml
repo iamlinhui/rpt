@@ -1,7 +1,9 @@
 serverIp: 127.0.0.1
 serverPort: 6167
+clientCaPath: ca.crt
+clientCertPath: client.crt
+clientKeyPath: pkcs8_client.key
 clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
-
 config:
   - proxyType: TCP
     localIp: 127.0.0.1
