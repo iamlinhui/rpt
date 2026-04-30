@@ -477,6 +477,8 @@ a:hover {
 
 .ant-step {
     position: relative;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .ant-step-indicator {

@@ -469,6 +469,43 @@ kill $(cat pid.file)
 
 ### 方式三：Docker 部署
 
+#### rpt-server
+
+```bash
+# 1. 构建镜像
+cd rpt-server
+mvn clean package -Dmaven.test.skip=true
+docker build -f Dockerfile -t rpt-server .
+
+# 2. 准备配置文件目录
+mkdir -p /opt/rpt/conf
+# 将 server.yml、ca.crt、server.crt、pkcs8_server.key 放入 /opt/rpt/conf/
+# 如需 HTTPS: 放入 domain.crt、pkcs8_domain.key
+# 如需 IP 过滤: 放入 Country.mmdb
+
+# 3. 启动容器 (host 网络模式，直接暴露所有端口)
+docker run -d \
+  --network host \
+  -v /opt/rpt/conf:/home/rpt/conf \
+  --restart=always \
+  --name rpt-server \
+  rpt-server
+
+# 或者指定端口映射
+docker run -d \
+  -p 6167:6167 \
+  -p 80:80 \
+  -p 443:443 \
+  -p 8000:8000 \
+  -p 4000-9999:4000-9999 \
+  -v /opt/rpt/conf:/home/rpt/conf \
+  --restart=always \
+  --name rpt-server \
+  rpt-server
+```
+
+#### rpt-client (Java)
+
 ```bash
 # 1. 构建镜像
 cd rpt-client
@@ -481,13 +518,52 @@ mkdir -p /opt/rpt/conf
 
 # 3. 启动容器
 docker run -d \
+  --network host \
   -v /opt/rpt/conf:/home/rpt/conf \
   --restart=always \
   --name rpt-client \
   rpt-client
 ```
 
-Docker Hub 镜像地址: https://hub.docker.com/r/promptness/rpt-client
+#### rpt-client-go
+
+```bash
+# 1. 构建镜像
+cd rpt-client-go
+docker build -f Dockerfile -t rpt-client-go .
+
+# 2. 准备配置文件目录
+mkdir -p /opt/rpt/conf
+# 将 client.yml、ca.crt、client.crt、pkcs8_client.key 放入 /opt/rpt/conf/
+
+# 3. 启动容器
+docker run -d \
+  --network host \
+  -v /opt/rpt/conf:/home/rpt/conf \
+  --restart=always \
+  --name rpt-client-go \
+  rpt-client-go
+```
+
+> **提示**：客户端使用 `--network host` 模式时可直接访问宿主机的本地服务（如 127.0.0.1:3389）。若不使用 host 模式，`localIp` 需改为宿主机的 Docker 网桥 IP（通常为 `172.17.0.1`）或使用 `host.docker.internal`。
+
+#### 使用 Docker Hub 镜像（免构建）
+
+```bash
+# rpt-server
+docker run -d --network host -v /opt/rpt/conf:/home/rpt/conf --restart=always --name rpt-server promptness/rpt-server:2.6.1
+
+# rpt-client (Java)
+docker run -d --network host -v /opt/rpt/conf:/home/rpt/conf --restart=always --name rpt-client promptness/rpt-client:2.6.1
+
+# rpt-client-go
+docker run -d --network host -v /opt/rpt/conf:/home/rpt/conf --restart=always --name rpt-client-go promptness/rpt-client-go:2.6.1
+```
+
+Docker Hub 镜像地址：
+- https://hub.docker.com/r/promptness/rpt-server
+- https://hub.docker.com/r/promptness/rpt-client
+- https://hub.docker.com/r/promptness/rpt-client-go
 
 ### 方式四：注册 Linux 系统服务
 

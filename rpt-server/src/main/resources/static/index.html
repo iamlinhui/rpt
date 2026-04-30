@@ -142,7 +142,7 @@
     <div class="container">
         <div class="section-header fade-in">
             <h2>快速开始</h2>
-            <p>两步即可完成部署</p>
+            <p>启动服务端，再启动客户端，即可完成部署</p>
         </div>
         <div class="steps-row fade-in">
             <div class="ant-step">
@@ -163,7 +163,7 @@
             </div>
             <div class="ant-step">
                 <div class="ant-step-indicator">2</div>
-                <h3>或 启动客户端（Go）</h3>
+                <h3>启动客户端（Go）</h3>
                 <div class="code-block">
                     <code><span class="c-cmd">./rpt-client-go</span> <span class="c-flag">-config</span> <span class="c-value">client.yml</span></code>
                 </div>
@@ -172,8 +172,53 @@
     </div>
 </section>
 
+<!-- Docker -->
+<section id="docker" class="section section-grey">
+    <div class="container">
+        <div class="section-header fade-in">
+            <h2>Docker 部署</h2>
+            <p>服务端、Java客户端、Go客户端均提供 Docker 镜像，挂载配置目录即可运行</p>
+        </div>
+        <div class="steps-row fade-in">
+            <div class="ant-step">
+                <div class="ant-step-indicator">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 7h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zM10 4h4v3h-4V4z"/></svg>
+                </div>
+                <h3>rpt-server</h3>
+                <div class="code-block">
+                    <code><span class="c-cmd">docker</span> run <span class="c-flag">-d</span> <span class="c-flag">--network</span> host \
+  <span class="c-flag">-v</span> <span class="c-value">/opt/rpt/conf:/home/rpt/conf</span> \
+  <span class="c-flag">--name</span> rpt-server <span class="c-value">promptness/rpt-server:2.6.1</span></code>
+                </div>
+            </div>
+            <div class="ant-step">
+                <div class="ant-step-indicator">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 7h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zM10 4h4v3h-4V4z"/></svg>
+                </div>
+                <h3>rpt-client</h3>
+                <div class="code-block">
+                    <code><span class="c-cmd">docker</span> run <span class="c-flag">-d</span> <span class="c-flag">--network</span> host \
+  <span class="c-flag">-v</span> <span class="c-value">/opt/rpt/conf:/home/rpt/conf</span> \
+  <span class="c-flag">--name</span> rpt-client <span class="c-value">promptness/rpt-client:2.6.1</span></code>
+                </div>
+            </div>
+            <div class="ant-step">
+                <div class="ant-step-indicator">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 7h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zM10 4h4v3h-4V4z"/></svg>
+                </div>
+                <h3>rpt-client-go</h3>
+                <div class="code-block">
+                    <code><span class="c-cmd">docker</span> run <span class="c-flag">-d</span> <span class="c-flag">--network</span> host \
+  <span class="c-flag">-v</span> <span class="c-value">/opt/rpt/conf:/home/rpt/conf</span> \
+  <span class="c-flag">--name</span> rpt-client-go <span class="c-value">promptness/rpt-client-go:2.6.1</span></code>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- Configuration -->
-<section id="config" class="section section-grey">
+<section id="config" class="section section-white">
     <div class="container">
         <div class="section-header fade-in">
             <h2>配置示例</h2>
@@ -199,7 +244,7 @@
 </section>
 
 <!-- Deploy Options -->
-<section id="deploy" class="section section-white">
+<section id="deploy" class="section section-grey">
     <div class="container">
         <div class="section-header fade-in">
             <h2>多种部署方式</h2>
@@ -231,7 +276,7 @@
                     </svg>
                 </div>
                 <h3>Docker 部署</h3>
-                <p>提供镜像，一行命令即可启动</p>
+                <p>服务端、Java客户端、Go客户端均提供Dockerfile，一行命令即可启动</p>
             </div>
             <div class="deploy-card">
                 <div class="deploy-card-icon">

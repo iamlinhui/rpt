@@ -1,6 +1,6 @@
 # Dockerfile for rpt-client-go
 # 1. Build with: docker build -f Dockerfile -t rpt-client-go .
-# 2. Run with: docker run -d -v /opt/rpt/conf:/home/rpt/conf --restart=always --name rpt-client-go rpt-client-go
+# 2. Run with: docker run -d --network host -v /opt/rpt/conf:/home/rpt/conf --restart=always --name rpt-client-go rpt-client-go
 
 FROM golang:1.26-alpine AS builder
 
@@ -24,4 +24,4 @@ COPY --from=builder /build/rpt-client-go /home/rpt/rpt-client-go
 
 WORKDIR /home/rpt
 
-ENTRYPOINT ["./rpt-client-go"]
+ENTRYPOINT ["./rpt-client-go", "-config", "./conf/client.yml"]
