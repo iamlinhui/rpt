@@ -9,18 +9,14 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 import java.util.Optional;
 
 /**
- * 实际内网连接处理器
+ * 客户端TCP本地连接处理器
  */
 public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
-
-    private static final Logger logger = LoggerFactory.getLogger(TcpHandler.class);
 
     private final Channel serverChannel;
     private final Meta meta;

@@ -5,8 +5,8 @@ import cn.holmes.rpt.base.config.ServerConfig;
 import cn.holmes.rpt.base.handler.IdleCheckHandler;
 import cn.holmes.rpt.base.utils.Application;
 import cn.holmes.rpt.base.utils.Config;
-import cn.holmes.rpt.server.handler.IpFilterRuleHandler;
 import cn.holmes.rpt.server.handler.ServerHandler;
+import cn.holmes.rpt.server.utils.IpCountryFilter;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
@@ -35,7 +35,7 @@ public class ServerApplication extends Application<ServerBootstrap> {
     private final ServerBootstrap bootstrap = new ServerBootstrap();
     private final NioEventLoopGroup serverBossGroup = new NioEventLoopGroup();
     private final NioEventLoopGroup serverWorkerGroup = new NioEventLoopGroup();
-    private final RuleBasedIpFilter ruleBasedIpFilter = new RuleBasedIpFilter(IpFilterRuleHandler.getInstance());
+    private final RuleBasedIpFilter ruleBasedIpFilter = new RuleBasedIpFilter(IpCountryFilter.getInstance());
 
     public static void main(String[] args) throws Exception {
         Application.run(args, new ServerApplication(), new HttpApplication(), new HttpsApplication(), new DashboardApplication());

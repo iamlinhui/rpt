@@ -17,10 +17,6 @@ import java.util.Optional;
 
 /**
  * 客户端UDP本地连接处理器
- * 接收来自本地UDP服务的响应数据并转发到服务端
- * <p>
- * 注意：channel注册和TYPE_CONNECTED发送由ConnectedExecutor的bind listener完成，
- * 因为channelActive触发时PROXY属性尚未设置。
  */
 public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 

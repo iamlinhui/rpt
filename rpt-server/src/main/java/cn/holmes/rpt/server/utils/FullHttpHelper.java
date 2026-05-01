@@ -1,7 +1,6 @@
 package cn.holmes.rpt.server.utils;
 
 import cn.holmes.rpt.base.utils.StringUtils;
-import cn.holmes.rpt.server.page.StaticDispatcher;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -22,21 +21,21 @@ import java.util.concurrent.ConcurrentHashMap;
  * 静态资源加载 & HTTP 响应构建 工具类
  * <p>供 {@link StaticDispatcher} 和 DashboardHandler 共用</p>
  */
-public final class FullHttpUtils {
+public final class FullHttpHelper {
 
-    private static final Logger logger = LoggerFactory.getLogger(FullHttpUtils.class);
+    private static final Logger logger = LoggerFactory.getLogger(FullHttpHelper.class);
 
     /** 资源缓存，启动后只读 */
     private static final Map<String, byte[]> RESOURCE_CACHE = new ConcurrentHashMap<>();
 
-    private FullHttpUtils() {
+    private FullHttpHelper() {
     }
 
     /**
      * 从 classpath 加载资源（带缓存）
      */
     public static byte[] loadResource(String path) {
-        return RESOURCE_CACHE.computeIfAbsent(path, FullHttpUtils::doLoad);
+        return RESOURCE_CACHE.computeIfAbsent(path, FullHttpHelper::doLoad);
     }
 
     private static byte[] doLoad(String path) {
@@ -75,8 +74,6 @@ public final class FullHttpUtils {
         response.headers().set(HttpHeaderNames.CONTENT_LENGTH, body.length);
         return response;
     }
-
-
 
     /**
      * 写出响应，根据 keep-alive 决定是否关闭（HTTP 代理场景）

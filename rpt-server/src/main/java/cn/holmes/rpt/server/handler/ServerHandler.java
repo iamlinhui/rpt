@@ -43,6 +43,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        logger.info("服务端-客户端连接异常,{}", cause.getMessage());
         ctx.close();
     }
 

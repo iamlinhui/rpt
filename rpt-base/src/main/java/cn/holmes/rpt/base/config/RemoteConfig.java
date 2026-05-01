@@ -4,15 +4,10 @@ import java.io.Serializable;
 
 public class RemoteConfig implements Serializable {
 
-    private static final long serialVersionUID = -8091778644881703493L;
-
     private int remotePort;
     private int localPort;
     private String localIp;
     private String description;
-    /**
-     * 不填写默认就是TCP
-     */
     private ProxyType proxyType;
     private String domain;
     private String token;

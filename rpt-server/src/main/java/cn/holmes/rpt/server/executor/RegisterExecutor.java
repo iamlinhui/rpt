@@ -12,9 +12,9 @@ import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.base.utils.StringUtils;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
-import cn.holmes.rpt.server.handler.IpFilterRuleHandler;
 import cn.holmes.rpt.server.handler.TcpHandler;
 import cn.holmes.rpt.server.handler.UdpHandler;
+import cn.holmes.rpt.server.utils.IpCountryFilter;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -24,6 +24,8 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.ipfilter.RuleBasedIpFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.List;
@@ -35,11 +37,13 @@ import java.util.concurrent.TimeUnit;
 
 public class RegisterExecutor implements MessageExecutor {
 
-    private static final RuleBasedIpFilter RULE_BASED_IP_FILTER = new RuleBasedIpFilter(IpFilterRuleHandler.getInstance());
+    private final Logger logger = LoggerFactory.getLogger(RegisterExecutor.class);
 
-    private static final NioEventLoopGroup REMOTE_BOSS_GROUP = new NioEventLoopGroup();
+    private static final RuleBasedIpFilter RULE_BASED_IP_FILTER = new RuleBasedIpFilter(IpCountryFilter.getInstance());
 
-    private static final NioEventLoopGroup REMOTE_WORKER_GROUP = new NioEventLoopGroup();
+    private static final EventLoopGroup REMOTE_BOSS_GROUP = new NioEventLoopGroup();
+
+    private static final EventLoopGroup REMOTE_WORKER_GROUP = new NioEventLoopGroup();
 
     @Override
     public MessageType getMessageType() {
@@ -101,7 +105,7 @@ public class RegisterExecutor implements MessageExecutor {
                 default:
             }
         }
-        boolean await = countDownLatch.await(30, TimeUnit.SECONDS);
+        boolean await = countDownLatch.await(3, TimeUnit.SECONDS);
         if (!await) {
             logger.info("服务端处理注册请求超时,客户端秘钥:{}", meta.getClientKey());
             meta.setConnection(false).addRemoteResult("服务端处理注册请求超时");

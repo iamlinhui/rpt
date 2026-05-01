@@ -6,12 +6,16 @@ import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.utils.Constants.Client;
 import cn.holmes.rpt.client.cache.ProxyChannelCache;
 import io.netty.channel.ChannelHandlerContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class AuthExecutor implements MessageExecutor {
+
+    private final Logger logger = LoggerFactory.getLogger(AuthExecutor.class);
 
     @Override
     public MessageType getMessageType() {

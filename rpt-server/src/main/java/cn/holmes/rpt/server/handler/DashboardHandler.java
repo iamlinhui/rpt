@@ -6,7 +6,7 @@ import cn.holmes.rpt.base.utils.Config;
 import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
-import cn.holmes.rpt.server.utils.FullHttpUtils;
+import cn.holmes.rpt.server.utils.FullHttpHelper;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -30,7 +30,7 @@ public class DashboardHandler extends SimpleChannelInboundHandler<FullHttpReques
             resp.headers().set(HttpHeaderNames.WWW_AUTHENTICATE, "Basic realm=\"RPT Dashboard\"");
             resp.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=UTF-8");
             resp.headers().set(HttpHeaderNames.CONTENT_LENGTH, resp.content().readableBytes());
-            FullHttpUtils.writeKeepAlive(ctx, req, resp);
+            FullHttpHelper.writeKeepAlive(ctx, req, resp);
             return;
         }
 
@@ -61,7 +61,7 @@ public class DashboardHandler extends SimpleChannelInboundHandler<FullHttpReques
         if (user == null || user.isEmpty()) {
             return true;
         }
-        return FullHttpUtils.verifyToken(req, user + ":" + pass);
+        return FullHttpHelper.verifyToken(req, user + ":" + pass);
     }
 
     private void handleStatus(ChannelHandlerContext ctx, FullHttpRequest req) throws Exception {
@@ -165,18 +165,18 @@ public class DashboardHandler extends SimpleChannelInboundHandler<FullHttpReques
     }
 
     private void serveDashboard(ChannelHandlerContext ctx, FullHttpRequest req) {
-        byte[] bytes = FullHttpUtils.loadResource("static/dashboard.html");
-        FullHttpResponse resp = FullHttpUtils.buildResponse(ctx, HttpResponseStatus.OK, bytes);
+        byte[] bytes = FullHttpHelper.loadResource("static/dashboard.html");
+        FullHttpResponse resp = FullHttpHelper.buildResponse(ctx, HttpResponseStatus.OK, bytes);
         resp.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/html; charset=UTF-8");
-        FullHttpUtils.writeKeepAlive(ctx, req, resp);
+        FullHttpHelper.writeKeepAlive(ctx, req, resp);
     }
 
     private void serveFavicon(ChannelHandlerContext ctx, FullHttpRequest req) {
-        byte[] bytes = FullHttpUtils.loadResource("static/favicon.ico");
-        FullHttpResponse resp = FullHttpUtils.buildResponse(ctx, HttpResponseStatus.OK, bytes);
+        byte[] bytes = FullHttpHelper.loadResource("static/favicon.ico");
+        FullHttpResponse resp = FullHttpHelper.buildResponse(ctx, HttpResponseStatus.OK, bytes);
         resp.headers().set(HttpHeaderNames.CONTENT_TYPE, "image/x-icon");
         resp.headers().set(HttpHeaderNames.CACHE_CONTROL, "max-age=86400");
-        FullHttpUtils.writeKeepAlive(ctx, req, resp);
+        FullHttpHelper.writeKeepAlive(ctx, req, resp);
     }
 
     private void sendJson(ChannelHandlerContext ctx, FullHttpRequest req, HttpResponseStatus status, Object data) throws Exception {
@@ -185,7 +185,7 @@ public class DashboardHandler extends SimpleChannelInboundHandler<FullHttpReques
         resp.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/json; charset=UTF-8");
         resp.headers().set(HttpHeaderNames.CONTENT_LENGTH, json.length);
         resp.headers().set(HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
-        FullHttpUtils.writeKeepAlive(ctx, req, resp);
+        FullHttpHelper.writeKeepAlive(ctx, req, resp);
     }
 
     private static String formatDuration(long millis) {

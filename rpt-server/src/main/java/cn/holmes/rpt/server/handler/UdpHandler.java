@@ -9,6 +9,7 @@ import cn.holmes.rpt.base.utils.Config;
 import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.base.utils.FireEvent;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
+import cn.holmes.rpt.server.utils.IpCountryFilter;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -38,7 +39,7 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
     private static final Logger logger = LoggerFactory.getLogger(UdpHandler.class);
 
-    private static final IpFilterRule IP_FILTER_RULE_HANDLER = IpFilterRuleHandler.getInstance();
+    private static final IpFilterRule IP_COUNTRY_FILTER = IpCountryFilter.getInstance();
 
     private static final long SESSION_TIMEOUT = 60;
 
@@ -105,7 +106,7 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket packet) throws Exception {
         InetSocketAddress sender = packet.sender();
-        if (Config.getServerConfig().ipFilter() && IP_FILTER_RULE_HANDLER.matches(sender)) {
+        if (Config.getServerConfig().ipFilter() && IP_COUNTRY_FILTER.matches(sender)) {
             logger.info("UDP remote handler rejected sender: {}", sender);
             return;
         }

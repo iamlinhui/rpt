@@ -8,6 +8,7 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -24,8 +25,8 @@ public class DashboardApplication extends Application<ServerBootstrap> {
     private static final Logger logger = LoggerFactory.getLogger(DashboardApplication.class);
 
     private final ServerBootstrap bootstrap = new ServerBootstrap();
-    private final NioEventLoopGroup bossGroup = new NioEventLoopGroup(1);
-    private final NioEventLoopGroup workerGroup = new NioEventLoopGroup(2);
+    private final EventLoopGroup bossGroup = new NioEventLoopGroup(1);
+    private final EventLoopGroup workerGroup = new NioEventLoopGroup(2);
 
     @Override
     public Application<ServerBootstrap> buildBootstrap() throws IOException {

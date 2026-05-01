@@ -1,6 +1,5 @@
-package cn.holmes.rpt.server.page;
+package cn.holmes.rpt.server.utils;
 
-import cn.holmes.rpt.server.utils.FullHttpUtils;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.*;
 
@@ -29,7 +28,7 @@ public class StaticDispatcher {
     }
 
     public static boolean authorize(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, String token) {
-        if (FullHttpUtils.verifyToken(fullHttpRequest, token)) {
+        if (FullHttpHelper.verifyToken(fullHttpRequest, token)) {
             return true;
         }
         String uri = fullHttpRequest.uri();
@@ -43,35 +42,35 @@ public class StaticDispatcher {
 
 
     private static void unauthorized(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
-        FullHttpResponse response = FullHttpUtils.buildResponse(ctx, HttpResponseStatus.UNAUTHORIZED, FullHttpUtils.loadResource("static/401.html"));
+        FullHttpResponse response = FullHttpHelper.buildResponse(ctx, HttpResponseStatus.UNAUTHORIZED, FullHttpHelper.loadResource("static/401.html"));
         response.headers().set(HttpHeaderNames.WWW_AUTHENTICATE, "Basic realm=\"Restricted Area\"");
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_HTML);
-        FullHttpUtils.writeKeepAlive(ctx, fullHttpRequest, response);
+        FullHttpHelper.writeKeepAlive(ctx, fullHttpRequest, response);
     }
 
     private static void favicon(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
-        FullHttpResponse response = FullHttpUtils.buildResponse(ctx, HttpResponseStatus.OK, FullHttpUtils.loadResource("static/favicon.ico"));
+        FullHttpResponse response = FullHttpHelper.buildResponse(ctx, HttpResponseStatus.OK, FullHttpHelper.loadResource("static/favicon.ico"));
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, "image/x-icon");
         response.headers().set(HttpHeaderNames.CACHE_CONTROL, "max-age=86400");
-        FullHttpUtils.writeKeepAlive(ctx, fullHttpRequest, response);
+        FullHttpHelper.writeKeepAlive(ctx, fullHttpRequest, response);
     }
 
     private static void index(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
-        FullHttpResponse response = FullHttpUtils.buildResponse(ctx, HttpResponseStatus.OK, FullHttpUtils.loadResource("static/index.html"));
+        FullHttpResponse response = FullHttpHelper.buildResponse(ctx, HttpResponseStatus.OK, FullHttpHelper.loadResource("static/index.html"));
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_HTML);
-        FullHttpUtils.writeKeepAlive(ctx, fullHttpRequest, response);
+        FullHttpHelper.writeKeepAlive(ctx, fullHttpRequest, response);
     }
 
     private static void css(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
-        FullHttpResponse response = FullHttpUtils.buildResponse(ctx, HttpResponseStatus.OK, FullHttpUtils.loadResource("static/base.css"));
+        FullHttpResponse response = FullHttpHelper.buildResponse(ctx, HttpResponseStatus.OK, FullHttpHelper.loadResource("static/base.css"));
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_CSS);
         response.headers().set(HttpHeaderNames.CACHE_CONTROL, "max-age=86400");
-        FullHttpUtils.writeKeepAlive(ctx, fullHttpRequest, response);
+        FullHttpHelper.writeKeepAlive(ctx, fullHttpRequest, response);
     }
 
     private static void notFound(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
-        FullHttpResponse response = FullHttpUtils.buildResponse(ctx, HttpResponseStatus.OK, FullHttpUtils.loadResource("static/404.html"));
+        FullHttpResponse response = FullHttpHelper.buildResponse(ctx, HttpResponseStatus.OK, FullHttpHelper.loadResource("static/404.html"));
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_HTML);
-        FullHttpUtils.writeKeepAlive(ctx, fullHttpRequest, response);
+        FullHttpHelper.writeKeepAlive(ctx, fullHttpRequest, response);
     }
 }

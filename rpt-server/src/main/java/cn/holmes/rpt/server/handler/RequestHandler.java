@@ -10,7 +10,7 @@ import cn.holmes.rpt.base.utils.StringUtils;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
 import cn.holmes.rpt.server.coder.HttpEncoder;
-import cn.holmes.rpt.server.page.StaticDispatcher;
+import cn.holmes.rpt.server.utils.StaticDispatcher;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;

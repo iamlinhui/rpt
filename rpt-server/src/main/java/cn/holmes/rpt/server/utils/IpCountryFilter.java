@@ -1,4 +1,4 @@
-package cn.holmes.rpt.server.handler;
+package cn.holmes.rpt.server.utils;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -18,9 +18,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
-public class IpFilterRuleHandler implements IpFilterRule {
+public class IpCountryFilter implements IpFilterRule {
 
-    private static final Logger logger = LoggerFactory.getLogger(IpFilterRuleHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(IpCountryFilter.class);
 
     private static final List<String> WHITE_COUNTRY = Collections.singletonList(Locale.getDefault().getCountry());
 
@@ -34,9 +34,9 @@ public class IpFilterRuleHandler implements IpFilterRule {
      */
     private final Cache<String, Boolean> cache = Caffeine.newBuilder().maximumSize(4096).expireAfterWrite(1, TimeUnit.HOURS).build();
 
-    private static final IpFilterRuleHandler INSTANCE = new IpFilterRuleHandler();
+    private static final IpCountryFilter INSTANCE = new IpCountryFilter();
 
-    private IpFilterRuleHandler() {
+    private IpCountryFilter() {
         Reader r = null;
         try (InputStream in = ClassLoader.getSystemResourceAsStream("Country.mmdb")) {
             if (in != null) {
@@ -48,7 +48,7 @@ public class IpFilterRuleHandler implements IpFilterRule {
         this.reader = r;
     }
 
-    public static IpFilterRuleHandler getInstance() {
+    public static IpCountryFilter getInstance() {
         return INSTANCE;
     }
 

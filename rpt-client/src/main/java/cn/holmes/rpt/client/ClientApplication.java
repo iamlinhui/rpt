@@ -2,7 +2,6 @@ package cn.holmes.rpt.client;
 
 import cn.holmes.rpt.base.coder.MessageCodec;
 import cn.holmes.rpt.base.config.ClientConfig;
-import cn.holmes.rpt.base.config.ServerConfig;
 import cn.holmes.rpt.base.handler.IdleCheckHandler;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
@@ -15,6 +14,7 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -36,7 +36,7 @@ public class ClientApplication extends Application<Bootstrap> {
     private static final Logger logger = LoggerFactory.getLogger(ClientApplication.class);
 
     private final Bootstrap bootstrap = new Bootstrap();
-    private final NioEventLoopGroup clientWorkerGroup = new NioEventLoopGroup();
+    private final EventLoopGroup clientWorkerGroup = new NioEventLoopGroup();
 
     public static void main(String[] args) throws Exception {
         Application.run(args, new ClientApplication());
@@ -108,7 +108,7 @@ public class ClientApplication extends Application<Bootstrap> {
         String clientCertPath = Optional.ofNullable(clientConfig.getClientCertPath()).orElse("client.crt");
         String clientKeyPath = Optional.ofNullable(clientConfig.getClientKeyPath()).orElse("pkcs8_client.key");
         try (InputStream certChainFile = ClassLoader.getSystemResourceAsStream(clientCertPath); InputStream keyFile = ClassLoader.getSystemResourceAsStream(clientKeyPath); InputStream rootFile = ClassLoader.getSystemResourceAsStream(clientCaPath)) {
-            return SslContextBuilder.forClient().keyManager(certChainFile, keyFile).trustManager(rootFile).sslProvider(SslProvider.OPENSSL).build();
+            return SslContextBuilder.forClient().keyManager(certChainFile, keyFile).trustManager(rootFile).endpointIdentificationAlgorithm(null).sslProvider(SslProvider.OPENSSL).build();
         }
     }
 }
