@@ -9,6 +9,7 @@ import cn.holmes.rpt.base.protocol.Meta;
 import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.base.utils.FireEvent;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
+import cn.holmes.rpt.server.cache.TrafficStatsCache;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 
@@ -46,6 +47,8 @@ public class ConnectedExecutor implements MessageExecutor {
         }
         // binding each other
         Channel proxyChannel = context.channel();
+        proxyChannel.attr(Server.SERVER_ID).set(serverId);
+        TrafficStatsCache.incrementProxyChannels(serverId);
         ProxyType proxyType = localChannel.attr(Server.PROXY_TYPE).get();
         if (Objects.equals(ProxyType.UDP, proxyType)) {
             proxyChannel.attr(Server.LOCAL).set(localChannel);

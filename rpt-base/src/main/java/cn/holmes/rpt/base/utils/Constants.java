@@ -25,6 +25,7 @@ public interface Constants {
         AttributeKey<Map<String, Channel>> CHANNELS = AttributeKey.newInstance("CHANNELS");
         AttributeKey<Channel> PROXY = AttributeKey.newInstance("PROXY");
         AttributeKey<Channel> LOCAL = AttributeKey.newInstance("LOCAL");
+        AttributeKey<String> SERVER_ID = AttributeKey.newInstance("SERVER_ID");
         AttributeKey<ProxyType> PROXY_TYPE = AttributeKey.newInstance("PROXY_TYPE");
         AttributeKey<InetSocketAddress> UDP_SENDER = AttributeKey.newInstance("UDP_SENDER");
     }

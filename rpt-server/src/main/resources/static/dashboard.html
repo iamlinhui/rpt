@@ -11,8 +11,8 @@
         .header h1 { font-size: 22px; font-weight: 600; }
         .header .refresh { font-size: 13px; opacity: 0.8; }
         .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
-        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
-        .card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; padding: 16px 20px; }
+        .card { background: #f8f9fa; border-radius: 8px; padding: 16px; }
         .card .label { font-size: 13px; color: #888; margin-bottom: 6px; }
         .card .value { font-size: 26px; font-weight: 700; color: #1a73e8; }
         .card .value.small { font-size: 18px; }
@@ -62,7 +62,14 @@
     <div class="refresh">自动刷新: <span id="countdown">5</span>s</div>
 </div>
 <div class="container">
-    <div class="cards" id="statusCards"></div>
+    <div class="section">
+        <div class="section-title">服务状态</div>
+        <div class="cards" id="statusCards"></div>
+    </div>
+    <div class="section">
+        <div class="section-title">端口信息</div>
+        <div class="cards" id="portCards"></div>
+    </div>
     <div class="section">
         <div class="section-title">在线客户端</div>
         <div id="clientsTable"></div>
@@ -82,17 +89,23 @@
     }
 
     function renderStatus(data) {
-        const cards = [
+        const statusItems = [
             { label: '运行时间', value: data.uptimeText, small: true },
             { label: '在线客户端', value: data.onlineClients },
-            { label: '历史连接数', value: data.totalConnections },
+            { label: '代理连接', value: data.proxyChannels },
+            { label: '历史连接数', value: data.totalConnections }
+        ];
+        const portItems = [
             { label: '服务端口', value: data.serverPort },
             { label: 'HTTP端口', value: data.httpPort || '-' },
-            { label: 'HTTPS端口', value: data.httpsPort || '-' }
+            { label: 'HTTPS端口', value: data.httpsPort || '-' },
+            { label: 'Dashboard端口', value: data.dashboardPort || '-' }
         ];
-        document.getElementById('statusCards').innerHTML = cards.map(c =>
+        const renderCards = items => items.map(c =>
             `<div class="card"><div class="label">${c.label}</div><div class="value${c.small ? ' small' : ''}">${c.value}</div></div>`
         ).join('');
+        document.getElementById('statusCards').innerHTML = renderCards(statusItems);
+        document.getElementById('portCards').innerHTML = renderCards(portItems);
     }
 
     function renderClients(data) {
@@ -100,7 +113,7 @@
             document.getElementById('clientsTable').innerHTML = '<div class="empty">暂无在线客户端</div>';
             return;
         }
-        let html = '<table><thead><tr><th>ClientKey</th><th>远程地址</th><th>连接时间</th><th>代理端口</th><th>活跃会话</th><th>流量</th><th>流速</th><th>操作</th></tr></thead><tbody>';
+        let html = '<table><thead><tr><th>ClientKey</th><th>远程地址</th><th>连接时间</th><th>代理端口</th><th>代理连接</th><th>活跃会话</th><th>流量</th><th>流速</th><th>操作</th></tr></thead><tbody>';
         data.forEach(c => {
             const key = c.clientKey.length > 12 ? c.clientKey.substring(0, 12) + '...' : c.clientKey;
             let ports = '';
@@ -112,6 +125,7 @@
                 <td data-label="地址">${c.remoteAddress}</td>
                 <td data-label="时间">${c.connectTime}</td>
                 <td data-label="代理">${ports || '-'}</td>
+                <td data-label="代理连接">${c.proxyChannels}</td>
                 <td data-label="会话">${c.activeSessions}</td>
                 <td data-label="流量" class="traffic">↑${c.bytesInText} ↓${c.bytesOutText}</td>
                 <td data-label="流速" class="traffic">↑${c.speedInText} ↓${c.speedOutText}</td>

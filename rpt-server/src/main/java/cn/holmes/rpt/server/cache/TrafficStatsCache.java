@@ -15,6 +15,11 @@ public class TrafficStatsCache {
     private static final AtomicLong TOTAL_CONNECTIONS = new AtomicLong();
 
     /**
+     * serverChannelId → 当前活跃的代理连接数
+     */
+    private static final Map<String, AtomicLong> PROXY_CHANNELS = new ConcurrentHashMap<>();
+
+    /**
      * serverChannelId → AtomicLongArray[bytesIn, bytesOut]
      */
     private static final Map<String, AtomicLongArray> TRAFFIC = new ConcurrentHashMap<>();
@@ -92,6 +97,30 @@ public class TrafficStatsCache {
         return TOTAL_CONNECTIONS.get();
     }
 
+    public static void incrementProxyChannels(String serverChannelId) {
+        PROXY_CHANNELS.computeIfAbsent(serverChannelId, k -> new AtomicLong()).incrementAndGet();
+    }
+
+    public static void decrementProxyChannels(String serverChannelId) {
+        AtomicLong count = PROXY_CHANNELS.get(serverChannelId);
+        if (count != null) {
+            count.decrementAndGet();
+        }
+    }
+
+    public static long proxyChannels(String serverChannelId) {
+        AtomicLong count = PROXY_CHANNELS.get(serverChannelId);
+        return count != null ? count.get() : 0;
+    }
+
+    public static long proxyChannelsTotal() {
+        long total = 0;
+        for (AtomicLong count : PROXY_CHANNELS.values()) {
+            total += count.get();
+        }
+        return total;
+    }
+
     public static long uptime() {
         return System.currentTimeMillis() - START_TIME;
     }
@@ -134,5 +163,6 @@ public class TrafficStatsCache {
     public static void remove(String serverChannelId) {
         TRAFFIC.remove(serverChannelId);
         SPEED.remove(serverChannelId);
+        PROXY_CHANNELS.remove(serverChannelId);
     }
 }

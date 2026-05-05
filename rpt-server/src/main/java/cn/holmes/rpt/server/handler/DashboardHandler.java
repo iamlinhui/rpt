@@ -72,6 +72,7 @@ public class DashboardHandler extends SimpleChannelInboundHandler<FullHttpReques
         data.put("uptimeText", formatDuration(uptime));
         data.put("totalConnections", TrafficStatsCache.totalConnections());
         data.put("onlineClients", ServerChannelCache.getServerChannelMap().size());
+        data.put("proxyChannels", TrafficStatsCache.proxyChannelsTotal());
         data.put("serverPort", config.getServerPort());
         data.put("httpPort", config.getHttpPort());
         data.put("httpsPort", config.getHttpsPort());
@@ -116,6 +117,9 @@ public class DashboardHandler extends SimpleChannelInboundHandler<FullHttpReques
             // Active sessions
             Map<String, Channel> channels = ch.attr(Server.CHANNELS).get();
             client.put("activeSessions", channels != null ? channels.size() : 0);
+
+            // Proxy channels (由客户端ProxyChannelCache建立的代理连接数)
+            client.put("proxyChannels", TrafficStatsCache.proxyChannels(entry.getKey()));
 
             // Traffic
             long[] traffic = TrafficStatsCache.getTraffic(entry.getKey());
