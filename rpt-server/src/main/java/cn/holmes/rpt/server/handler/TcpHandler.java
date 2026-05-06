@@ -80,6 +80,10 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
         if (Objects.nonNull(proxyChannel) && proxyChannel.isActive()) {
             proxyChannel.attr(Server.LOCAL).set(null);
             proxyChannel.config().setAutoRead(true);
+            String serverId = proxyChannel.attr(Server.SERVER_ID).getAndSet(null);
+            if (serverId != null) {
+                TrafficStatsCache.decrementProxyChannels(serverId);
+            }
             send(proxyChannel, MessageType.TYPE_DISCONNECTED, Unpooled.EMPTY_BUFFER, ctx);
         }
     }

@@ -15,7 +15,6 @@
         .card { background: #f8f9fa; border-radius: 8px; padding: 16px; }
         .card .label { font-size: 13px; color: #888; margin-bottom: 6px; }
         .card .value { font-size: 26px; font-weight: 700; color: #1a73e8; }
-        .card .value.small { font-size: 18px; }
         .section { background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px; overflow-x: auto; }
         .section-title { font-size: 16px; font-weight: 600; padding: 16px 20px; border-bottom: 1px solid #eee; }
         table { width: 100%; border-collapse: collapse; }
@@ -90,7 +89,7 @@
 
     function renderStatus(data) {
         const statusItems = [
-            { label: '运行时间', value: data.uptimeText, small: true },
+            { label: '运行时间', value: data.uptimeText },
             { label: '在线客户端', value: data.onlineClients },
             { label: '代理连接', value: data.proxyChannels },
             { label: '历史连接数', value: data.totalConnections }
@@ -102,7 +101,7 @@
             { label: 'Dashboard端口', value: data.dashboardPort || '-' }
         ];
         const renderCards = items => items.map(c =>
-            `<div class="card"><div class="label">${c.label}</div><div class="value${c.small ? ' small' : ''}">${c.value}</div></div>`
+            `<div class="card"><div class="label">${c.label}</div><div class="value">${c.value}</div></div>`
         ).join('');
         document.getElementById('statusCards').innerHTML = renderCards(statusItems);
         document.getElementById('portCards').innerHTML = renderCards(portItems);

@@ -80,6 +80,10 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (Objects.nonNull(proxyChannel) && proxyChannel.isActive()) {
             proxyChannel.attr(Server.LOCAL).set(null);
             proxyChannel.config().setAutoRead(true);
+            String serverId = proxyChannel.attr(Server.SERVER_ID).getAndSet(null);
+            if (serverId != null) {
+                TrafficStatsCache.decrementProxyChannels(serverId);
+            }
             send(proxyChannel, ctx, domain, MessageType.TYPE_DISCONNECTED, Unpooled.EMPTY_BUFFER);
         }
     }

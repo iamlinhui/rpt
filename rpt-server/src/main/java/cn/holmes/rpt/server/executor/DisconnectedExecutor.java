@@ -7,6 +7,7 @@ import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.base.utils.FireEvent;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
+import cn.holmes.rpt.server.cache.TrafficStatsCache;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
@@ -38,6 +39,11 @@ public class DisconnectedExecutor implements MessageExecutor {
             return;
         }
         Channel proxyChannel = context.channel();
+        // 代理连接会话结束，递减计数（与 ConnectedExecutor.increment 配对）
+        String proxyServerId = proxyChannel.attr(Server.SERVER_ID).getAndSet(null);
+        if (proxyServerId != null) {
+            TrafficStatsCache.decrementProxyChannels(proxyServerId);
+        }
         ProxyType proxyType = localChannel.attr(Server.PROXY_TYPE).get();
         if (Objects.equals(ProxyType.UDP, proxyType)) {
             FireEvent fireEvent = new FireEvent(channelId, proxyChannel, getMessageType());

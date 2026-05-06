@@ -185,6 +185,10 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
         if (proxyChannel != null && proxyChannel.isActive()) {
             proxyChannel.attr(Server.LOCAL).set(null);
             proxyChannel.attr(Server.UDP_SENDER).set(null);
+            String serverId = proxyChannel.attr(Server.SERVER_ID).getAndSet(null);
+            if (serverId != null) {
+                TrafficStatsCache.decrementProxyChannels(serverId);
+            }
             sendMessage(proxyChannel, MessageType.TYPE_DISCONNECTED, Unpooled.EMPTY_BUFFER, channelId);
         }
     }

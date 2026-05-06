@@ -56,10 +56,12 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         // 代理连接/未知连接
         if (Objects.isNull(clientKey)) {
             Channel localChannel = ctx.channel().attr(Server.LOCAL).getAndSet(null);
+            String serverId = ctx.channel().attr(Server.SERVER_ID).getAndSet(null);
+            if (serverId != null) {
+                TrafficStatsCache.decrementProxyChannels(serverId);
+            }
             if (Objects.nonNull(localChannel)) {
                 logger.info("服务端-客户端代理连接中断");
-                String serverId = ctx.channel().attr(Server.SERVER_ID).get();
-                TrafficStatsCache.decrementProxyChannels(serverId);
                 if (localChannel.isActive()) {
                     ProxyType proxyType = localChannel.attr(Server.PROXY_TYPE).get();
                     localChannel.attr(Server.PROXY).set(null);
