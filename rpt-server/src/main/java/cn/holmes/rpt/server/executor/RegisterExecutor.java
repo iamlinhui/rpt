@@ -124,7 +124,8 @@ public class RegisterExecutor implements MessageExecutor {
             return;
         }
         logger.info("服务端开始绑定域名[{}]", remoteConfig.getDomain());
-        ServerChannelCache.getServerDomainChannelMap().compute(remoteConfig.getDomain(), (domain, channel) -> {
+        // 域名不区分大小写
+        ServerChannelCache.getServerDomainChannelMap().compute(remoteConfig.getDomain().toLowerCase(), (domain, channel) -> {
             if (channel != null) {
                 meta.setConnection(false).addRemoteResult(String.format("服务端绑定域名[%s]重复", domain));
                 return channel;
