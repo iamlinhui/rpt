@@ -116,22 +116,60 @@ async function init() {
   const c = await go.GetConfig();
   cfg = c.config || [];
   render();
-  setInterval(pollLogs, 400);
+  startLogPolling();
 }
 
 // ==================== Logs ====================
+const MAX_LOG_LINES = 500;
+let polling = false;
+let logTimer = null;
+let pageVisible = true;
+let pendingScroll = false;
+
+document.addEventListener('visibilitychange', () => {
+  pageVisible = !document.hidden;
+  if (pageVisible && pendingScroll) {
+    const el = document.getElementById('logArea');
+    requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; });
+    pendingScroll = false;
+  }
+});
+
+function startLogPolling() {
+  if (logTimer) return;
+  logTimer = setInterval(pollLogs, pageVisible ? 400 : 2000);
+}
+function adjustPollingRate() {
+  clearInterval(logTimer); logTimer = null;
+  startLogPolling();
+}
+document.addEventListener('visibilitychange', adjustPollingRate);
+
 async function pollLogs() {
-  const s = await go.GetLogs();
-  if (!s) return;
-  const el = document.getElementById('logArea');
-  const lines = s.split('\n').filter(l => l);
-  lines.forEach(l => {
-    const div = document.createElement('div');
-    div.className = 'log-line';
-    div.textContent = l;
-    el.appendChild(div);
-  });
-  el.scrollTop = el.scrollHeight;
+  if (polling) return;
+  polling = true;
+  try {
+    const s = await go.GetLogs();
+    if (!s) return;
+    const el = document.getElementById('logArea');
+    const lines = s.split('\n').filter(l => l);
+    const frag = document.createDocumentFragment();
+    lines.forEach(l => {
+      const div = document.createElement('div');
+      div.className = 'log-line';
+      div.textContent = l;
+      frag.appendChild(div);
+    });
+    el.appendChild(frag);
+    while (el.childElementCount > MAX_LOG_LINES) {
+      el.removeChild(el.firstChild);
+    }
+    if (pageVisible) {
+      requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; });
+    } else {
+      pendingScroll = true;
+    }
+  } finally { polling = false; }
 }
 function clearLogs() { document.getElementById('logArea').innerHTML = ''; hideCtx(); }
 

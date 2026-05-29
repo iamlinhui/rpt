@@ -407,11 +407,17 @@ func resizePNG(data []byte, w, h int) []byte {
 
 // ==================== Log Adapter ====================
 
+const maxLogBufSize = 64 * 1024 // 64KB，超过则丢弃旧日志
+
 type logAdapter struct{ app *App }
 
 func (l *logAdapter) Write(p []byte) (int, error) {
 	line := time.Now().Format("2006-01-02 15:04:05") + " | " + strings.TrimRight(string(p), "\n") + "\n"
 	l.app.logMu.Lock()
+	if l.app.logBuf.Len() > maxLogBufSize {
+		l.app.logBuf.Reset()
+		l.app.logBuf.WriteString("... 日志过多已截断 ...\n")
+	}
 	l.app.logBuf.WriteString(line)
 	l.app.logMu.Unlock()
 	return len(p), nil
