@@ -18,7 +18,7 @@ public class ProxyChannelCache {
 
     private static final Logger logger = LoggerFactory.getLogger(ProxyChannelCache.class);
 
-    private static final Integer MAX_QUEUE_LIMIT = 128;
+    private static final Integer MAX_QUEUE_LIMIT = 16;
 
     /**
      * 核心连接数，保持一定数量的预热连接，避免首次请求因TLS握手延迟导致失败

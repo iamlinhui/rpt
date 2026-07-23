@@ -20,6 +20,7 @@ import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.ReferenceCountUtil;
 
 import java.util.*;
@@ -90,6 +91,10 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+        if (evt instanceof IdleStateEvent) {
+            ctx.close();
+            return;
+        }
         if (!Objects.equals(ProxyType.HTTP, evt)) {
             ctx.fireUserEventTriggered(evt);
             return;

@@ -7,7 +7,8 @@ serverCertPath: server.crt
 serverKeyPath: pkcs8_server.key
 domainCert: domain.crt
 domainKey: pkcs8_domain.key
-ipFilter: true
+# 限制连接暴露端口的IP必须属于这些国家(ISO码,逗号分隔,如 CN,HK)。留空 = 关闭国家过滤(放行所有)
+ipFilterCountry: CN,HK
 dashboardPort: 8000
 dashboardUser: admin
 dashboardPassword: admin

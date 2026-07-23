@@ -44,6 +44,8 @@ public class ServerApplication extends Application<ServerBootstrap> {
     @Override
     public Application<ServerBootstrap> config(String[] args) {
         Config.readServerConfig(args);
+        // 注入 server.yml 配置的国家白名单（ipFilterCountry 空=关闭，放行所有）；替代旧的 Locale.getDefault() 白名单
+        IpCountryFilter.getInstance().setWhitelist(Config.getServerConfig().getIpFilterCountry());
         return this;
     }
 
@@ -54,7 +56,7 @@ public class ServerApplication extends Application<ServerBootstrap> {
 
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
-                if (Config.getServerConfig().ipFilter()) {
+                if (Config.getServerConfig().ipFilterEnabled()) {
                     ch.pipeline().addLast(ruleBasedIpFilter);
                 }
                 ch.pipeline().addLast(sslContext.newHandler(ch.alloc()));

@@ -14,7 +14,13 @@ public class ServerConfig {
     private int httpsPort;
     private String domainCert;
     private String domainKey;
-    private boolean ipFilter;
+    /**
+     * 限制连接暴露端口的 IP 必须属于这些国家（ISO 码，逗号分隔，如 "CN" 或 "CN,HK"）。
+     * 由 IpCountryFilter 在 config 阶段注入。空值 = 关闭国家过滤（放行所有）。
+     * 不再用 Locale.getDefault().getCountry()——那会跟随运行机器系统语言，
+     * 服务端 LANG=en_US 时会把非 US 客户端全拒。
+     */
+    private String ipFilterCountry;
     private List<ServerToken> token;
     private int dashboardPort;
     private String dashboardUser;
@@ -121,12 +127,19 @@ public class ServerConfig {
         this.domainKey = domainKey;
     }
 
-    public boolean ipFilter() {
-        return ipFilter;
+    /**
+     * 国家过滤是否开启：ipFilterCountry 有值则开启，空则关闭（放行所有）。
+     */
+    public boolean ipFilterEnabled() {
+        return ipFilterCountry != null && !ipFilterCountry.trim().isEmpty();
     }
 
-    public void setIpFilter(boolean ipFilter) {
-        this.ipFilter = ipFilter;
+    public String getIpFilterCountry() {
+        return ipFilterCountry;
+    }
+
+    public void setIpFilterCountry(String ipFilterCountry) {
+        this.ipFilterCountry = ipFilterCountry;
     }
 
     public int getDashboardPort() {

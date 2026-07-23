@@ -157,7 +157,7 @@ public class RegisterExecutor implements MessageExecutor {
         remoteBootstrap.group(REMOTE_BOSS_GROUP, REMOTE_WORKER_GROUP).channel(NioServerSocketChannel.class).option(ChannelOption.SO_REUSEADDR, true).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel channel) throws Exception {
-                if (Config.getServerConfig().ipFilter()) {
+                if (Config.getServerConfig().ipFilterEnabled()) {
                     channel.pipeline().addLast(RULE_BASED_IP_FILTER);
                 }
                 channel.pipeline().addLast(new TcpHandler(serverChannel, remoteConfig));

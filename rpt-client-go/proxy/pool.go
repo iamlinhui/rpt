@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	maxPoolSize  = 128
+	maxPoolSize  = 16
 	corePoolSize = 3
 )
 

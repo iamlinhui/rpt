@@ -137,7 +137,7 @@ func (c *Client) handleMessage(serverConn *protocol.Conn, msg *protocol.Message)
 	case protocol.TypeAuth:
 		c.handleAuth(serverConn, msg)
 	case protocol.TypeConnected:
-		c.handleConnected(serverConn, msg)
+		go c.handleConnected(serverConn, msg)
 	case protocol.TypeData:
 		c.handleData(msg)
 	case protocol.TypeDisconnected:

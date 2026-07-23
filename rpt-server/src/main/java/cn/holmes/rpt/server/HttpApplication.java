@@ -15,6 +15,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +39,7 @@ public class HttpApplication extends Application<ServerBootstrap> {
             public void initChannel(SocketChannel ch) throws Exception {
                 ch.pipeline().addLast(new HttpServerCodec());
                 ch.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
+                ch.pipeline().addLast(new IdleStateHandler(0, 0, 600, TimeUnit.SECONDS));
                 ch.pipeline().addLast(serverConfig.getHttpsPort() == 0 ? new RequestHandler() : new RedirectHandler());
             }
         });
@@ -46,7 +48,6 @@ public class HttpApplication extends Application<ServerBootstrap> {
 
     @Override
     public boolean start(int seconds) throws Exception {
-        TimeUnit.SECONDS.sleep(seconds);
         ServerConfig serverConfig = Config.getServerConfig();
         int httpPort = serverConfig.getHttpPort();
         if (httpPort == 0) {

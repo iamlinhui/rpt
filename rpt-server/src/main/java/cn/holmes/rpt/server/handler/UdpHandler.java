@@ -106,7 +106,7 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket packet) throws Exception {
         InetSocketAddress sender = packet.sender();
-        if (Config.getServerConfig().ipFilter() && IP_COUNTRY_FILTER.matches(sender)) {
+        if (Config.getServerConfig().ipFilterEnabled() && IP_COUNTRY_FILTER.matches(sender)) {
             logger.info("UDP remote handler rejected sender: {}", sender);
             return;
         }
