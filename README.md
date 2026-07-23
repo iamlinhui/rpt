@@ -287,8 +287,8 @@ domainCert: domain.crt
 # 域名证书私钥 (httpsPort为0时不生效)
 domainKey: pkcs8_domain.key
 
-# 是否限制连接暴露端口的IP必须在当前地区国家 (默认false)
-ipFilter: true
+# 限制连接暴露端口的IP必须属于这些国家 (ISO码,逗号分隔,如 CN,HK) 留空=关闭国家过滤(放行所有)
+ipFilterCountry: CN,HK
 
 # Dashboard管理面板端口 (为0则不开启，默认0)
 dashboardPort: 8000
@@ -322,7 +322,7 @@ token:
 | `httpsPort` | int | `0` | HTTPS复用端口，为0不开启 |
 | `domainCert` | String | `server.crt` | 域名证书公钥路径 |
 | `domainKey` | String | `pkcs8_server.key` | 域名证书私钥路径 |
-| `ipFilter` | boolean | `false` | 是否启用IP地域过滤 |
+| `ipFilterCountry` | String | 空 | 允许访问的国家ISO码(逗号分隔,如 `CN,HK`)，留空=关闭国家过滤 |
 | `dashboardPort` | int | `0` | Dashboard管理面板端口，为0不开启 |
 | `dashboardUser` | String | - | Dashboard登录账号 |
 | `dashboardPassword` | String | - | Dashboard登录密码 |
@@ -822,7 +822,7 @@ openssl pkcs8 -topk8 -in client.key -out pkcs8_client.key -nocrypt
 1. 检查服务端防火墙是否开放 `remotePort` 对应端口
 2. 检查 `remotePort` 是否在服务端 token 配置的 `minPort` ~ `maxPort` 范围内
 3. 检查内网目标服务是否正常运行
-4. 如果启用了 `ipFilter`，确认访问者 IP 所在国家是否匹配
+4. 如果配置了 `ipFilterCountry`，确认访问者 IP 所在国家是否在白名单内
 </details>
 
 <details>
