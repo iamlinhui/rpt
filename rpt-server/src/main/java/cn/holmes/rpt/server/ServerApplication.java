@@ -26,7 +26,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 public class ServerApplication extends Application<ServerBootstrap> {
 
@@ -75,7 +74,6 @@ public class ServerApplication extends Application<ServerBootstrap> {
 
     @Override
     public boolean start(int seconds) throws Exception {
-        TimeUnit.SECONDS.sleep(seconds);
         ServerConfig serverConfig = Config.getServerConfig();
         bootstrap.bind(serverConfig.getServerIp(), serverConfig.getServerPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {

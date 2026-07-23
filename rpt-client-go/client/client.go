@@ -24,6 +24,7 @@ type Client struct {
 	mu         sync.Mutex
 	channels   map[string]io.Closer // channelId -> local connection
 	stopped    bool
+	stopCh     chan struct{}  // closed by Stop() to interrupt backoff sleep
 	resetDelay bool           // set to true after successful auth
 	serverConn *protocol.Conn // active server connection, for forced close
 }
@@ -35,6 +36,7 @@ func New(cfg *config.ClientConfig, tlsConfig *tls.Config) *Client {
 		tlsConfig:  tlsConfig,
 		serverAddr: addr,
 		channels:   make(map[string]io.Closer),
+		stopCh:     make(chan struct{}),
 	}
 	c.pool = proxy.NewPool(func() (*protocol.Conn, error) {
 		return protocol.DialTLS(addr, tlsConfig)
@@ -50,7 +52,14 @@ func (c *Client) Run() {
 		}
 		if delay > 0 {
 			log.Printf("[client] reconnecting in %d seconds...", delay)
-			time.Sleep(time.Duration(delay) * time.Second)
+			// 用 timer + select 替代 time.Sleep：Stop() 关闭 stopCh 可立即打断退避，否则停止一个客户端可能要等满整个退避（最长 300s）才退出 Run。
+			timer := time.NewTimer(time.Duration(delay) * time.Second)
+			select {
+			case <-timer.C:
+			case <-c.stopCh:
+				timer.Stop()
+				return
+			}
 		}
 		err := c.connect()
 		if err != nil {
@@ -72,9 +81,14 @@ func (c *Client) Run() {
 
 func (c *Client) Stop() {
 	c.mu.Lock()
+	if c.stopped {
+		c.mu.Unlock()
+		return
+	}
 	c.stopped = true
 	sc := c.serverConn
 	c.mu.Unlock()
+	close(c.stopCh) // 打断 Run 里可能进行中的退避 sleep
 	if sc != nil {
 		sc.Close()
 	}

@@ -18,7 +18,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 public class DashboardApplication extends Application<ServerBootstrap> {
 
@@ -43,7 +42,6 @@ public class DashboardApplication extends Application<ServerBootstrap> {
 
     @Override
     public boolean start(int seconds) throws Exception {
-        TimeUnit.SECONDS.sleep(seconds);
         ServerConfig serverConfig = Config.getServerConfig();
         int dashboardPort = serverConfig.getDashboardPort();
         if (dashboardPort == 0) {

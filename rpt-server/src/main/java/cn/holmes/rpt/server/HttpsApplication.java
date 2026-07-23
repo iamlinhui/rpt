@@ -54,7 +54,6 @@ public class HttpsApplication extends Application<ServerBootstrap> {
 
     @Override
     public boolean start(int seconds) throws Exception {
-        TimeUnit.SECONDS.sleep(seconds);
         ServerConfig serverConfig = Config.getServerConfig();
         int httpsPort = serverConfig.getHttpsPort();
         if (httpsPort == 0) {

@@ -70,9 +70,20 @@ public class ClientApplication extends Application<Bootstrap> {
 
     @Override
     public boolean start(int seconds) throws Exception {
-        TimeUnit.SECONDS.sleep(seconds);
         if (clientWorkerGroup.isShuttingDown() || clientWorkerGroup.isShutdown()) {
             return false;
+        }
+        if (seconds > 0) {
+            clientWorkerGroup.schedule(() -> doConnect(seconds), seconds, TimeUnit.SECONDS);
+            return true;
+        }
+        doConnect(0);
+        return true;
+    }
+
+    private void doConnect(int backoff) {
+        if (clientWorkerGroup.isShuttingDown() || clientWorkerGroup.isShutdown()) {
+            return;
         }
         ClientConfig clientConfig = Config.getClientConfig();
         logger.info("客户端开始连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
@@ -86,10 +97,13 @@ public class ClientApplication extends Application<Bootstrap> {
                 future.channel().writeAndFlush(message);
             } else {
                 logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), future.cause().getMessage());
-                this.start(Math.min(seconds + 3, 300));
+                try {
+                    start(Math.min(backoff + 3, 300));
+                } catch (Exception e) {
+                    logger.error("调度重连失败", e);
+                }
             }
         });
-        return true;
     }
 
     @Override
