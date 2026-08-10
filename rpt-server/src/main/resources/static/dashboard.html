@@ -3,181 +3,352 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/png;base64,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">
     <title>RPT Dashboard</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; color: #333; }
-        .header { background: linear-gradient(135deg, #1a73e8, #0d47a1); color: #fff; padding: 20px 30px; display: flex; align-items: center; justify-content: space-between; }
-        .header h1 { font-size: 22px; font-weight: 600; }
-        .header .refresh { font-size: 13px; opacity: 0.8; }
-        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
-        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; padding: 16px 20px; }
-        .card { background: #f8f9fa; border-radius: 8px; padding: 16px; }
-        .card .label { font-size: 13px; color: #888; margin-bottom: 6px; }
-        .card .value { font-size: 26px; font-weight: 700; color: #1a73e8; }
-        .section { background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px; overflow-x: auto; }
-        .section-title { font-size: 16px; font-weight: 600; padding: 16px 20px; border-bottom: 1px solid #eee; }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --o5: #f5a623; --o6: #e78630; --o7: #c26a15;
+            --green: #52c41a; --red: #ff4d4f;
+            --t1: #1a1a2e; --t2: #555770; --t3: #8e90a6; --t4: #c0c1d0;
+            --surface: #ffffff; --bg: #f4f2ef;
+            --border: rgba(0,0,0,0.06); --border-h: rgba(0,0,0,0.1);
+            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --mono: 'SF Mono', 'Cascadia Code', Consolas, monospace;
+            --r: 8px; --rl: 12px;
+        }
+
+        body {
+            font-family: var(--font); color: var(--t1);
+            min-height: 100vh;
+            background: var(--bg);
+            background-image:
+                radial-gradient(ellipse 80% 60% at 20% 10%, rgba(231,134,48,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 80% 80%, rgba(245,166,35,0.05) 0%, transparent 60%);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Header ── */
+        header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0 40px; height: 54px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 50;
+            box-shadow: 0 1px 8px rgba(0,0,0,0.03);
+        }
+        .h-left { display: flex; align-items: center; gap: 12px; }
+        .h-logo {
+            width: 32px; height: 32px; border-radius: 9px;
+            background: linear-gradient(135deg, var(--o6), var(--o5));
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 8px rgba(231,134,48,0.3);
+        }
+        .h-logo svg { width: 16px; height: 16px; }
+        .h-title { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+        .h-right {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 12px; color: var(--t3); font-weight: 500;
+        }
+        .h-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 6px rgba(82,196,26,0.4);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+        .h-cd { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--t2); min-width: 10px; text-align: center; }
+
+        /* ── Layout: full-width ── */
+        main { padding: 28px 40px 60px; }
+
+        /* ── Stats ── */
+        .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 16px; }
+        .stat {
+            position: relative;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--rl);
+            padding: 22px 24px;
+            transition: all 0.25s cubic-bezier(.22,1,.36,1);
+            overflow: hidden;
+        }
+        .stat::before {
+            content: ""; position: absolute; top: 0; left: 0;
+            width: 4px; height: 100%; border-radius: 4px 0 0 4px;
+            background: linear-gradient(180deg, var(--o6), var(--o5));
+        }
+        .stat:hover {
+            border-color: var(--border-h);
+            box-shadow: 0 8px 24px -8px rgba(231,134,48,0.1), 0 2px 8px -2px rgba(0,0,0,0.04);
+            transform: translateY(-2px);
+        }
+        .stat-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+        .stat-icon {
+            width: 34px; height: 34px; border-radius: 9px;
+            background: linear-gradient(135deg, rgba(231,134,48,0.1), rgba(245,166,35,0.06));
+            display: flex; align-items: center; justify-content: center;
+            color: var(--o6); flex-shrink: 0;
+        }
+        .stat-icon svg { display: block; }
+        .stat-label { font-size: 13px; color: var(--t3); font-weight: 500; }
+        .stat-val { font-size: 32px; font-weight: 800; letter-spacing: -1px; line-height: 1; color: var(--t1); }
+
+        /* ── Section Panel ── */
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--rl);
+            margin-bottom: 20px;
+            overflow: hidden;
+            transition: box-shadow 0.25s;
+        }
+        .panel:hover { box-shadow: 0 4px 16px -4px rgba(0,0,0,0.05); }
+        .panel-head {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 10px;
+        }
+        .panel-bar { width: 4px; height: 18px; border-radius: 4px; background: linear-gradient(180deg, var(--o6), var(--o5)); flex-shrink: 0; }
+        .panel-title { font-size: 15px; font-weight: 600; color: var(--t1); letter-spacing: -0.2px; }
+        .panel-count {
+            font-size: 11px; font-weight: 700; color: var(--o6);
+            background: rgba(231,134,48,0.08); border-radius: 10px;
+            padding: 2px 10px; margin-left: 4px;
+        }
+        .panel-body { overflow-x: auto; }
+
+        /* ── Table ── */
         table { width: 100%; border-collapse: collapse; }
-        th { background: #fafafa; font-weight: 600; text-align: left; padding: 10px 16px; font-size: 13px; color: #666; border-bottom: 1px solid #eee; white-space: nowrap; }
-        td { padding: 12px 16px; font-size: 14px; border-bottom: 1px solid #f5f5f5; word-break: break-all; }
-        tr:hover td { background: #f8f9fa; }
-        .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin: 1px 2px; }
-        .tag-tcp { background: #e3f2fd; color: #1565c0; }
-        .tag-udp { background: #fff3e0; color: #e65100; }
-        .tag-http { background: #e8f5e9; color: #2e7d32; }
-        .tag-online { background: #e8f5e9; color: #2e7d32; }
-        .tag-offline { background: #ffebee; color: #c62828; }
-        .btn-kick { background: #ef5350; color: #fff; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
-        .btn-kick:hover { background: #d32f2f; }
-        .traffic { font-family: monospace; font-size: 13px; white-space: nowrap; }
-        .traffic .in { color: #2e7d32; }
-        .traffic .out { color: #1565c0; }
-        .empty { text-align: center; padding: 40px; color: #999; }
-        @media (max-width: 768px) {
-            .cards { grid-template-columns: repeat(2, 1fr); }
-            .header { padding: 14px 16px; }
-            .header h1 { font-size: 18px; }
-            .container { padding: 0 10px; }
-            /* 客户端表格在移动端改为卡片布局 */
-            #clientsTable table { display: block; width: 100%; }
-            #clientsTable thead { display: none; }
-            #clientsTable tbody { display: block; }
-            #clientsTable tr {
-                display: block; padding: 14px 16px; border-bottom: 1px solid #eee; position: relative;
-            }
-            #clientsTable td {
-                display: block; padding: 3px 0; border: none; font-size: 13px;
-            }
-            #clientsTable td::before {
-                content: attr(data-label);
-                font-weight: 600; color: #888; font-size: 12px; display: inline-block; min-width: 70px;
-            }
+        th {
+            text-align: left; padding: 11px 24px;
+            font-size: 11px; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.5px; color: var(--t3);
+            background: rgba(0,0,0,0.015); border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        td {
+            padding: 14px 24px; font-size: 13px; color: var(--t2);
+            border-bottom: 1px solid rgba(0,0,0,0.03);
+            transition: background 0.1s;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(231,134,48,0.02); }
+        td.mono { font-family: var(--mono); font-size: 12px; letter-spacing: -0.3px; }
+        td.bold { font-weight: 600; color: var(--t1); }
+
+        /* ── Tags ── */
+        .tag {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 3px 10px; border-radius: 6px;
+            font-size: 11px; font-weight: 600;
+            margin: 1px 2px; white-space: nowrap;
+        }
+        .tag::before { content:""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+        .tag-tcp { background: rgba(231,134,48,0.08); color: var(--o7); }
+        .tag-udp { background: rgba(212,56,13,0.06); color: #c43a0e; }
+        .tag-http { background: rgba(82,196,26,0.08); color: #3b8c13; }
+        .tag-online { background: rgba(82,196,26,0.08); color: #3b8c13; }
+        .tag-offline { background: rgba(255,77,79,0.07); color: #cf1322; }
+
+        /* ── Traffic ── */
+        .traffic { font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+        .t-up { color: #3b8c13; }
+        .t-dn { color: var(--o6); }
+
+        /* ── Kick ── */
+        .btn-kick {
+            font-family: var(--font); font-size: 12px; font-weight: 500;
+            color: var(--red); background: transparent;
+            border: 1px solid rgba(255,77,79,0.2); border-radius: 6px;
+            padding: 5px 14px; cursor: pointer; transition: all 0.15s;
+        }
+        .btn-kick:hover {
+            background: var(--red); color: #fff; border-color: var(--red);
+            box-shadow: 0 3px 10px rgba(255,77,79,0.25);
+        }
+
+        .empty { text-align: center; padding: 56px 20px; color: var(--t4); font-size: 14px; }
+
+        /* ── Responsive ── */
+        @media (max-width: 1024px) {
+            .stats { grid-template-columns: repeat(2, 1fr); }
+            main, header { padding-left: 20px; padding-right: 20px; }
+            .stat { padding: 18px 20px; }
+            .stat-val { font-size: 28px; }
+            th, td { padding-left: 18px; padding-right: 18px; }
+            .panel-head { padding: 14px 18px; }
+        }
+
+        @media (max-width: 640px) {
+            .stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .stat { padding: 14px 16px; }
+            .stat::before { width: 100%; height: 3px; top: 0; left: 0; border-radius: 12px 12px 0 0; }
+            .stat-head { margin-bottom: 8px; }
+            .stat-icon { width: 28px; height: 28px; border-radius: 7px; }
+            .stat-icon svg { width: 14px; height: 14px; }
+            .stat-label { font-size: 12px; }
+            .stat-val { font-size: 22px; letter-spacing: -0.5px; }
+            main { padding: 16px 12px 48px; }
+            header { padding: 0 16px; height: 48px; }
+            .h-title { font-size: 14px; }
+            .h-logo { width: 28px; height: 28px; border-radius: 7px; }
+            .h-logo svg { width: 14px; height: 14px; }
+            .panel { margin-bottom: 14px; }
+            .panel-head { padding: 12px 16px; }
+            .panel-title { font-size: 14px; }
+            th, td { padding: 10px 14px; }
+            th { font-size: 10px; padding: 9px 14px; }
+            td { font-size: 12px; }
+            .tag { font-size: 10px; padding: 2px 7px; }
+        }
+
+        @media (max-width: 380px) {
+            .stats { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-<div class="header">
-    <h1>⚡ RPT Dashboard</h1>
-    <div class="refresh">自动刷新: <span id="countdown">5</span>s</div>
-</div>
-<div class="container">
-    <div class="section">
-        <div class="section-title">服务状态</div>
-        <div class="cards" id="statusCards"></div>
+
+<header>
+    <div class="h-left">
+        <div class="h-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+        </div>
+        <span class="h-title">RPT Dashboard</span>
     </div>
-    <div class="section">
-        <div class="section-title">端口信息</div>
-        <div class="cards" id="portCards"></div>
+    <div class="h-right">
+        <span class="h-dot"></span>
+        <span>自动刷新</span>
+        <span class="h-cd" id="countdown">5</span><span>s</span>
     </div>
-    <div class="section">
-        <div class="section-title">在线客户端</div>
-        <div id="clientsTable"></div>
+</header>
+
+<main>
+    <div class="stats" id="statusCards"></div>
+    <div class="stats" id="portCards" style="margin-bottom: 28px"></div>
+    <div class="panel">
+        <div class="panel-head">
+            <div class="panel-bar"></div>
+            <span class="panel-title">在线客户端</span>
+            <span class="panel-count" id="clientCount">0</span>
+        </div>
+        <div class="panel-body" id="clientsTable"></div>
     </div>
-    <div class="section">
-        <div class="section-title">HTTP 域名绑定</div>
-        <div id="domainsTable"></div>
+    <div class="panel">
+        <div class="panel-head">
+            <div class="panel-bar"></div>
+            <span class="panel-title">HTTP 域名绑定</span>
+            <span class="panel-count" id="domainCount">0</span>
+        </div>
+        <div class="panel-body" id="domainsTable"></div>
     </div>
-</div>
+</main>
 
 <script>
-    let countdown = 5;
+    const I = {
+        clock:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+        users:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
+        link:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>',
+        bars:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+        server:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1"/><circle cx="6" cy="18" r="1"/></svg>',
+        globe:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>',
+        lock:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>',
+        monitor:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>'
+    };
 
-    async function fetchApi(path) {
-        const resp = await fetch(path);
-        return resp.json();
+    let countdown = 5;
+    const $ = id => document.getElementById(id);
+
+    function card(label, value, icon) {
+        return `<div class="stat"><div class="stat-head"><div class="stat-icon">${icon}</div><span class="stat-label">${label}</span></div><div class="stat-val">${value}</div></div>`;
     }
 
-    function renderStatus(data) {
-        const statusItems = [
-            { label: '运行时间', value: data.uptimeText },
-            { label: '在线客户端', value: data.onlineClients },
-            { label: '代理连接', value: data.proxyChannels },
-            { label: '历史连接数', value: data.totalConnections }
-        ];
-        const portItems = [
-            { label: '服务端口', value: data.serverPort },
-            { label: 'HTTP端口', value: data.httpPort || '-' },
-            { label: 'HTTPS端口', value: data.httpsPort || '-' },
-            { label: 'Dashboard端口', value: data.dashboardPort || '-' }
-        ];
-        const renderCards = items => items.map(c =>
-            `<div class="card"><div class="label">${c.label}</div><div class="value">${c.value}</div></div>`
-        ).join('');
-        document.getElementById('statusCards').innerHTML = renderCards(statusItems);
-        document.getElementById('portCards').innerHTML = renderCards(portItems);
+    function tag(cls, text) {
+        return `<span class="tag ${cls}">${text}</span>`;
+    }
+
+    function renderStatus(d) {
+        $('statusCards').innerHTML = [
+            card('运行时间', d.uptimeText, I.clock),
+            card('在线客户端', d.onlineClients, I.users),
+            card('代理连接', d.proxyChannels, I.link),
+            card('历史连接', d.totalConnections, I.bars)
+        ].join('');
+        $('portCards').innerHTML = [
+            card('服务端口', d.serverPort, I.server),
+            card('HTTP 端口', d.httpPort || '—', I.globe),
+            card('HTTPS 端口', d.httpsPort || '—', I.lock),
+            card('Dashboard', d.dashboardPort || '—', I.monitor)
+        ].join('');
     }
 
     function renderClients(data) {
-        if (!data.length) {
-            document.getElementById('clientsTable').innerHTML = '<div class="empty">暂无在线客户端</div>';
-            return;
-        }
-        let html = '<table><thead><tr><th>ClientKey</th><th>远程地址</th><th>连接时间</th><th>代理端口</th><th>代理连接</th><th>活跃会话</th><th>流量</th><th>流速</th><th>操作</th></tr></thead><tbody>';
+        $('clientCount').textContent = data.length;
+        const el = $('clientsTable');
+        if (!data.length) { el.innerHTML = '<div class="empty">暂无在线客户端</div>'; return; }
+        let h = '<table><thead><tr><th>ClientKey</th><th>远程地址</th><th>连接时间</th><th>代理端口</th><th>连接</th><th>会话</th><th>流量</th><th>流速</th><th></th></tr></thead><tbody>';
         data.forEach(c => {
-            const key = c.clientKey.length > 12 ? c.clientKey.substring(0, 12) + '...' : c.clientKey;
+            const key = c.clientKey.length > 14 ? c.clientKey.substring(0,14)+'…' : c.clientKey;
             let ports = '';
-            (c.tcpPorts || []).forEach(p => ports += `<span class="tag tag-tcp">TCP:${p}</span>`);
-            (c.udpPorts || []).forEach(p => ports += `<span class="tag tag-udp">UDP:${p}</span>`);
-            (c.domains || []).forEach(d => ports += `<span class="tag tag-http">${d}</span>`);
-            html += `<tr>
-                <td data-label="Key" title="${c.clientKey}">${key}</td>
+            (c.tcpPorts||[]).forEach(p => ports += tag('tag-tcp','TCP:'+p));
+            (c.udpPorts||[]).forEach(p => ports += tag('tag-udp','UDP:'+p));
+            (c.domains||[]).forEach(d => ports += tag('tag-http',d));
+            h += `<tr>
+                <td data-label="Key" class="mono" title="${c.clientKey}">${key}</td>
                 <td data-label="地址">${c.remoteAddress}</td>
-                <td data-label="时间">${c.connectTime}</td>
-                <td data-label="代理">${ports || '-'}</td>
-                <td data-label="代理连接">${c.proxyChannels}</td>
+                <td data-label="时间" style="white-space:nowrap">${c.connectTime}</td>
+                <td data-label="端口">${ports||'—'}</td>
+                <td data-label="连接" class="bold">${c.proxyChannels}</td>
                 <td data-label="会话">${c.activeSessions}</td>
-                <td data-label="流量" class="traffic">↑${c.bytesInText} ↓${c.bytesOutText}</td>
-                <td data-label="流速" class="traffic">↑${c.speedInText} ↓${c.speedOutText}</td>
-                <td data-label=""><button class="btn-kick" onclick="kickClient('${c.channelId}')">踢出</button></td>
+                <td data-label="流量"><span class="traffic"><span class="t-up">↑${c.bytesInText}</span> <span class="t-dn">↓${c.bytesOutText}</span></span></td>
+                <td data-label="流速"><span class="traffic"><span class="t-up">↑${c.speedInText}</span> <span class="t-dn">↓${c.speedOutText}</span></span></td>
+                <td><button class="btn-kick" onclick="kick('${c.channelId}')">断开</button></td>
             </tr>`;
         });
-        html += '</tbody></table>';
-        document.getElementById('clientsTable').innerHTML = html;
+        el.innerHTML = h + '</tbody></table>';
     }
 
     function renderDomains(data) {
-        if (!data.length) {
-            document.getElementById('domainsTable').innerHTML = '<div class="empty">暂无域名绑定</div>';
-            return;
-        }
-        let html = '<table><thead><tr><th>域名</th><th>ClientKey</th><th>状态</th><th>Token</th></tr></thead><tbody>';
+        $('domainCount').textContent = data.length;
+        const el = $('domainsTable');
+        if (!data.length) { el.innerHTML = '<div class="empty">暂无域名绑定</div>'; return; }
+        let h = '<table><thead><tr><th>域名</th><th>ClientKey</th><th>状态</th><th>Token</th></tr></thead><tbody>';
         data.forEach(d => {
-            const status = d.online ? '<span class="tag tag-online">在线</span>' : '<span class="tag tag-offline">离线</span>';
-            html += `<tr><td>${d.domain}</td><td>${d.clientKey || '-'}</td><td>${status}</td><td>${d.token ? '已设置' : '-'}</td></tr>`;
+            const st = d.online ? tag('tag-online','在线') : tag('tag-offline','离线');
+            const k = d.clientKey && d.clientKey.length > 14 ? d.clientKey.substring(0,14)+'…' : (d.clientKey||'—');
+            h += `<tr><td class="bold">${d.domain}</td><td class="mono">${k}</td><td>${st}</td><td>${d.token?'已配置':'—'}</td></tr>`;
         });
-        html += '</tbody></table>';
-        document.getElementById('domainsTable').innerHTML = html;
+        el.innerHTML = h + '</tbody></table>';
     }
 
-    async function kickClient(channelId) {
-        if (!confirm('确定要断开此客户端？')) return;
-        await fetch('/api/clients/' + channelId, { method: 'DELETE' });
+    async function kick(id) {
+        if (!confirm('确定断开此客户端？')) return;
+        await fetch('/api/clients/'+id,{method:'DELETE'});
         refresh();
     }
 
     async function refresh() {
         try {
-            const [status, clients, domains] = await Promise.all([
-                fetchApi('/api/status'),
-                fetchApi('/api/clients'),
-                fetchApi('/api/domains')
+            const [s,c,d] = await Promise.all([
+                fetch('/api/status').then(r=>r.json()),
+                fetch('/api/clients').then(r=>r.json()),
+                fetch('/api/domains').then(r=>r.json())
             ]);
-            renderStatus(status);
-            renderClients(clients);
-            renderDomains(domains);
-        } catch (e) {
-            console.error('Refresh failed:', e);
-        }
+            renderStatus(s); renderClients(c); renderDomains(d);
+        } catch(e) { console.error(e); }
         countdown = 5;
     }
 
     refresh();
-    setInterval(() => {
+    setInterval(()=>{
         countdown--;
-        document.getElementById('countdown').textContent = countdown;
-        if (countdown <= 0) refresh();
-    }, 1000);
+        $('countdown').textContent = countdown;
+        if(countdown<=0) refresh();
+    },1000);
 </script>
 </body>
 </html>
-

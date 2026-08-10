@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>登录 | RPT</title>
+    <link rel="icon" href="data:image/png;base64,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">
+    <style>
+        :root {
+            --primary-5: #f5a623;
+            --primary-6: #e78630;
+            --primary-7: #c26a15;
+            --error: #ff4d4f;
+            --text-1: rgba(0, 0, 0, 0.88);
+            --text-2: rgba(0, 0, 0, 0.65);
+            --text-3: rgba(0, 0, 0, 0.45);
+            --text-4: rgba(0, 0, 0, 0.25);
+            --glass-bg: rgba(255, 255, 255, 0.72);
+            --glass-border: rgba(255, 255, 255, 0.45);
+            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { background: #f8f6f3; }
+
+        body {
+            font-family: var(--font);
+            color: var(--text-1);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            overflow: hidden;
+            position: relative;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Animated mesh background ── */
+        .bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; background: #faf8f5; }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.6;
+            will-change: transform;
+        }
+
+        .blob-1 {
+            width: 600px; height: 600px;
+            top: -15%; right: -10%;
+            background: radial-gradient(circle, #e78630 0%, #ffc069 60%, transparent 70%);
+            animation: drift-1 22s ease-in-out infinite alternate;
+        }
+        .blob-2 {
+            width: 500px; height: 500px;
+            bottom: -10%; left: -8%;
+            background: radial-gradient(circle, #f5a623 0%, #ffe7ba 55%, transparent 70%);
+            animation: drift-2 26s ease-in-out infinite alternate;
+        }
+        .blob-3 {
+            width: 400px; height: 400px;
+            top: 40%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle, #ffd591 0%, #fff7e6 50%, transparent 70%);
+            animation: drift-3 20s ease-in-out infinite alternate;
+        }
+
+        @keyframes drift-1 {
+            0%   { transform: translate(0, 0) scale(1); }
+            50%  { transform: translate(-60px, 40px) scale(1.08); }
+            100% { transform: translate(-30px, 80px) scale(0.95); }
+        }
+        @keyframes drift-2 {
+            0%   { transform: translate(0, 0) scale(1); }
+            50%  { transform: translate(50px, -30px) scale(1.05); }
+            100% { transform: translate(80px, -60px) scale(0.97); }
+        }
+        @keyframes drift-3 {
+            0%   { transform: translate(-50%, -50%) scale(1); }
+            50%  { transform: translate(-45%, -55%) scale(1.12); }
+            100% { transform: translate(-55%, -45%) scale(0.9); }
+        }
+
+        /* ── Glass card ── */
+        .card {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 400px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 40px 36px 32px;
+            box-shadow:
+                0 4px 24px -4px rgba(0, 0, 0, 0.06),
+                0 1px 2px rgba(0, 0, 0, 0.04),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            animation: cardIn 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* ── Lock icon ── */
+        .lock-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 52px;
+            height: 52px;
+            margin: 0 auto 20px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--primary-6), var(--primary-5));
+            box-shadow: 0 4px 14px -3px rgba(231, 134, 48, 0.45);
+        }
+        .lock-icon svg { display: block; }
+
+        /* ── Title ── */
+        .title {
+            text-align: center;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: var(--text-1);
+            line-height: 1.3;
+            margin-bottom: 28px;
+        }
+
+        /* ── Form fields ── */
+        .field { margin-bottom: 18px; }
+        .field:last-of-type { margin-bottom: 0; }
+
+        .field-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-2);
+            margin-bottom: 6px;
+            letter-spacing: 0.1px;
+        }
+
+        .input-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 12px;
+            color: var(--text-4);
+            pointer-events: none;
+            display: flex;
+            transition: color 0.2s;
+        }
+
+        .input-wrap input {
+            width: 100%;
+            height: 44px;
+            padding: 0 12px 0 40px;
+            border: 1.5px solid rgba(0, 0, 0, 0.08);
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: var(--font);
+            color: var(--text-1);
+            background: rgba(255, 255, 255, 0.6);
+            outline: none;
+            transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .input-wrap input::placeholder { color: var(--text-4); }
+
+        .input-wrap input:hover {
+            border-color: rgba(231, 134, 48, 0.3);
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .input-wrap input:focus {
+            border-color: var(--primary-6);
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(231, 134, 48, 0.1);
+        }
+
+        .input-wrap input:focus ~ .input-icon {
+            color: var(--primary-6);
+        }
+
+        .input-wrap.has-toggle input { padding-right: 44px; }
+
+        /* ── Eye toggle ── */
+        .eye {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: transparent;
+            color: var(--text-4);
+            cursor: pointer;
+            border-radius: 8px;
+            padding: 0;
+            transition: all 0.15s;
+        }
+        .eye:hover { color: var(--text-2); background: rgba(0, 0, 0, 0.04); }
+        .eye svg { display: block; }
+
+        /* ── Checkbox ── */
+        .opt-row {
+            display: flex;
+            align-items: center;
+            margin-top: 12px;
+        }
+
+        .opt {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-2);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .opt input[type="checkbox"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 1.5px solid var(--text-4);
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+
+        .opt input[type="checkbox"]:checked {
+            background: var(--primary-6);
+            border-color: var(--primary-6);
+        }
+
+        .opt input[type="checkbox"]:checked::after {
+            content: "";
+            position: absolute;
+            left: 4.5px;
+            top: 1.5px;
+            width: 5px;
+            height: 9px;
+            border: solid #fff;
+            border-width: 0 1.5px 1.5px 0;
+            transform: rotate(45deg);
+        }
+
+        /* ── Error ── */
+        .err {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--error);
+            background: rgba(255, 77, 79, 0.06);
+            border: 1px solid rgba(255, 77, 79, 0.15);
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        /* ── Button ── */
+        .btn {
+            width: 100%;
+            height: 44px;
+            margin-top: 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: var(--font);
+            color: #fff;
+            cursor: pointer;
+            background: linear-gradient(135deg, var(--primary-6) 0%, var(--primary-5) 100%);
+            box-shadow: 0 4px 14px -3px rgba(231, 134, 48, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+            letter-spacing: 0.2px;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px -3px rgba(231, 134, 48, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px -2px rgba(231, 134, 48, 0.4);
+        }
+
+        /* ── Footer ── */
+        .footer {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            margin-top: 24px;
+            font-size: 12px;
+            color: var(--text-3);
+            line-height: 1.8;
+        }
+        .footer a {
+            color: var(--text-3);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .footer a:hover { color: var(--primary-6); }
+
+        /* ── Responsive ── */
+        @media (max-width: 480px) {
+            .card { padding: 32px 24px 28px; border-radius: 16px; }
+            .title { font-size: 20px; }
+        }
+
+        @media (max-height: 640px) {
+            body { align-items: flex-start; padding-top: 32px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+</div>
+
+<div class="card">
+    <div class="lock-icon">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+    </div>
+
+    <div class="title">访问需登录</div>
+
+    <form method="post" autocomplete="on">
+        <input type="hidden" name="RPT_LOGIN" value="1"/>
+        <div class="field">
+            <label class="field-label" for="user">账号</label>
+            <div class="input-wrap">
+                <span class="input-icon">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </span>
+                <input id="user" name="user" type="text" autocomplete="username" placeholder="请输入账号" autofocus/>
+            </div>
+        </div>
+        <div class="field">
+            <label class="field-label" for="pass">密码</label>
+            <div class="input-wrap has-toggle">
+                <span class="input-icon">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </span>
+                <input id="pass" name="pass" type="password" autocomplete="current-password" placeholder="请输入密码"/>
+                <button type="button" class="eye" id="togglePass" aria-label="显示/隐藏密码" tabindex="-1">
+                    <svg id="eyeIcon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+            </div>
+            <div class="opt-row">
+                <label class="opt"><input type="checkbox" name="remember" value="1"/> 记住我（7天免登录）</label>
+            </div>
+        </div>
+        {{ERROR}}
+        <button class="btn" type="submit">登录</button>
+    </form>
+</div>
+
+<footer class="footer">
+    <a href="https://github.com/iamlinhui/rpt" target="_blank">GitHub</a>
+    &nbsp;&middot;&nbsp;
+    Copyright &copy; 2026 by Lynn
+</footer>
+
+<script>
+    (function () {
+        var b = document.getElementById('togglePass'), p = document.getElementById('pass'), icon = document.getElementById('eyeIcon');
+        if (!b || !p || !icon) return;
+        var eye = '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/>';
+        var off = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 19c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12A3 3 0 1 1 9.88 9.88"/><line x1="1" y1="1" x2="23" y2="23"/>';
+        b.addEventListener('click', function () {
+            if (p.type === 'password') { p.type = 'text'; icon.innerHTML = off; }
+            else { p.type = 'password'; icon.innerHTML = eye; }
+        });
+    })();
+</script>
+</body>
+</html>

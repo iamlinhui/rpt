@@ -44,8 +44,6 @@ public class IpCountryFilter implements IpFilterRule {
 
     private IpCountryFilter() {
         Reader r = null;
-        // 用本类的 classloader 读取 jar 内资源；ClassLoader.getSystemResourceAsStream 用 system classloader，
-        // 在 Spring Boot / fat jar 下读不到 jar 内的 Country.mmdb，会导致 reader==null。
         try (InputStream in = IpCountryFilter.class.getResourceAsStream("/Country.mmdb")) {
             if (in != null) {
                 r = new Reader(in);

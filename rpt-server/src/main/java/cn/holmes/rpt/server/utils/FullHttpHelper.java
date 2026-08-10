@@ -1,6 +1,5 @@
 package cn.holmes.rpt.server.utils;
 
-import cn.holmes.rpt.base.utils.StringUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -11,29 +10,21 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 静态资源加载 & HTTP 响应构建 工具类
- * <p>供 {@link StaticDispatcher} 和 DashboardHandler 共用</p>
  */
 public final class FullHttpHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(FullHttpHelper.class);
 
-    /** 资源缓存，启动后只读 */
     private static final Map<String, byte[]> RESOURCE_CACHE = new ConcurrentHashMap<>();
 
     private FullHttpHelper() {
     }
 
-    /**
-     * 从 classpath 加载资源（带缓存）
-     */
     public static byte[] loadResource(String path) {
         return RESOURCE_CACHE.computeIfAbsent(path, FullHttpHelper::doLoad);
     }
@@ -55,18 +46,6 @@ public final class FullHttpHelper {
         return EmptyArrays.EMPTY_BYTES;
     }
 
-    public static boolean verifyToken(FullHttpRequest request, String token) {
-        String authorization = request.headers().get(HttpHeaderNames.AUTHORIZATION);
-        if (!StringUtils.hasText(authorization) || !authorization.startsWith("Basic ")) {
-            return false;
-        }
-        String decoded = new String(Base64.getDecoder().decode(authorization.substring(6)), StandardCharsets.UTF_8);
-        return Objects.equals(token, decoded);
-    }
-
-    /**
-     * 构建 HTTP 响应
-     */
     public static FullHttpResponse buildResponse(ChannelHandlerContext ctx, HttpResponseStatus status, byte[] body) {
         ByteBuf buffer = ctx.channel().alloc().buffer(body.length);
         buffer.writeBytes(body);
@@ -75,15 +54,29 @@ public final class FullHttpHelper {
         return response;
     }
 
-    /**
-     * 写出响应，根据 keep-alive 决定是否关闭（HTTP 代理场景）
-     */
     public static void writeKeepAlive(ChannelHandlerContext ctx, FullHttpRequest request, FullHttpResponse response) {
-        if (!io.netty.handler.codec.http.HttpUtil.isKeepAlive(request)) {
+        if (!HttpUtil.isKeepAlive(request)) {
             ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
         } else {
             ctx.writeAndFlush(response);
         }
     }
-}
 
+    /**
+     * 渲染静态页面(index / favicon)
+     */
+    public static void serveIndex(ChannelHandlerContext ctx, FullHttpRequest req) {
+        if ("/favicon.ico".equals(req.uri())) {
+            byte[] body = loadResource("static/favicon.ico");
+            FullHttpResponse resp = buildResponse(ctx, HttpResponseStatus.OK, body);
+            resp.headers().set(HttpHeaderNames.CONTENT_TYPE, "image/x-icon");
+            resp.headers().set(HttpHeaderNames.CACHE_CONTROL, "max-age=86400");
+            writeKeepAlive(ctx, req, resp);
+            return;
+        }
+        byte[] body = loadResource("static/index.html");
+        FullHttpResponse resp = buildResponse(ctx, HttpResponseStatus.OK, body);
+        resp.headers().set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_HTML);
+        writeKeepAlive(ctx, req, resp);
+    }
+}

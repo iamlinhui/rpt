@@ -6,6 +6,7 @@ import cn.holmes.rpt.base.utils.Config;
 import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
+import cn.holmes.rpt.server.utils.AuthGuard;
 import cn.holmes.rpt.server.utils.FullHttpHelper;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -14,7 +15,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
 
-import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -25,13 +25,13 @@ public class DashboardHandler extends SimpleChannelInboundHandler<FullHttpReques
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest req) throws Exception {
-        if (!checkAuth(req)) {
-            FullHttpResponse resp = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.UNAUTHORIZED, Unpooled.copiedBuffer("Unauthorized", StandardCharsets.UTF_8));
-            resp.headers().set(HttpHeaderNames.WWW_AUTHENTICATE, "Basic realm=\"RPT Dashboard\"");
-            resp.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=UTF-8");
-            resp.headers().set(HttpHeaderNames.CONTENT_LENGTH, resp.content().readableBytes());
-            FullHttpHelper.writeKeepAlive(ctx, req, resp);
-            return;
+        ServerConfig config = Config.getServerConfig();
+        String user = config.getDashboardUser();
+        String pass = config.getDashboardPassword();
+        if (user != null && !user.isEmpty()) {
+            if (!AuthGuard.authenticate(ctx, req, user + ":" + pass)) {
+                return;
+            }
         }
 
         String uri = req.uri();
@@ -52,16 +52,6 @@ public class DashboardHandler extends SimpleChannelInboundHandler<FullHttpReques
         } else {
             sendJson(ctx, req, HttpResponseStatus.NOT_FOUND, Collections.singletonMap("error", "Not Found"));
         }
-    }
-
-    private boolean checkAuth(FullHttpRequest req) {
-        ServerConfig config = Config.getServerConfig();
-        String user = config.getDashboardUser();
-        String pass = config.getDashboardPassword();
-        if (user == null || user.isEmpty()) {
-            return true;
-        }
-        return FullHttpHelper.verifyToken(req, user + ":" + pass);
     }
 
     private void handleStatus(ChannelHandlerContext ctx, FullHttpRequest req) throws Exception {

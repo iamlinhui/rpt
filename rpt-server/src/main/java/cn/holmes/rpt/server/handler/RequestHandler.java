@@ -10,7 +10,8 @@ import cn.holmes.rpt.base.utils.StringUtils;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
 import cn.holmes.rpt.server.coder.HttpEncoder;
-import cn.holmes.rpt.server.utils.StaticDispatcher;
+import cn.holmes.rpt.server.utils.AuthGuard;
+import cn.holmes.rpt.server.utils.FullHttpHelper;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -135,17 +136,17 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         String host = fullHttpRequest.headers().get(HttpHeaderNames.HOST);
         domain = Optional.ofNullable(domain).orElse(host != null ? COLON.split(host)[0] : null);
         if (!StringUtils.hasText(domain)) {
-            StaticDispatcher.dispatch(fullHttpRequest, ctx);
+            FullHttpHelper.serveIndex(ctx, fullHttpRequest);
             return;
         }
         Channel serverChannel = ServerChannelCache.getServerDomainChannelMap().get(domain);
         if (serverChannel == null || !serverChannel.isOpen()) {
-            StaticDispatcher.dispatch(fullHttpRequest, ctx);
+            FullHttpHelper.serveIndex(ctx, fullHttpRequest);
             return;
         }
 
         String token = ServerChannelCache.getServerDomainToken().get(domain);
-        if (token != null && !StaticDispatcher.authorize(ctx, fullHttpRequest, token)) {
+        if (token != null && !AuthGuard.authenticate(ctx, fullHttpRequest, token)) {
             return;
         }
 
