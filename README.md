@@ -42,8 +42,6 @@
 
 ### 工作原理
 
-#### 流程图
-
 ```mermaid
 sequenceDiagram
     participant U as 🌐 外部用户
@@ -80,27 +78,6 @@ sequenceDiagram
     loop 心跳检测
         C->>S: 心跳包
         S-->>C: 心跳响应
-    end
-```
-
-#### 架构图
-
-```mermaid
-graph TB
-    subgraph Server["公网 rpt-server"]
-        S["rpt-server (Netty)"]
-        S --> BIND["端口监听<br/>TCP / UDP / HTTP"]
-        S --> CTRL["安全管控<br/>Token授权 + GeoIP过滤 + SSL双向认证"]
-        S --> DASH["Dashboard<br/>流量统计 / 流速监控"]
-    end
-
-    BIND --> TUNNEL["SSL 加密隧道 (Protostuff)"]
-    CTRL --> TUNNEL
-    TUNNEL --> C
-
-    subgraph Client["内网 rpt-client"]
-        C["rpt-client (Java/Go)"]
-        C --> SVC["本地服务<br/>RDP / SSH / Web / DB / 其他"]
     end
 ```
 
