@@ -42,6 +42,8 @@
 
 ### 工作原理
 
+#### 流程图
+
 ```mermaid
 sequenceDiagram
     participant U as 🌐 外部用户
@@ -54,11 +56,11 @@ sequenceDiagram
     S->>S: 验证客户端证书 + Token
     S-->>C: 认证通过，隧道建立
     C->>S: 上报端口映射配置 (TCP/UDP/HTTP)
-    S->>S: 绑定公网端口 & 注册域名路由
+    S->>S: 绑定公网端口 和 注册域名路由
 
     Note over U,L: 2.TCP/UDP 代理流程
     U->>S: 连接公网 remotePort (如 4389)
-    S->>S: 匹配端口映射规则 & IP地域过滤
+    S->>S: 匹配端口映射规则 和 IP地域过滤
     S->>C: 通过 SSL 隧道转发请求
     C->>L: 连接本地服务 localIp:localPort (如 127.0.0.1:3389)
     L-->>C: 返回响应数据
@@ -67,7 +69,7 @@ sequenceDiagram
 
     Note over U,L: 3.HTTP 代理流程 (端口复用)
     U->>S: HTTP 请求 test.domain.com:6234
-    S->>S: 解析 Host 域名路由 & Basic Auth 验证
+    S->>S: 解析 Host 域名路由 和 Basic Auth 验证
     S->>C: 通过 SSL 隧道转发 HTTP 请求
     C->>L: 转发到本地 Web 服务 (如 127.0.0.1:8080)
     L-->>C: 返回 HTTP 响应
@@ -81,36 +83,25 @@ sequenceDiagram
     end
 ```
 
+#### 架构图
+
 ```mermaid
 graph TB
-    subgraph "公网服务器 rpt-server"
-        S["rpt-server<br/>Netty 服务端"]
-        S --> TCP_BIND["TCP 端口监听<br/>remotePort: 4389, 7379..."]
-        S --> UDP_BIND["UDP 端口监听<br/>remotePort: 4389..."]
-        S --> HTTP_BIND["HTTP 端口复用<br/>httpPort: 6234"]
-        HTTP_BIND --> ROUTE["域名路由<br/>Host → 客户端映射"]
-        S --> AUTH["Token 授权<br/>端口范围限制"]
-        S --> GEO["IP 地域过滤<br/>MaxMind GeoIP"]
-        S --> DASH["Dashboard 管理面板<br/>流量统计 / 流速监控"]
-        S --> SSL_S["SSL 双向认证"]
+    subgraph Server["公网 rpt-server"]
+        S["rpt-server (Netty)"]
+        S --> BIND["端口监听<br/>TCP / UDP / HTTP"]
+        S --> CTRL["安全管控<br/>Token授权 + GeoIP过滤 + SSL双向认证"]
+        S --> DASH["Dashboard<br/>流量统计 / 流速监控"]
     end
 
-    subgraph "SSL 加密隧道"
-        TUNNEL["🔒 加密数据通道<br/>Protostuff 序列化"]
-    end
+    BIND --> TUNNEL["SSL 加密隧道 (Protostuff)"]
+    CTRL --> TUNNEL
+    TUNNEL --> C
 
-    subgraph "内网环境 rpt-client"
-        C["rpt-client<br/>Netty / Go 客户端"]
-        C --> P1["代理连接池"]
-        P1 --> RDP["远程桌面<br/>127.0.0.1:3389"]
-        P1 --> SSH["SSH 服务<br/>127.0.0.1:22"]
-        P1 --> WEB["Web 应用<br/>127.0.0.1:8080"]
-        P1 --> DB["数据库<br/>127.0.0.1:3306"]
-        P1 --> OTHER["其他服务<br/>FTP/SMTP/打印机..."]
+    subgraph Client["内网 rpt-client"]
+        C["rpt-client (Java/Go)"]
+        C --> SVC["本地服务<br/>RDP / SSH / Web / DB / 其他"]
     end
-
-    SSL_S <--> TUNNEL
-    TUNNEL <--> C
 ```
 
 ---
