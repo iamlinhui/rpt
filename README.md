@@ -67,7 +67,7 @@ sequenceDiagram
 
     Note over U,L: 3.HTTP 代理流程 (端口复用)
     U->>S: HTTP 请求 test.domain.com:6234
-    S->>S: 解析 Host 域名路由 和 Basic Auth 验证
+    S->>S: 解析 Host 域名路由 和 Cookie 会话验证
     S->>C: 通过 SSL 隧道转发 HTTP 请求
     C->>L: 转发到本地 Web 服务 (如 127.0.0.1:8080)
     L-->>C: 返回 HTTP 响应
@@ -334,7 +334,7 @@ config:
     localIp: 127.0.0.1
     localPort: 8080
     domain: test.domain.com       # 访问域名
-    token: admin:admin            # Basic认证 (可选)
+    token: admin:admin            # 登录认证凭据 (可选, 格式 user:pass)
     description: tomcat
 ```
 
@@ -353,7 +353,7 @@ config:
 | `config[].localPort` | int | 内网目标服务端口 |
 | `config[].remotePort` | int | 服务端暴露端口 (TCP/UDP模式) |
 | `config[].domain` | String | 访问域名 (HTTP模式，支持 `*.domain.com` 通配符) |
-| `config[].token` | String | HTTP Basic 认证 `用户名:密码` (可选) |
+| `config[].token` | String | 登录认证凭据 `用户名:密码`，未配置则无需登录 (可选) |
 | `config[].description` | String | 映射描述信息 |
 
 ### 三种代理类型对比
