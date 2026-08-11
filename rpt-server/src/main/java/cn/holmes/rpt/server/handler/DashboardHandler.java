@@ -65,7 +65,6 @@ public class DashboardHandler extends SimpleChannelInboundHandler<FullHttpReques
         data.put("proxyChannels", TrafficStatsCache.proxyChannelsTotal());
         data.put("serverPort", config.getServerPort());
         data.put("httpPort", config.getHttpPort());
-        data.put("httpsPort", config.getHttpsPort());
         data.put("dashboardPort", config.getDashboardPort());
         sendJson(ctx, req, HttpResponseStatus.OK, data);
     }

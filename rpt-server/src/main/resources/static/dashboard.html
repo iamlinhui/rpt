@@ -7,16 +7,18 @@
     <title>RPT Dashboard</title>
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { overflow-x: hidden; }
 
         :root {
-            --o5: #f5a623; --o6: #e78630; --o7: #c26a15;
-            --green: #52c41a; --red: #ff4d4f;
+            --primary: #e78630; --primary-light: #f5a623; --primary-dark: #c26a15;
+            --accent: #faad14;
+            --success: #52c41a; --danger: #ff4d4f;
             --t1: #1a1a2e; --t2: #555770; --t3: #8e90a6; --t4: #c0c1d0;
             --surface: #ffffff; --bg: #f4f2ef;
-            --border: rgba(0,0,0,0.06); --border-h: rgba(0,0,0,0.1);
+            --border: rgba(0,0,0,0.06); --border-h: rgba(0,0,0,0.12);
             --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             --mono: 'SF Mono', 'Cascadia Code', Consolas, monospace;
-            --r: 8px; --rl: 12px;
+            --r: 16px; --rl: 20px;
         }
 
         body {
@@ -24,189 +26,250 @@
             min-height: 100vh;
             background: var(--bg);
             background-image:
-                radial-gradient(ellipse 80% 60% at 20% 10%, rgba(231,134,48,0.06) 0%, transparent 60%),
-                radial-gradient(ellipse 60% 50% at 80% 80%, rgba(245,166,35,0.05) 0%, transparent 60%);
+                radial-gradient(at 0% 0%, rgba(231,134,48,0.08) 0, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(245,166,35,0.06) 0, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(231,134,48,0.05) 0, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(82,196,26,0.04) 0, transparent 50%);
             -webkit-font-smoothing: antialiased;
         }
 
         /* ── Header ── */
         header {
-            background: var(--surface);
+            background: rgba(255,255,255,0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border);
-            padding: 0 40px; height: 54px;
+            padding: 0 40px; height: 64px;
             display: flex; align-items: center; justify-content: space-between;
             position: sticky; top: 0; z-index: 50;
-            box-shadow: 0 1px 8px rgba(0,0,0,0.03);
         }
-        .h-left { display: flex; align-items: center; gap: 12px; }
+        .h-left { display: flex; align-items: center; gap: 14px; }
         .h-logo {
-            width: 32px; height: 32px; border-radius: 9px;
-            background: linear-gradient(135deg, var(--o6), var(--o5));
+            width: 40px; height: 40px; border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
             display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 2px 8px rgba(231,134,48,0.3);
+            box-shadow: 0 4px 12px rgba(231,134,48,0.3);
+            transition: transform 0.3s cubic-bezier(.34,1.56,.64,1);
         }
-        .h-logo svg { width: 16px; height: 16px; }
-        .h-title { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+        .h-logo:hover { transform: scale(1.08) rotate(-5deg); }
+        .h-logo svg { width: 20px; height: 20px; }
+        .h-title { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; color: var(--t1); }
         .h-right {
-            display: flex; align-items: center; gap: 8px;
-            font-size: 12px; color: var(--t3); font-weight: 500;
+            display: flex; align-items: center; gap: 10px;
+            font-size: 13px; color: var(--t3); font-weight: 500;
         }
         .h-dot {
-            width: 7px; height: 7px; border-radius: 50%;
-            background: var(--green);
-            box-shadow: 0 0 6px rgba(82,196,26,0.4);
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 0 3px rgba(82,196,26,0.2);
             animation: pulse 2s ease-in-out infinite;
         }
-        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
-        .h-cd { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--t2); min-width: 10px; text-align: center; }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 3px rgba(82,196,26,0.2); }
+            50% { box-shadow: 0 0 0 6px rgba(82,196,26,0.05); }
+        }
+        .h-cd {
+            font-variant-numeric: tabular-nums; font-weight: 700; color: var(--primary);
+            min-width: 12px; text-align: center;
+            font-size: 14px;
+        }
 
-        /* ── Layout: full-width ── */
-        main { padding: 28px 40px 60px; }
+        /* ── Layout ── */
+        main { padding: 32px 40px 80px; max-width: 1600px; margin: 0 auto; width: 100%; }
 
-        /* ── Stats ── */
-        .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 16px; }
+        /* ── Stats Grid ── */
+        .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 20px; margin-bottom: 20px; }
         .stat {
             position: relative;
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--rl);
-            padding: 22px 24px;
-            transition: all 0.25s cubic-bezier(.22,1,.36,1);
+            padding: 24px 28px;
+            transition: all 0.35s cubic-bezier(.22,1,.36,1);
             overflow: hidden;
+            cursor: default;
         }
         .stat::before {
-            content: ""; position: absolute; top: 0; left: 0;
-            width: 4px; height: 100%; border-radius: 4px 0 0 4px;
-            background: linear-gradient(180deg, var(--o6), var(--o5));
+            content: ""; position: absolute; top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+            opacity: 0; transition: opacity 0.3s;
         }
         .stat:hover {
             border-color: var(--border-h);
-            box-shadow: 0 8px 24px -8px rgba(231,134,48,0.1), 0 2px 8px -2px rgba(0,0,0,0.04);
-            transform: translateY(-2px);
+            box-shadow: 0 20px 40px -12px rgba(231,134,48,0.15), 0 4px 12px -4px rgba(0,0,0,0.05);
+            transform: translateY(-4px);
         }
-        .stat-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+        .stat:hover::before { opacity: 1; }
+        .stat-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
         .stat-icon {
-            width: 34px; height: 34px; border-radius: 9px;
-            background: linear-gradient(135deg, rgba(231,134,48,0.1), rgba(245,166,35,0.06));
+            width: 44px; height: 44px; border-radius: 14px;
+            background: linear-gradient(135deg, rgba(231,134,48,0.12), rgba(245,166,35,0.08));
             display: flex; align-items: center; justify-content: center;
-            color: var(--o6); flex-shrink: 0;
+            color: var(--primary); flex-shrink: 0;
+            transition: all 0.3s;
         }
-        .stat-icon svg { display: block; }
-        .stat-label { font-size: 13px; color: var(--t3); font-weight: 500; }
-        .stat-val { font-size: 32px; font-weight: 800; letter-spacing: -1px; line-height: 1; color: var(--t1); }
+        .stat:hover .stat-icon {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            box-shadow: 0 8px 20px -4px rgba(231,134,48,0.4);
+        }
+        .stat-icon svg { display: block; transition: transform 0.3s; }
+        .stat:hover .stat-icon svg { transform: scale(1.1); }
+        .stat-label { font-size: 14px; color: var(--t3); font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .stat-val {
+            font-size: 36px; font-weight: 800; letter-spacing: -1.5px; line-height: 1;
+            color: var(--t1);
+            font-variant-numeric: tabular-nums;
+        }
 
         /* ── Section Panel ── */
         .panel {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--rl);
-            margin-bottom: 20px;
+            margin-bottom: 24px;
             overflow: hidden;
-            transition: box-shadow 0.25s;
+            transition: all 0.35s;
         }
-        .panel:hover { box-shadow: 0 4px 16px -4px rgba(0,0,0,0.05); }
+        .panel:hover {
+            box-shadow: 0 12px 32px -8px rgba(0,0,0,0.08);
+            border-color: var(--border-h);
+        }
         .panel-head {
-            padding: 16px 24px;
+            padding: 20px 28px;
             border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; gap: 10px;
+            display: flex; align-items: center; gap: 12px;
         }
-        .panel-bar { width: 4px; height: 18px; border-radius: 4px; background: linear-gradient(180deg, var(--o6), var(--o5)); flex-shrink: 0; }
-        .panel-title { font-size: 15px; font-weight: 600; color: var(--t1); letter-spacing: -0.2px; }
+        .panel-bar {
+            width: 5px; height: 22px; border-radius: 6px;
+            background: linear-gradient(180deg, var(--primary), var(--primary-light));
+            flex-shrink: 0;
+        }
+        .panel-title { font-size: 16px; font-weight: 600; color: var(--t1); letter-spacing: -0.3px; }
         .panel-count {
-            font-size: 11px; font-weight: 700; color: var(--o6);
-            background: rgba(231,134,48,0.08); border-radius: 10px;
-            padding: 2px 10px; margin-left: 4px;
+            font-size: 12px; font-weight: 700; color: var(--primary);
+            background: rgba(231,134,48,0.1); border-radius: 12px;
+            padding: 4px 12px; margin-left: 8px;
         }
         .panel-body { overflow-x: auto; }
 
         /* ── Table ── */
         table { width: 100%; border-collapse: collapse; }
         th {
-            text-align: left; padding: 11px 24px;
-            font-size: 11px; font-weight: 600; text-transform: uppercase;
-            letter-spacing: 0.5px; color: var(--t3);
-            background: rgba(0,0,0,0.015); border-bottom: 1px solid var(--border);
+            text-align: left; padding: 14px 28px;
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.6px; color: var(--t3);
+            background: rgba(0,0,0,0.02); border-bottom: 1px solid var(--border);
             white-space: nowrap;
         }
         td {
-            padding: 14px 24px; font-size: 13px; color: var(--t2);
-            border-bottom: 1px solid rgba(0,0,0,0.03);
-            transition: background 0.1s;
+            padding: 16px 28px; font-size: 13px; color: var(--t2);
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+            transition: background 0.15s;
         }
         tr:last-child td { border-bottom: none; }
-        tr:hover td { background: rgba(231,134,48,0.02); }
+        tr:hover td { background: rgba(231,134,48,0.03); }
         td.mono { font-family: var(--mono); font-size: 12px; letter-spacing: -0.3px; }
         td.bold { font-weight: 600; color: var(--t1); }
 
         /* ── Tags ── */
         .tag {
-            display: inline-flex; align-items: center; gap: 5px;
-            padding: 3px 10px; border-radius: 6px;
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 12px; border-radius: 8px;
             font-size: 11px; font-weight: 600;
-            margin: 1px 2px; white-space: nowrap;
+            margin: 2px 3px; white-space: nowrap;
+            transition: transform 0.2s;
         }
-        .tag::before { content:""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
-        .tag-tcp { background: rgba(231,134,48,0.08); color: var(--o7); }
-        .tag-udp { background: rgba(212,56,13,0.06); color: #c43a0e; }
-        .tag-http { background: rgba(82,196,26,0.08); color: #3b8c13; }
-        .tag-online { background: rgba(82,196,26,0.08); color: #3b8c13; }
-        .tag-offline { background: rgba(255,77,79,0.07); color: #cf1322; }
+        .tag:hover { transform: scale(1.05); }
+        .tag::before { content:""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+        .tag-tcp { background: rgba(231,134,48,0.1); color: var(--primary-dark); }
+        .tag-udp { background: rgba(194,106,21,0.1); color: #9e5000; }
+        .tag-http { background: rgba(82,196,26,0.1); color: #389e0d; }
+        .tag-online { background: rgba(82,196,26,0.12); color: #389e0d; }
+        .tag-offline { background: rgba(255,77,79,0.1); color: #cf1322; }
 
         /* ── Traffic ── */
         .traffic { font-family: var(--mono); font-size: 12px; white-space: nowrap; }
-        .t-up { color: #3b8c13; }
-        .t-dn { color: var(--o6); }
+        .t-up { color: #389e0d; font-weight: 600; }
+        .t-dn { color: var(--primary); font-weight: 600; }
 
-        /* ── Kick ── */
+        /* ── Kick Button ── */
         .btn-kick {
-            font-family: var(--font); font-size: 12px; font-weight: 500;
-            color: var(--red); background: transparent;
-            border: 1px solid rgba(255,77,79,0.2); border-radius: 6px;
-            padding: 5px 14px; cursor: pointer; transition: all 0.15s;
+            font-family: var(--font); font-size: 12px; font-weight: 600;
+            color: var(--danger); background: transparent;
+            border: 1.5px solid rgba(255,77,79,0.25); border-radius: 8px;
+            padding: 6px 16px; cursor: pointer;
+            transition: all 0.25s cubic-bezier(.22,1,.36,1);
         }
         .btn-kick:hover {
-            background: var(--red); color: #fff; border-color: var(--red);
-            box-shadow: 0 3px 10px rgba(255,77,79,0.25);
+            background: var(--danger); color: #fff; border-color: var(--danger);
+            box-shadow: 0 8px 20px -4px rgba(255,77,79,0.4);
+            transform: translateY(-1px);
         }
+        .btn-kick:active { transform: translateY(0); }
 
-        .empty { text-align: center; padding: 56px 20px; color: var(--t4); font-size: 14px; }
+        /* ── Empty State ── */
+        .empty {
+            text-align: center; padding: 72px 20px; color: var(--t4); font-size: 14px;
+            display: flex; flex-direction: column; align-items: center; gap: 12px;
+        }
+        .empty::before {
+            content: ""; width: 64px; height: 64px; border-radius: 50%;
+            background: linear-gradient(135deg, rgba(231,134,48,0.08), rgba(245,166,35,0.04));
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 8px;
+        }
 
         /* ── Responsive ── */
         @media (max-width: 1024px) {
-            .stats { grid-template-columns: repeat(2, 1fr); }
-            main, header { padding-left: 20px; padding-right: 20px; }
-            .stat { padding: 18px 20px; }
-            .stat-val { font-size: 28px; }
-            th, td { padding-left: 18px; padding-right: 18px; }
-            .panel-head { padding: 14px 18px; }
+            .stats { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+            main, header { padding-left: 24px; padding-right: 24px; }
+            .stat { padding: 20px 22px; }
+            .stat-val { font-size: 30px; }
+            th, td { padding-left: 20px; padding-right: 20px; }
+            .panel-head { padding: 18px 22px; }
         }
 
         @media (max-width: 640px) {
-            .stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-            .stat { padding: 14px 16px; }
-            .stat::before { width: 100%; height: 3px; top: 0; left: 0; border-radius: 12px 12px 0 0; }
-            .stat-head { margin-bottom: 8px; }
-            .stat-icon { width: 28px; height: 28px; border-radius: 7px; }
-            .stat-icon svg { width: 14px; height: 14px; }
+            .stats { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+            .stat { padding: 18px 20px; }
+            .stat::before { height: 3px; }
+            .stat-head { margin-bottom: 12px; gap: 10px; }
+            .stat-icon { width: 36px; height: 36px; border-radius: 10px; }
+            .stat-icon svg { width: 16px; height: 16px; }
             .stat-label { font-size: 12px; }
-            .stat-val { font-size: 22px; letter-spacing: -0.5px; }
-            main { padding: 16px 12px 48px; }
-            header { padding: 0 16px; height: 48px; }
-            .h-title { font-size: 14px; }
-            .h-logo { width: 28px; height: 28px; border-radius: 7px; }
-            .h-logo svg { width: 14px; height: 14px; }
-            .panel { margin-bottom: 14px; }
-            .panel-head { padding: 12px 16px; }
+            .stat-val { font-size: 26px; letter-spacing: -1px; }
+            main { padding: 20px 16px 60px; }
+            header { padding: 0 16px; height: 56px; }
+            .h-title { font-size: 15px; }
+            .h-logo { width: 36px; height: 36px; border-radius: 10px; }
+            .h-logo svg { width: 18px; height: 18px; }
+            .panel { margin-bottom: 16px; }
+            .panel-head { padding: 16px 20px; }
             .panel-title { font-size: 14px; }
-            th, td { padding: 10px 14px; }
-            th { font-size: 10px; padding: 9px 14px; }
+            th, td { padding: 12px 16px; }
+            th { font-size: 10px; padding: 10px 16px; }
             td { font-size: 12px; }
-            .tag { font-size: 10px; padding: 2px 7px; }
+            .tag { font-size: 10px; padding: 3px 9px; }
         }
 
         @media (max-width: 380px) {
             .stats { grid-template-columns: 1fr; }
         }
+
+        /* ── Animations ── */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .stat, .panel { animation: fadeIn 0.5s ease-out backwards; }
+        .stat:nth-child(1) { animation-delay: 0.05s; }
+        .stat:nth-child(2) { animation-delay: 0.1s; }
+        .stat:nth-child(3) { animation-delay: 0.15s; }
+        .stat:nth-child(4) { animation-delay: 0.2s; }
+        .panel:nth-child(1) { animation-delay: 0.25s; }
+        .panel:nth-child(2) { animation-delay: 0.3s; }
     </style>
 </head>
 <body>
@@ -229,7 +292,7 @@
 
 <main>
     <div class="stats" id="statusCards"></div>
-    <div class="stats" id="portCards" style="margin-bottom: 28px"></div>
+    <div class="stats" id="portCards" style="grid-template-columns: repeat(3,1fr); margin-bottom: 28px"></div>
     <div class="panel">
         <div class="panel-head">
             <div class="panel-bar"></div>
@@ -262,6 +325,7 @@
 
     let countdown = 5;
     const $ = id => document.getElementById(id);
+    const cache = { clients: '', domains: '' };
 
     function card(label, value, icon) {
         return `<div class="stat"><div class="stat-head"><div class="stat-icon">${icon}</div><span class="stat-label">${label}</span></div><div class="stat-val">${value}</div></div>`;
@@ -272,24 +336,47 @@
     }
 
     function renderStatus(d) {
-        $('statusCards').innerHTML = [
-            card('运行时间', d.uptimeText, I.clock),
-            card('在线客户端', d.onlineClients, I.users),
-            card('代理连接', d.proxyChannels, I.link),
-            card('历史连接', d.totalConnections, I.bars)
-        ].join('');
-        $('portCards').innerHTML = [
-            card('服务端口', d.serverPort, I.server),
-            card('HTTP 端口', d.httpPort || '—', I.globe),
-            card('HTTPS 端口', d.httpsPort || '—', I.lock),
-            card('Dashboard', d.dashboardPort || '—', I.monitor)
-        ].join('');
+        const statusEl = $('statusCards');
+        const portEl = $('portCards');
+
+        // 首次渲染：创建完整结构
+        if (!statusEl.dataset.ready) {
+            statusEl.innerHTML = [
+                card('运行时间', d.uptimeText, I.clock),
+                card('在线客户端', d.onlineClients, I.users),
+                card('代理连接', d.proxyChannels, I.link),
+                card('历史连接', d.totalConnections, I.bars)
+            ].join('');
+            statusEl.dataset.ready = '1';
+        } else {
+            // 后续只更新数值
+            const vals = statusEl.querySelectorAll('.stat-val');
+            const newVals = [d.uptimeText, d.onlineClients, d.proxyChannels, d.totalConnections];
+            vals.forEach((el, i) => { if (el.textContent != newVals[i]) el.textContent = newVals[i]; });
+        }
+
+        if (!portEl.dataset.ready) {
+            portEl.innerHTML = [
+                card('服务端口', d.serverPort, I.server),
+                card('HTTP 端口', d.httpPort || '—', I.globe),
+                card('Dashboard', d.dashboardPort || '—', I.monitor)
+            ].join('');
+            portEl.dataset.ready = '1';
+        } else {
+            const vals = portEl.querySelectorAll('.stat-val');
+            const newVals = [d.serverPort, d.httpPort || '—', d.dashboardPort || '—'];
+            vals.forEach((el, i) => { if (el.textContent != newVals[i]) el.textContent = newVals[i]; });
+        }
     }
 
     function renderClients(data) {
         $('clientCount').textContent = data.length;
         const el = $('clientsTable');
-        if (!data.length) { el.innerHTML = '<div class="empty">暂无在线客户端</div>'; return; }
+        if (!data.length) {
+            const emptyHtml = '<div class="empty">暂无在线客户端</div>';
+            if (cache.clients !== emptyHtml) { el.innerHTML = emptyHtml; cache.clients = emptyHtml; }
+            return;
+        }
         let h = '<table><thead><tr><th>ClientKey</th><th>远程地址</th><th>连接时间</th><th>代理端口</th><th>连接</th><th>会话</th><th>流量</th><th>流速</th><th></th></tr></thead><tbody>';
         data.forEach(c => {
             const key = c.clientKey.length > 14 ? c.clientKey.substring(0,14)+'…' : c.clientKey;
@@ -309,20 +396,26 @@
                 <td><button class="btn-kick" onclick="kick('${c.channelId}')">断开</button></td>
             </tr>`;
         });
-        el.innerHTML = h + '</tbody></table>';
+        h += '</tbody></table>';
+        if (cache.clients !== h) { el.innerHTML = h; cache.clients = h; }
     }
 
     function renderDomains(data) {
         $('domainCount').textContent = data.length;
         const el = $('domainsTable');
-        if (!data.length) { el.innerHTML = '<div class="empty">暂无域名绑定</div>'; return; }
+        if (!data.length) {
+            const emptyHtml = '<div class="empty">暂无域名绑定</div>';
+            if (cache.domains !== emptyHtml) { el.innerHTML = emptyHtml; cache.domains = emptyHtml; }
+            return;
+        }
         let h = '<table><thead><tr><th>域名</th><th>ClientKey</th><th>状态</th><th>Token</th></tr></thead><tbody>';
         data.forEach(d => {
             const st = d.online ? tag('tag-online','在线') : tag('tag-offline','离线');
             const k = d.clientKey && d.clientKey.length > 14 ? d.clientKey.substring(0,14)+'…' : (d.clientKey||'—');
             h += `<tr><td class="bold">${d.domain}</td><td class="mono">${k}</td><td>${st}</td><td>${d.token?'已配置':'—'}</td></tr>`;
         });
-        el.innerHTML = h + '</tbody></table>';
+        h += '</tbody></table>';
+        if (cache.domains !== h) { el.innerHTML = h; cache.domains = h; }
     }
 
     async function kick(id) {

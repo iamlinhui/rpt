@@ -1,5 +1,6 @@
 package cn.holmes.rpt.server.utils;
 
+import cn.holmes.rpt.base.utils.Config;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.maxmind.db.MaxMindDbConstructor;
@@ -24,11 +25,12 @@ public class IpCountryFilter implements IpFilterRule {
     private static final Logger logger = LoggerFactory.getLogger(IpCountryFilter.class);
 
     /**
-     * 允许访问的国家 ISO 码白名单（大写）。由 {@link #setWhitelist} 注入（来自 server.yml 的 ipFilterCountry）。
+     * 允许访问的国家 ISO 码白名单（大写）。由 {@link #init()} 从 server.yml 的 ipFilterCountry 加载。
      * <p>空集 = 不限制（放行所有）。不再依赖 {@code Locale.getDefault().getCountry()}——那会让白名单跟运行机器的
      * 系统语言走，服务端 LANG=en_US 时会把非 US 客户端全拒。</p>
      */
     private volatile Set<String> whitelist = Collections.emptySet();
+    private volatile boolean initialized = false;
 
     private final Reader reader;
 
@@ -61,10 +63,18 @@ public class IpCountryFilter implements IpFilterRule {
     }
 
     /**
-     * 注入允许访问的国家 ISO 码白名单（逗号分隔，如 "CN" 或 "CN,HK"）。null/空 = 不限制（放行所有）。
-     * 由 {@code ServerApplication.config()} 在读取 server.yml 后调用。
+     * 从 {@link Config#getServerConfig()} 读取 ipFilterCountry 并初始化白名单。
+     * 首次 {@link #matches} 调用时自动触发（lazy init），无需外部显式调用。
      */
-    public void setWhitelist(String csv) {
+    private void init() {
+        setWhitelist(Config.getServerConfig().getIpFilterCountry());
+        initialized = true;
+    }
+
+    /**
+     * 设置允许访问的国家 ISO 码白名单（逗号分隔，如 "CN" 或 "CN,HK"）。null/空 = 不限制（放行所有）。
+     */
+    private void setWhitelist(String csv) {
         Set<String> set = new LinkedHashSet<>();
         if (csv != null && !csv.trim().isEmpty()) {
             for (String c : csv.split(",")) {
@@ -81,6 +91,9 @@ public class IpCountryFilter implements IpFilterRule {
 
     @Override
     public boolean matches(InetSocketAddress remoteAddress) {
+        if (!initialized) {
+            init();
+        }
         // reader 缺失或白名单为空 → 不命中 REJECT 规则 → 放行（fail-open，避免把所有连接误拒）
         if (reader == null || whitelist.isEmpty()) {
             return false;

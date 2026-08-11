@@ -49,14 +49,14 @@ sequenceDiagram
     participant C as 💻 rpt-client (内网)
     participant L as 🏠 内网服务
 
-    Note over C,S: 1️⃣ 建立连接阶段
+    Note over C,S: 1.建立连接阶段
     C->>S: SSL 双向认证握手
     S->>S: 验证客户端证书 + Token
     S-->>C: 认证通过，隧道建立
     C->>S: 上报端口映射配置 (TCP/UDP/HTTP)
     S->>S: 绑定公网端口 & 注册域名路由
 
-    Note over U,L: 2️⃣ TCP/UDP 代理流程
+    Note over U,L: 2.TCP/UDP 代理流程
     U->>S: 连接公网 remotePort (如 4389)
     S->>S: 匹配端口映射规则 & IP地域过滤
     S->>C: 通过 SSL 隧道转发请求
@@ -65,8 +65,8 @@ sequenceDiagram
     C-->>S: 通过 SSL 隧道回传
     S-->>U: 返回给外部用户
 
-    Note over U,L: 3️⃣ HTTP 代理流程 (端口复用)
-    U->>S: HTTP 请求 test.domain.com:80
+    Note over U,L: 3.HTTP 代理流程 (端口复用)
+    U->>S: HTTP 请求 test.domain.com:6234
     S->>S: 解析 Host 域名路由 & Basic Auth 验证
     S->>C: 通过 SSL 隧道转发 HTTP 请求
     C->>L: 转发到本地 Web 服务 (如 127.0.0.1:8080)
@@ -74,7 +74,7 @@ sequenceDiagram
     C-->>S: 通过 SSL 隧道回传
     S-->>U: 返回 HTTP 响应
 
-    Note over U,L: 4️⃣ 连接保活
+    Note over U,L: 4.连接保活
     loop 心跳检测
         C->>S: 心跳包
         S-->>C: 心跳响应
@@ -87,7 +87,7 @@ graph TB
         S["rpt-server<br/>Netty 服务端"]
         S --> TCP_BIND["TCP 端口监听<br/>remotePort: 4389, 7379..."]
         S --> UDP_BIND["UDP 端口监听<br/>remotePort: 4389..."]
-        S --> HTTP_BIND["HTTP/HTTPS 端口复用<br/>80 / 443"]
+        S --> HTTP_BIND["HTTP 端口复用<br/>httpPort: 6234"]
         HTTP_BIND --> ROUTE["域名路由<br/>Host → 客户端映射"]
         S --> AUTH["Token 授权<br/>端口范围限制"]
         S --> GEO["IP 地域过滤<br/>MaxMind GeoIP"]
@@ -121,7 +121,7 @@ graph TB
 |------|------|
 | 🔌 **TCP 代理** | 支持任何 TCP 上层协议：RDP远程桌面、SSH、FTP、数据库连接等 |
 | 📡 **UDP 代理** | 支持任何 UDP 上层协议：DNS转发、游戏服务器代理等 |
-| 🌐 **HTTP 端口复用** | 多个客户端共用服务端 80/443 端口，通过域名区分路由 |
+| 🌐 **HTTP 端口复用** | 多个客户端共用服务端 HTTP 端口，通过域名区分路由 |
 | 🔒 **SSL 双向认证** | 客户端与服务端双向 SSL 验证，数据加密传输 |
 | 🌍 **IP 地域过滤** | 基于 MaxMind GeoIP 数据库限制访问来源国家 |
 | 🔑 **Token 授权** | 每个客户端独立密钥，可限制端口绑定范围 |
@@ -143,7 +143,6 @@ rpt/
 ├── rpt-server/        # 服务端 (Java) - 部署在公网服务器
 ├── rpt-client/        # 客户端 (Java) - 部署在内网机器
 ├── rpt-client-go/     # 客户端 (Go) - 轻量级Go实现
-├── rpt-desktop/       # 桌面客户端 (JavaFX)
 ├── rpt-desktop-go/    # 桌面客户端 (Wails + Go)
 └── doc/               # 文档资源
 ```
@@ -170,7 +169,7 @@ rpt/
 - **Web 开发调试** — 本地支付接口回调调试、微信公众号/小程序本地调试
 - **SSH 远程访问** — 远程连接内网 Linux 服务器
 - **数据库连接** — 远程连接内网 MySQL、Redis 等数据库
-- **HTTP 反向代理** — 共享 80/443 端口为多个内网 Web 服务提供公网访问
+- **HTTP 反向代理** — 共享 HTTP 端口为多个内网 Web 服务提供公网访问
 - **DNS 转发** — UDP 代理实现 DNS 请求转发
 - **游戏联机** — 代理游戏服务器实现公网联机
 - **打印机共享** — 远程连接内网打印机
@@ -208,7 +207,7 @@ go build -o rpt-client-go
 将 `rpt-server/target/rpt-server-*.jar` 和 `server.yml` 上传到公网服务器：
 
 ```bash
-java -jar rpt-server-2.6.1.jar -c server.yml
+java -jar rpt-server-*.jar -c server.yml
 ```
 
 ### 第三步：启动客户端
@@ -216,13 +215,13 @@ java -jar rpt-server-2.6.1.jar -c server.yml
 **Java 客户端：**
 
 ```bash
-java -jar rpt-client-2.6.1.jar -c client.yml
+java -jar rpt-client-*.jar -c client.yml
 ```
 
 **Go 客户端：**
 
 ```bash
-./rpt-client-go -config client.yml
+./rpt-client-go -c client.yml
 ```
 
 ### 第四步：验证连接
@@ -276,22 +275,13 @@ serverCertPath: server.crt
 serverKeyPath: pkcs8_server.key
 
 # HTTP重定向端口 (为0则不开启，默认0)
-httpPort: 80
-
-# HTTPS复用端口 (为0则不开启，默认0)
-httpsPort: 443
-
-# 域名证书公钥 (httpsPort为0时不生效)
-domainCert: domain.crt
-
-# 域名证书私钥 (httpsPort为0时不生效)
-domainKey: pkcs8_domain.key
+httpPort: 6234
 
 # 限制连接暴露端口的IP必须属于这些国家 (ISO码,逗号分隔,如 CN,HK) 留空=关闭国家过滤(放行所有)
 ipFilterCountry: CN,HK
 
 # Dashboard管理面板端口 (为0则不开启，默认0)
-dashboardPort: 8000
+dashboardPort: 7476
 
 # Dashboard登录账号
 dashboardUser: admin
@@ -319,9 +309,6 @@ token:
 | `serverCertPath` | String | `server.crt` | 服务端证书路径 |
 | `serverKeyPath` | String | `pkcs8_server.key` | 服务端私钥路径 |
 | `httpPort` | int | `0` | HTTP重定向端口，为0不开启 |
-| `httpsPort` | int | `0` | HTTPS复用端口，为0不开启 |
-| `domainCert` | String | `server.crt` | 域名证书公钥路径 |
-| `domainKey` | String | `pkcs8_server.key` | 域名证书私钥路径 |
 | `ipFilterCountry` | String | 空 | 允许访问的国家ISO码(逗号分隔,如 `CN,HK`)，留空=关闭国家过滤 |
 | `dashboardPort` | int | `0` | Dashboard管理面板端口，为0不开启 |
 | `dashboardUser` | String | - | Dashboard登录账号 |
@@ -407,7 +394,7 @@ config:
 |------|------|------|------|----------|
 | **TCP** | TCP | 需要指定 `remotePort` | 不需要 | RDP、SSH、数据库、FTP 等 |
 | **UDP** | UDP | 需要指定 `remotePort` | 不需要 | DNS转发、游戏服务器 等 |
-| **HTTP** | HTTP/HTTPS | 复用服务端 80/443 端口 | 需要配置 `domain` | Web应用、API接口 等 |
+| **HTTP** | HTTP | 复用服务端 HTTP 端口 | 需要配置 `domain` | Web应用、API接口 等 |
 
 ---
 
@@ -417,10 +404,10 @@ config:
 
 ```bash
 # 服务端
-java -jar rpt-server-2.6.1.jar -c server.yml
+java -jar rpt-server-*.jar -c server.yml
 
 # 客户端
-java -jar rpt-client-2.6.1.jar -c client.yml
+java -jar rpt-client-*.jar -c client.yml
 ```
 
 ### 方式二：生产环境部署 (Java)
@@ -431,19 +418,17 @@ java -jar rpt-client-2.6.1.jar -c client.yml
 
 ```
 /opt/rpt-server/
-├── rpt-server-2.6.1.jar
+├── rpt-server-*.jar
 ├── conf/
 │   ├── server.yml
 │   ├── ca.crt
 │   ├── server.crt
 │   ├── pkcs8_server.key
-│   ├── domain.crt          # HTTPS域名证书 (可选)
-│   ├── pkcs8_domain.key    # HTTPS域名私钥 (可选)
 │   └── Country.mmdb        # GeoIP数据库 (可选)
 └── logs/
 
 /opt/rpt-client/
-├── rpt-client-2.6.1.jar
+├── rpt-client-*.jar
 ├── conf/
 │   ├── client.yml
 │   ├── ca.crt
@@ -480,7 +465,6 @@ docker build -f Dockerfile -t rpt-server .
 # 2. 准备配置文件目录
 mkdir -p /opt/rpt/conf
 # 将 server.yml、ca.crt、server.crt、pkcs8_server.key 放入 /opt/rpt/conf/
-# 如需 HTTPS: 放入 domain.crt、pkcs8_domain.key
 # 如需 IP 过滤: 放入 Country.mmdb
 
 # 3. 启动容器 (host 网络模式，直接暴露所有端口)
@@ -494,9 +478,8 @@ docker run -d \
 # 或者指定端口映射
 docker run -d \
   -p 6167:6167 \
-  -p 80:80 \
-  -p 443:443 \
-  -p 8000:8000 \
+  -p 6234:6234 \
+  -p 7476:7476 \
   -p 4000-9999:4000-9999 \
   -v /opt/rpt/conf:/home/rpt/conf \
   --restart=always \
@@ -579,7 +562,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/rpt
-ExecStart=/opt/rpt/rpt-client-go -config client.yml
+ExecStart=/opt/rpt/rpt-client-go -c client.yml
 Restart=always
 RestartSec=5
 
@@ -648,12 +631,12 @@ rpt-client.exe start
 在 `server.yml` 中配置 `dashboardPort` 为非零端口即可：
 
 ```yaml
-dashboardPort: 8000
+dashboardPort: 7476
 dashboardUser: admin
 dashboardPassword: admin
 ```
 
-启动服务端后访问 `http://服务器IP:8000`，输入账号密码即可进入。
+启动服务端后访问 `http://服务器IP:7476`，输入账号密码即可进入。
 
 ### 功能
 
@@ -687,7 +670,7 @@ dashboardPassword: admin
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| `-config` | `client.yml` | 客户端配置文件路径 |
+| `-config`, `-c` | `conf/client.yml` 或 `client.yml` | 客户端配置文件路径 |
 
 > 证书路径已移至 `client.yml` 配置文件中（`clientCaPath`、`clientCertPath`、`clientKeyPath`），不配置则使用默认值。
 
@@ -831,25 +814,7 @@ openssl pkcs8 -topk8 -in client.key -out pkcs8_client.key -nocrypt
 1. 将域名 DNS 解析到公网服务器 IP（A 记录）
 2. 支持通配符域名 `*.domain.com`，例如 `test.domain.com`
 3. 客户端 `client.yml` 中 `domain` 字段填写完整域名
-4. 服务端需开启 `httpPort` 或 `httpsPort`
-</details>
-
-<details>
-<summary><b>Q: JavaFX 桌面客户端界面变黑？</b></summary>
-
-JavaFX 硬件渲染在屏幕分辨率变化时可能出现控件变黑问题，添加 JVM 参数启用软件渲染：
-
-```bash
--Dprism.order=sw
-```
-</details>
-
-<details>
-<summary><b>Q: 如何使用 HTTPS？</b></summary>
-
-1. 申请域名 SSL 证书（如 Let's Encrypt）
-2. 将证书公钥和私钥（PKCS#8 格式）放入服务端 `conf` 目录
-3. 在 `server.yml` 中配置 `httpsPort`、`domainCert`、`domainKey`
+4. 服务端需开启 `httpPort`
 </details>
 
 ---
@@ -865,13 +830,6 @@ JavaFX 硬件渲染在屏幕分辨率变化时可能出现控件变黑问题，�
 | SMTP/POP3 | 邮件收发 |
 | Telnet | 远程登录 |
 | SOCKS | 代理协议 |
-
----
-
-## 📋 TODO
-
-- [x] Dashboard 管理面板（流量统计、流速监控、客户端管理）
-- [ ] 集群运维版本
 
 ---
 

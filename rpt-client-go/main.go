@@ -26,6 +26,7 @@ func init() {
 
 func main() {
 	configPath := flag.String("config", defaultConfigPath(), "path to client config file")
+	flag.StringVar(configPath, "c", defaultConfigPath(), "path to client config file (shorthand)")
 	flag.Parse()
 
 	cfg, err := config.LoadClientConfig(*configPath)
@@ -39,8 +40,7 @@ func main() {
 	}
 
 	c := client.New(cfg, tlsConfig)
-	log.Printf("rpt-client-go starting, server: %s:%d, clientKey: %s",
-		cfg.ServerIp, cfg.ServerPort, cfg.ClientKey)
+	log.Printf("rpt-client-go starting, server: %s:%d, clientKey: %s", cfg.ServerIp, cfg.ServerPort, cfg.ClientKey)
 	c.Run()
 }
 

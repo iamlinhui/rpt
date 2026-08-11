@@ -113,7 +113,7 @@ public class RegisterExecutor implements MessageExecutor {
     }
 
     private void registerHttp(Channel serverChannel, Meta meta, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {
-        if (Config.getServerConfig().getHttpPort() == 0 && Config.getServerConfig().getHttpsPort() == 0) {
+        if (Config.getServerConfig().getHttpPort() == 0) {
             meta.setConnection(false).addRemoteResult("服务端未开启HTTP穿透功能");
             countDownLatch.countDown();
             return;
@@ -141,7 +141,7 @@ public class RegisterExecutor implements MessageExecutor {
     }
 
     private void registerTcp(Channel serverChannel, Meta meta, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {
-        if (remoteConfig.getRemotePort() == 0 || remoteConfig.getRemotePort() == Config.getServerConfig().getServerPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getHttpPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getHttpsPort()) {
+        if (remoteConfig.getRemotePort() == 0 || remoteConfig.getRemotePort() == Config.getServerConfig().getServerPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getHttpPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getDashboardPort()) {
             meta.setConnection(false).addRemoteResult(String.format("需要绑定的TCP端口[%s]不合法", remoteConfig.getRemotePort()));
             countDownLatch.countDown();
             return;
@@ -178,7 +178,7 @@ public class RegisterExecutor implements MessageExecutor {
     }
 
     private void registerUdp(Channel serverChannel, Meta meta, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {
-        if (remoteConfig.getRemotePort() == 0 || remoteConfig.getRemotePort() == Config.getServerConfig().getServerPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getHttpPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getHttpsPort()) {
+        if (remoteConfig.getRemotePort() == 0 || remoteConfig.getRemotePort() == Config.getServerConfig().getServerPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getHttpPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getDashboardPort()) {
             meta.setConnection(false).addRemoteResult(String.format("需要绑定的UDP端口[%s]不合法", remoteConfig.getRemotePort()));
             countDownLatch.countDown();
             return;

@@ -37,14 +37,12 @@ public class ServerApplication extends Application<ServerBootstrap> {
     private final RuleBasedIpFilter ruleBasedIpFilter = new RuleBasedIpFilter(IpCountryFilter.getInstance());
 
     public static void main(String[] args) throws Exception {
-        Application.run(args, new ServerApplication(), new HttpApplication(), new HttpsApplication(), new DashboardApplication());
+        Application.run(args, new ServerApplication(), new HttpApplication(), new DashboardApplication());
     }
 
     @Override
     public Application<ServerBootstrap> config(String[] args) {
         Config.readServerConfig(args);
-        // 注入 server.yml 配置的国家白名单（ipFilterCountry 空=关闭，放行所有）；替代旧的 Locale.getDefault() 白名单
-        IpCountryFilter.getInstance().setWhitelist(Config.getServerConfig().getIpFilterCountry());
         return this;
     }
 

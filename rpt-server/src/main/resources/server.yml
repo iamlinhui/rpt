@@ -1,15 +1,12 @@
 serverIp: 0.0.0.0
 serverPort: 6167
-httpPort: 80
-httpsPort: 443
+httpPort: 6234
 serverCaPath: ca.crt
 serverCertPath: server.crt
 serverKeyPath: pkcs8_server.key
-domainCert: domain.crt
-domainKey: pkcs8_domain.key
 # 限制连接暴露端口的IP必须属于这些国家(ISO码,逗号分隔,如 CN,HK)。留空 = 关闭国家过滤(放行所有)
 ipFilterCountry: CN,HK
-dashboardPort: 8000
+dashboardPort: 7476
 dashboardUser: admin
 dashboardPassword: admin
 token:

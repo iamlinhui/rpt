@@ -330,7 +330,7 @@
                 <div class="ant-step-indicator">2</div>
                 <h3>启动客户端（Go）</h3>
                 <div class="code-block">
-                    <code><span class="c-cmd">./rpt-client-go</span> <span class="c-flag">-config</span> <span class="c-value">client.yml</span></code>
+                    <code><span class="c-cmd">./rpt-client-go</span> <span class="c-flag">-c</span> <span class="c-value">client.yml</span></code>
                 </div>
             </div>
         </div>
@@ -497,17 +497,11 @@
             line([s(C, '# 服务端私钥路径 默认值pkcs8_server.key')]),
             line([s(K, 'serverKeyPath'), ': ', s(V, 'pkcs8_server.key')]),
             line([s(C, '#服务端暴露的HTTP重定向端口 为0则不开启 默认值0')]),
-            line([s(K, 'httpPort'), ': ', s(V, '80')]),
-            line([s(C, '#服务端暴露的HTTPS复用端口 为0则不开启 默认值0')]),
-            line([s(K, 'httpsPort'), ': ', s(V, '0')]),
-            line([s(C, '# 域名证书公钥(需替换) httpsPort为0时不生效 默认值server.crt')]),
-            line([s(K, 'domainCert'), ': ', s(V, 'server.crt')]),
-            line([s(C, '# 域名证书私钥(需替换) httpsPort为0时不生效 默认值pkcs8_server.key')]),
-            line([s(K, 'domainKey'), ': ', s(V, 'pkcs8_server.key')]),
+            line([s(K, 'httpPort'), ': ', s(V, '6234')]),
             line([s(C, '# 限制连接暴露端口的IP必须属于这些国家(ISO码,逗号分隔,如 CN,HK) 留空=关闭')]),
             line([s(K, 'ipFilterCountry'), ': ', s(V, 'CN,HK')]),
             line([s(C, '# Dashboard管理面板端口 为0则不开启')]),
-            line([s(K, 'dashboardPort'), ': ', s(V, '8000')]),
+            line([s(K, 'dashboardPort'), ': ', s(V, '7476')]),
             line([s(C, '# Dashboard登录账号')]),
             line([s(K, 'dashboardUser'), ': ', s(V, 'admin')]),
             line([s(C, '# Dashboard登录密码')]),

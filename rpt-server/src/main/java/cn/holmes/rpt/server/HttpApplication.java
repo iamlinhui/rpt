@@ -3,7 +3,6 @@ package cn.holmes.rpt.server;
 import cn.holmes.rpt.base.config.ServerConfig;
 import cn.holmes.rpt.base.utils.Application;
 import cn.holmes.rpt.base.utils.Config;
-import cn.holmes.rpt.server.handler.RedirectHandler;
 import cn.holmes.rpt.server.handler.RequestHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFutureListener;
@@ -32,7 +31,6 @@ public class HttpApplication extends Application<ServerBootstrap> {
 
     @Override
     public Application<ServerBootstrap> buildBootstrap() throws IOException {
-        ServerConfig serverConfig = Config.getServerConfig();
         httpBootstrap.group(serverBossGroup, serverWorkerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
 
             @Override
@@ -40,7 +38,7 @@ public class HttpApplication extends Application<ServerBootstrap> {
                 ch.pipeline().addLast(new HttpServerCodec());
                 ch.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
                 ch.pipeline().addLast(new IdleStateHandler(0, 0, 600, TimeUnit.SECONDS));
-                ch.pipeline().addLast(serverConfig.getHttpsPort() == 0 ? new RequestHandler() : new RedirectHandler());
+                ch.pipeline().addLast(new RequestHandler());
             }
         });
         return this;
