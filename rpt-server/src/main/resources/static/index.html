@@ -6,8 +6,8 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
     <meta name="author" content="Lynn"/>
     <meta name="description"
-          content="一个可用于内网穿透的工具，将局域网个人电脑、服务器映射到公网。支持TCP/UDP/HTTP协议，SSL加密传输。"/>
-    <meta name="keywords" content="内网穿透,反向代理,TCP,UDP,HTTP,SSL,端口映射,远程桌面,SSH"/>
+          content="一个可用于内网穿透的工具，将局域网个人电脑、服务器映射到公网。支持TCP/UDP/HTTP/SOCKS5协议，SSL加密传输。"/>
+    <meta name="keywords" content="内网穿透,反向代理,TCP,UDP,HTTP,SOCKS5,SSL,端口映射,远程桌面,SSH,SOCKS5代理"/>
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"/>
     <link rel="icon" href="data:image/png;base64,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">
@@ -245,6 +245,15 @@
                 <p>内网反向代理，共用服务端80/443端口。支持请求升级为WebSocket与HTTP2。</p>
             </div>
             <div class="ant-card fade-in">
+                <div class="ant-card-icon ant-card-icon-purple">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                    </svg>
+                </div>
+                <h3>SOCKS5 动态代理</h3>
+                <p>标准 SOCKS5 协议代理，目标地址由客户端按连接动态指定，支持账密认证，灵活代理任意 TCP 目标。</p>
+            </div>
+            <div class="ant-card fade-in">
                 <div class="ant-card-icon ant-card-icon-gold">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
@@ -252,15 +261,6 @@
                 </div>
                 <h3>SSL 双端验证</h3>
                 <p>SSL双端验证，数据加密传输，保障通信安全可靠。</p>
-            </div>
-            <div class="ant-card fade-in">
-                <div class="ant-card-icon ant-card-icon-purple">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1115.6 12 3.6 3.6 0 0112 15.6z"/>
-                    </svg>
-                </div>
-                <h3>部署简单</h3>
-                <p>提供桌面GUI客户端，配置直观。支持Docker镜像与Windows服务注册。</p>
             </div>
             <div class="ant-card fade-in">
                 <div class="ant-card-icon ant-card-icon-red">

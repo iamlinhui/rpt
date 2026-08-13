@@ -315,7 +315,7 @@ const ICO = {
 };
 
 // ==================== Theme ====================
-function applyTheme(t){ document.body.setAttribute('data-theme', t); document.getElementById('themeBtn').innerHTML = t==='dark'?ICO.moon:ICO.sun; }
+function applyTheme(t){ document.body.setAttribute('data-theme', t); document.getElementById('themeBtn').innerHTML = t==='dark'?ICO.moon:ICO.sun; try { go.SetWindowTheme(t==='dark'); } catch(e){} }
 function toggleTheme(){ const t = document.body.getAttribute('data-theme')==='dark'?'light':'dark'; localStorage.setItem('rpt-theme', t); applyTheme(t); }
 applyTheme(localStorage.getItem('rpt-theme') || 'light');
 
@@ -449,7 +449,7 @@ function render() {
       remote = '<span class="mono">'+escapeHtml(r.domain||'')+'</span>' + (r.token ? ' <span class="muted">'+escapeHtml(r.token)+'</span>' : '');
       copyTarget = r.domain||'';
     } else {
-      remote = '<span class="mono">:'+escapeHtml(r.remotePort||0)+'</span>';
+      remote = '<span class="mono">:'+escapeHtml(r.remotePort||0)+'</span>' + (r.proxyType === 'SOCKS5' && r.token ? ' <span class="muted">'+escapeHtml(r.token)+'</span>' : '');
       copyTarget = ':'+(r.remotePort||0);
     }
     return `<tr class="${i===ctxIdx?'sel':''}" oncontextmenu="showTableCtx(event,${i})" onclick="selectRow(${i})">

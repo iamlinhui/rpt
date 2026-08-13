@@ -10,7 +10,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-2.7.0-blue.svg" alt="version"/>
-  <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="license"/>
+  <img src="https://img.shields.io/badge/license-GNU-green.svg" alt="license"/>
   <img src="https://img.shields.io/badge/Java-8+-orange.svg" alt="java"/>
   <img src="https://img.shields.io/badge/Go-1.20+-00ADD8.svg" alt="go"/>
   <img src="https://img.shields.io/badge/Netty-4.1-red.svg" alt="netty"/>
@@ -53,7 +53,7 @@ sequenceDiagram
     C->>S: SSL 双向认证握手
     S->>S: 验证客户端证书 + Token
     S-->>C: 认证通过，隧道建立
-    C->>S: 上报端口映射配置 (TCP/UDP/HTTP)
+    C->>S: 上报端口映射配置 (TCP/UDP/HTTP/SOCKS5)
     S->>S: 绑定公网端口 和 注册域名路由
 
     Note over U,L: 2.TCP/UDP 代理流程
@@ -90,6 +90,7 @@ sequenceDiagram
 | 🔌 **TCP 代理** | 支持任何 TCP 上层协议：RDP远程桌面、SSH、FTP、数据库连接等 |
 | 📡 **UDP 代理** | 支持任何 UDP 上层协议：DNS转发、游戏服务器代理等 |
 | 🌐 **HTTP 端口复用** | 多个客户端共用服务端 HTTP 端口，通过域名区分路由 |
+| 🧦 **SOCKS5 动态代理** | 标准 SOCKS5 协议代理，目标地址由客户端按连接动态指定，支持账密认证 |
 | 🔒 **SSL 双向认证** | 客户端与服务端双向 SSL 验证，数据加密传输 |
 | 🌍 **IP 地域过滤** | 基于 MaxMind GeoIP 数据库限制访问来源国家 |
 | 🔑 **Token 授权** | 每个客户端独立密钥，可限制端口绑定范围 |
@@ -138,6 +139,7 @@ rpt/
 - **SSH 远程访问** — 远程连接内网 Linux 服务器
 - **数据库连接** — 远程连接内网 MySQL、Redis 等数据库
 - **HTTP 反向代理** — 共享 HTTP 端口为多个内网 Web 服务提供公网访问
+- **SOCKS5 网络代理** — 搭建 SOCKS5 代理服务器，实现灵活的网络代理转发，支持账密认证
 - **DNS 转发** — UDP 代理实现 DNS 请求转发
 - **游戏联机** — 代理游戏服务器实现公网联机
 - **打印机共享** — 远程连接内网打印机
@@ -202,14 +204,10 @@ java -jar rpt-client-*.jar -c client.yml
 
 提供基于 Wails 的图形界面客户端，无需手动编辑配置文件。
 
-| 界面 | 截图 |
-|------|------|
-| 主界面 | ![main](doc/desktop/go/main.png) |
-| 系统配置 | ![config](doc/desktop/go/config.png) |
-| TCP 映射配置 | ![tcp](doc/desktop/go/tcp.png) |
-| HTTP 映射配置 | ![http](doc/desktop/go/http.png) |
-| 删除映射配置 | ![delete](doc/desktop/go/delete.png) |
-| 控制台输出 | ![start](doc/desktop/go/start.png) |
+| 界面 | 截图                              |
+|------|-----------------------------------|
+| 主界面 | ![main](doc/desktop/start.png)    |
+| 系统配置 | ![config](doc/desktop/config.png) |
 
 ### 编译桌面客户端
 

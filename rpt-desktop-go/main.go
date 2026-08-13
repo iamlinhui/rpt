@@ -76,6 +76,7 @@ func main() {
 		Windows: &wopts.Options{
 			WebviewIsTransparent: false,
 			WindowIsTranslucent:  false,
+			Theme:                wopts.SystemDefault,
 		},
 	})
 	if err != nil {
@@ -208,6 +209,13 @@ func (a *App) GetConfig() *DesktopConfig {
 
 func (a *App) GetVersion() string {
 	return appVersion
+}
+
+func (a *App) SetWindowTheme(dark bool) {
+	hwnd := findAppWindow()
+	if hwnd != 0 {
+		setWindowDarkMode(hwnd, dark)
+	}
 }
 
 func (a *App) SaveServerConfig(serverIp string, serverPort int, clientKey, certFile, keyFile, caFile string) {
