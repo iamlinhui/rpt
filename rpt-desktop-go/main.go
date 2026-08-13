@@ -323,7 +323,7 @@ func (a *App) Start() string {
 		if rc.LocalPort < 1 || rc.LocalPort > 65535 {
 			return fmt.Sprintf("配置 [%s] 本地端口无效: %d", rc.ProxyType, rc.LocalPort)
 		}
-		if rc.ProxyType == config.ProxyTCP || rc.ProxyType == config.ProxyUDP {
+		if rc.ProxyType == config.ProxyTCP || rc.ProxyType == config.ProxyUDP || rc.ProxyType == config.ProxySOCKS5 {
 			if rc.RemotePort < 1024 || rc.RemotePort > 65535 {
 				return fmt.Sprintf("配置 [%s] 暴露端口必须在 1024-65535 之间: %d", rc.ProxyType, rc.RemotePort)
 			}

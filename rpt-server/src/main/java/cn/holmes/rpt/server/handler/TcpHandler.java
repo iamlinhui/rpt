@@ -6,6 +6,7 @@ import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
 import cn.holmes.rpt.base.utils.Constants.Server;
+import cn.holmes.rpt.base.utils.Target;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -23,10 +24,18 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
     private final Channel serverChannel;
     private final RemoteConfig remoteConfig;
+    private boolean activated;
 
     public TcpHandler(Channel serverChannel, RemoteConfig remoteConfig) {
         this.serverChannel = serverChannel;
         this.remoteConfig = remoteConfig;
+    }
+
+    @Override
+    public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+        if (ctx.channel().isActive()) {
+            channelActive(ctx);
+        }
     }
 
     @Override
@@ -52,6 +61,10 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
      */
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        if (activated) {
+            return;
+        }
+        activated = true;
         ctx.channel().attr(Server.PROXY_TYPE).set(ProxyType.TCP);
         serverChannel.attr(Server.CHANNELS).get().put(ctx.channel().id().asLongText(), ctx.channel());
         ctx.channel().config().setAutoRead(false);
@@ -100,7 +113,24 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
      * 发送数据到内网客户端流程封装
      **/
     public void send(Channel complex, MessageType type, ByteBuf data, ChannelHandlerContext ctx) {
-        Meta meta = new Meta(ctx.channel().id().asLongText(), remoteConfig).setServerId(serverChannel.id().asLongText());
+        Meta meta = new Meta(ctx.channel().id().asLongText(), getRemoteConfig(type, ctx));
+        meta.setServerId(serverChannel.id().asLongText());
         complex.writeAndFlush(new Message(type, meta, data));
+    }
+
+    /**
+     * build config
+     */
+    protected RemoteConfig getRemoteConfig(MessageType type, ChannelHandlerContext ctx) {
+        if (MessageType.TYPE_CONNECTED.equals(type)) {
+            Target target = ctx.channel().attr(Server.DYNAMIC_TARGET).get();
+            if (target != null) {
+                RemoteConfig cfg = new RemoteConfig();
+                cfg.setLocalIp(target.getHost());
+                cfg.setLocalPort(target.getPort());
+                return cfg;
+            }
+        }
+        return remoteConfig;
     }
 }

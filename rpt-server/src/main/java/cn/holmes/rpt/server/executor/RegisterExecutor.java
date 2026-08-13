@@ -12,6 +12,7 @@ import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.base.utils.StringUtils;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
+import cn.holmes.rpt.server.handler.Socks5Handler;
 import cn.holmes.rpt.server.handler.TcpHandler;
 import cn.holmes.rpt.server.handler.UdpHandler;
 import cn.holmes.rpt.server.utils.IpCountryFilter;
@@ -34,6 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 public class RegisterExecutor implements MessageExecutor {
 
@@ -102,6 +104,10 @@ public class RegisterExecutor implements MessageExecutor {
                     serverChannel.attr(Server.UDP_PORT_CHANNEL_FUTURE).setIfAbsent(new ConcurrentHashMap<>());
                     registerUdp(serverChannel, meta, remoteConfig, countDownLatch);
                     break;
+                case SOCKS5:
+                    serverChannel.attr(Server.TCP_PORT_CHANNEL_FUTURE).setIfAbsent(new ConcurrentHashMap<>());
+                    registerSocks5(serverChannel, meta, remoteConfig, countDownLatch);
+                    break;
                 default:
             }
         }
@@ -141,14 +147,22 @@ public class RegisterExecutor implements MessageExecutor {
     }
 
     private void registerTcp(Channel serverChannel, Meta meta, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {
+        bindTcpPort(serverChannel, meta, remoteConfig, countDownLatch, ProxyType.TCP, () -> new TcpHandler(serverChannel, remoteConfig));
+    }
+
+    private void registerSocks5(Channel serverChannel, Meta meta, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {
+        bindTcpPort(serverChannel, meta, remoteConfig, countDownLatch, ProxyType.SOCKS5, () -> new Socks5Handler(serverChannel, remoteConfig));
+    }
+
+    private void bindTcpPort(Channel serverChannel, Meta meta, RemoteConfig remoteConfig, CountDownLatch countDownLatch, ProxyType proxyType, Supplier<ChannelHandler> tailHandlerFactory) {
         if (remoteConfig.getRemotePort() == 0 || remoteConfig.getRemotePort() == Config.getServerConfig().getServerPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getHttpPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getDashboardPort()) {
-            meta.setConnection(false).addRemoteResult(String.format("需要绑定的TCP端口[%s]不合法", remoteConfig.getRemotePort()));
+            meta.setConnection(false).addRemoteResult(String.format("需要绑定的%s端口[%s]不合法", proxyType, remoteConfig.getRemotePort()));
             countDownLatch.countDown();
             return;
         }
         ServerToken serverToken = Config.getServerConfig().getServerToken(meta.getClientKey());
         if (!serverToken.authorize(remoteConfig.getRemotePort())) {
-            meta.setConnection(false).addRemoteResult(String.format("需要绑定的TCP端口[%s]范围不合法", remoteConfig.getRemotePort()));
+            meta.setConnection(false).addRemoteResult(String.format("需要绑定的%s端口[%s]范围不合法", proxyType, remoteConfig.getRemotePort()));
             countDownLatch.countDown();
             return;
         }
@@ -160,18 +174,18 @@ public class RegisterExecutor implements MessageExecutor {
                 if (Config.getServerConfig().ipFilterEnabled()) {
                     channel.pipeline().addLast(RULE_BASED_IP_FILTER);
                 }
-                channel.pipeline().addLast(new TcpHandler(serverChannel, remoteConfig));
+                channel.pipeline().addLast(tailHandlerFactory.get());
             }
         });
 
-        logger.info("服务端开始建立TCP端口绑定[{}]", remoteConfig.getRemotePort());
+        logger.info("服务端开始建立{}端口绑定[{}]", proxyType, remoteConfig.getRemotePort());
         remoteBootstrap.bind(Config.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).addListener((ChannelFutureListener) channelFuture -> {
             if (channelFuture.isSuccess()) {
                 serverChannel.attr(Server.TCP_PORT_CHANNEL_FUTURE).get().put(remoteConfig.getRemotePort(), channelFuture);
-                meta.addRemoteResult(String.format("服务端绑定TCP端口[%s]成功", remoteConfig.getRemotePort()));
+                meta.addRemoteResult(String.format("服务端绑定%s端口[%s]成功", proxyType, remoteConfig.getRemotePort()));
             } else {
-                logger.info("服务端失败建立TCP端口绑定[{}], {}", remoteConfig.getRemotePort(), channelFuture.cause().getMessage());
-                meta.setConnection(false).addRemoteResult(String.format("服务端绑定TCP端口[%s]失败,原因:%s", remoteConfig.getRemotePort(), channelFuture.cause().getMessage()));
+                logger.info("服务端失败建立{}端口绑定[{}], {}", proxyType, remoteConfig.getRemotePort(), channelFuture.cause().getMessage());
+                meta.setConnection(false).addRemoteResult(String.format("服务端绑定%s端口[%s]失败,原因:%s", proxyType, remoteConfig.getRemotePort(), channelFuture.cause().getMessage()));
             }
             countDownLatch.countDown();
         });

@@ -563,7 +563,14 @@
             line(['    ', s(K, 'domain'), ': ', s(V, 'test.domain.com')]),
             line(['    ', s(C, '# 访问资源时登录的账号和密码(账号:密码) 非必填')]),
             line(['    ', s(K, 'token'), ': ', s(V, 'admin:admin')]),
-            line(['    ', s(K, 'description'), ': ', s(V, 'tomcat')])
+            line(['    ', s(K, 'description'), ': ', s(V, 'tomcat')]),
+            line(['']),
+            line(['  - ', s(C, '# SOCKS5动态代理 目标由客户端按连接指定')]),
+            line(['  - ', s(K, 'proxyType'), ': ', s(V, 'SOCKS5')]),
+            line(['    ', s(K, 'remotePort'), ': ', s(V, '5080')]),
+            line(['    ', s(C, '# SOCKS5账密认证(账号:密码) 非必填')]),
+            line(['    ', s(K, 'token'), ': ', s(V, 'admin:admin')]),
+            line(['    ', s(K, 'description'), ': ', s(V, 'socks5')])
         ];
 
         document.getElementById('code-server').innerHTML = server.join('');

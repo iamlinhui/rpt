@@ -7,7 +7,8 @@ public enum ProxyType {
      */
     TCP(0, "tcp"),
     HTTP(1, "http"),
-    UDP(2, "udp");
+    UDP(2, "udp"),
+    SOCKS5(3, "socks5");
 
     ProxyType(int code, String desc) {
         this.code = code;

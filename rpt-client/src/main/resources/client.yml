@@ -26,3 +26,7 @@ config:
     domain: localhost
     token: admin:admin
     description: tomcat
+  - proxyType: SOCKS5
+    remotePort: 5080
+    token: admin:admin
+    description: socks5

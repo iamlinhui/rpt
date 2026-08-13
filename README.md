@@ -336,6 +336,12 @@ config:
     domain: test.domain.com       # 访问域名
     token: admin:admin            # 登录认证凭据 (可选, 格式 user:pass)
     description: tomcat
+
+  # SOCKS5代理示例：动态目标代理
+  - proxyType: SOCKS5
+    remotePort: 5080              # SOCKS5 监听端口
+    token: admin:admin            # SOCKS5 账密认证 (可选, 格式 user:pass)
+    description: socks5
 ```
 
 #### 客户端配置参数说明
@@ -348,21 +354,22 @@ config:
 | `clientCertPath` | String | 客户端证书路径（默认 `client.crt`） |
 | `clientKeyPath` | String | 客户端私钥路径（默认 `pkcs8_client.key`） |
 | `clientKey` | String | 客户端授权密钥 |
-| `config[].proxyType` | String | 代理类型：`TCP` / `UDP` / `HTTP` |
-| `config[].localIp` | String | 内网目标服务IP |
-| `config[].localPort` | int | 内网目标服务端口 |
-| `config[].remotePort` | int | 服务端暴露端口 (TCP/UDP模式) |
+| `config[].proxyType` | String | 代理类型：`TCP` / `UDP` / `HTTP` / `SOCKS5` |
+| `config[].localIp` | String | 内网目标服务IP (SOCKS5 模式由客户端动态指定，无需配置) |
+| `config[].localPort` | int | 内网目标服务端口 (SOCKS5 模式由客户端动态指定，无需配置) |
+| `config[].remotePort` | int | 服务端暴露端口 (TCP/UDP/SOCKS5模式) |
 | `config[].domain` | String | 访问域名 (HTTP模式，支持 `*.domain.com` 通配符) |
 | `config[].token` | String | 登录认证凭据 `用户名:密码`，未配置则无需登录 (可选) |
 | `config[].description` | String | 映射描述信息 |
 
-### 三种代理类型对比
+### 代理类型对比
 
 | 类型 | 协议 | 端口 | 域名 | 适用场景 |
 |------|------|------|------|----------|
 | **TCP** | TCP | 需要指定 `remotePort` | 不需要 | RDP、SSH、数据库、FTP 等 |
 | **UDP** | UDP | 需要指定 `remotePort` | 不需要 | DNS转发、游戏服务器 等 |
 | **HTTP** | HTTP | 复用服务端 HTTP 端口 | 需要配置 `domain` | Web应用、API接口 等 |
+| **SOCKS5** | SOCKS5 | 需要指定 `remotePort` | 不需要 | 任意 TCP 目标的动态代理，目标由 SOCKS5 客户端按连接动态指定 |
 
 ---
 

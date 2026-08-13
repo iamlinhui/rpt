@@ -28,6 +28,7 @@ public interface Constants {
         AttributeKey<String> SERVER_ID = AttributeKey.newInstance("SERVER_ID");
         AttributeKey<ProxyType> PROXY_TYPE = AttributeKey.newInstance("PROXY_TYPE");
         AttributeKey<InetSocketAddress> UDP_SENDER = AttributeKey.newInstance("UDP_SENDER");
+        AttributeKey<Target> DYNAMIC_TARGET = AttributeKey.newInstance("DYNAMIC_TARGET");
     }
 
     interface Client {
@@ -37,11 +38,6 @@ public interface Constants {
         AttributeKey<Channel> PROXY = AttributeKey.newInstance("PROXY");
         AttributeKey<Channel> LOCAL = AttributeKey.newInstance("LOCAL");
         AttributeKey<InetSocketAddress> UDP_TARGET = AttributeKey.newInstance("UDP_TARGET");
-    }
-
-    interface Desktop {
-        String TITLE = "Reverse Proxy Tool";
-        String VERSION = "2.6.1";
     }
 
 }

@@ -31,6 +31,10 @@
             <artifactId>netty-codec-http</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec-socks</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.maxmind.db</groupId>
             <artifactId>maxmind-db</artifactId>
         </dependency>

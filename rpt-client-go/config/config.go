@@ -10,9 +10,10 @@ import (
 type ProxyType string
 
 const (
-	ProxyTCP  ProxyType = "TCP"
-	ProxyHTTP ProxyType = "HTTP"
-	ProxyUDP  ProxyType = "UDP"
+	ProxyTCP    ProxyType = "TCP"
+	ProxyHTTP   ProxyType = "HTTP"
+	ProxyUDP    ProxyType = "UDP"
+	ProxySOCKS5 ProxyType = "SOCKS5"
 )
 
 type RemoteConfig struct {
