@@ -228,7 +228,7 @@ func (a *App) AddProxyConfig(proxyType, localIp string, localPort, remotePort in
 		ProxyType: config.ProxyType(proxyType), LocalIp: localIp, LocalPort: localPort,
 		RemotePort: remotePort, Domain: domain, Token: token, Description: description,
 	}
-	if rc.LocalIp == "" {
+	if rc.ProxyType != config.ProxySOCKS5 && rc.LocalIp == "" {
 		rc.LocalIp = "127.0.0.1"
 	}
 	a.cfg.Config = append(a.cfg.Config, rc)
@@ -252,6 +252,13 @@ func (a *App) UpdateProxyConfig(index int, proxyType, localIp string, localPort,
 }
 
 func validateProxyConfig(proxyType, localIp string, localPort, remotePort int, domain string) string {
+	// SOCKS5 目标由客户端按连接动态指定，无需本地地址/端口，仅需暴露端口
+	if proxyType == "SOCKS5" {
+		if remotePort < 1024 || remotePort > 65535 {
+			return "暴露端口必须在 1024-65535 之间"
+		}
+		return ""
+	}
 	if localIp == "" {
 		localIp = "127.0.0.1"
 	}
@@ -320,8 +327,11 @@ func (a *App) Start() string {
 	}
 	// Validate all configs before starting
 	for _, rc := range a.cfg.Config {
-		if rc.LocalPort < 1 || rc.LocalPort > 65535 {
-			return fmt.Sprintf("配置 [%s] 本地端口无效: %d", rc.ProxyType, rc.LocalPort)
+		// SOCKS5 目标由客户端动态指定，无需本地端口
+		if rc.ProxyType != config.ProxySOCKS5 {
+			if rc.LocalPort < 1 || rc.LocalPort > 65535 {
+				return fmt.Sprintf("配置 [%s] 本地端口无效: %d", rc.ProxyType, rc.LocalPort)
+			}
 		}
 		if rc.ProxyType == config.ProxyTCP || rc.ProxyType == config.ProxyUDP || rc.ProxyType == config.ProxySOCKS5 {
 			if rc.RemotePort < 1024 || rc.RemotePort > 65535 {
