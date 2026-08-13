@@ -4,7 +4,7 @@
 # 3. Run with:
 #    docker run -d --network host -v /opt/rpt/conf:/home/rpt/conf --restart=always --name rpt-server rpt-server
 #    Or expose specific ports:
-#    docker run -d -p 6167:6167 -p 80:80 -p 443:443 -p 8000:8000 -p 4000-9999:4000-9999 -v /opt/rpt/conf:/home/rpt/conf --restart=always --name rpt-server rpt-server
+#    docker run -d -p 6167:6167 -p 6234:6234 -p 7476:7476 -p 4000-9999:4000-9999 -v /opt/rpt/conf:/home/rpt/conf --restart=always --name rpt-server rpt-server
 
 FROM eclipse-temurin:8-jre
 LABEL authors="lynn"

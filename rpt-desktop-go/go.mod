@@ -2,8 +2,6 @@ module rpt-desktop-go
 
 go 1.26.0
 
-toolchain go1.26.0
-
 require (
 	github.com/energye/systray v1.0.3
 	github.com/wailsapp/wails/v2 v2.12.0
