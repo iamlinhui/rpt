@@ -99,18 +99,18 @@ public class Socks5Handler extends SimpleChannelInboundHandler<Socks5Message> {
         }
         ctx.channel().attr(Server.DYNAMIC_TARGET).set(new Target(host, port));
         logger.debug("socks5 握手成功, target={}:{}", host, port);
-        // SUCCESS 要经 NAME_ENCODER 编码,故必须在摘掉编码器之前写出;写失败只决定是否关连接。
+        ctx.channel().config().setAutoRead(false);
         ctx.writeAndFlush(new DefaultSocks5CommandResponse(Socks5CommandStatus.SUCCESS, Socks5AddressType.IPv4)).addListener((ChannelFutureListener) future -> {
             if (!future.isSuccess()) {
                 ctx.close();
+                return;
             }
+            ctx.pipeline().addLast(new TcpHandler(serverChannel, remoteConfig));
+            ctx.pipeline().remove(NAME_CMD_DECODER);
+            ctx.pipeline().remove(NAME_ENCODER);
+            ctx.pipeline().remove(NAME_TIMEOUT);
+            ctx.pipeline().remove(this);
         });
-        // 先挂Handler再摘解码器,保证残余字节到达时下游已有接收者
-        ctx.pipeline().addLast(new TcpHandler(serverChannel, remoteConfig));
-        ctx.pipeline().remove(NAME_CMD_DECODER);
-        ctx.pipeline().remove(NAME_ENCODER);
-        ctx.pipeline().remove(NAME_TIMEOUT);
-        ctx.pipeline().remove(this);
     }
 
     private void failAndClose(ChannelHandlerContext ctx, Socks5Message resp) {
