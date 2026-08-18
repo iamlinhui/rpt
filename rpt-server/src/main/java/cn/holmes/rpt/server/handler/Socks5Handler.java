@@ -31,11 +31,6 @@ public class Socks5Handler extends SimpleChannelInboundHandler<Socks5Message> {
     private final RemoteConfig remoteConfig;
     private final boolean requireAuth;
 
-    /**
-     * 握手成功后置位，阻止解码器对拼接进来的应用数据再次按命令帧解析
-     */
-    private boolean done;
-
     public Socks5Handler(Channel serverChannel, RemoteConfig remoteConfig) {
         this.serverChannel = serverChannel;
         this.remoteConfig = remoteConfig;
@@ -52,9 +47,6 @@ public class Socks5Handler extends SimpleChannelInboundHandler<Socks5Message> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Socks5Message msg) {
-        if (done) {
-            return;
-        }
         if (msg instanceof Socks5InitialRequest) {
             handleInit(ctx, (Socks5InitialRequest) msg);
         } else if (msg instanceof Socks5PasswordAuthRequest) {
@@ -105,21 +97,20 @@ public class Socks5Handler extends SimpleChannelInboundHandler<Socks5Message> {
             failAndClose(ctx, new DefaultSocks5CommandResponse(Socks5CommandStatus.FAILURE, Socks5AddressType.IPv4));
             return;
         }
-        done = true;
+        ctx.channel().attr(Server.DYNAMIC_TARGET).set(new Target(host, port));
+        logger.debug("socks5 握手成功, target={}:{}", host, port);
+        // SUCCESS 要经 NAME_ENCODER 编码,故必须在摘掉编码器之前写出;写失败只决定是否关连接。
         ctx.writeAndFlush(new DefaultSocks5CommandResponse(Socks5CommandStatus.SUCCESS, Socks5AddressType.IPv4)).addListener((ChannelFutureListener) future -> {
             if (!future.isSuccess()) {
                 ctx.close();
-                return;
             }
-            Channel ch = ctx.channel();
-            ch.attr(Server.DYNAMIC_TARGET).set(new Target(host, port));
-            logger.debug("socks5 握手成功, target={}:{}", host, port);
-            ctx.pipeline().remove(NAME_CMD_DECODER);
-            ctx.pipeline().remove(NAME_ENCODER);
-            ctx.pipeline().remove(NAME_TIMEOUT);
-            ctx.pipeline().remove(this);
-            ctx.pipeline().addLast(new TcpHandler(serverChannel, remoteConfig));
         });
+        // 先挂Handler再摘解码器,保证残余字节到达时下游已有接收者
+        ctx.pipeline().addLast(new TcpHandler(serverChannel, remoteConfig));
+        ctx.pipeline().remove(NAME_CMD_DECODER);
+        ctx.pipeline().remove(NAME_ENCODER);
+        ctx.pipeline().remove(NAME_TIMEOUT);
+        ctx.pipeline().remove(this);
     }
 
     private void failAndClose(ChannelHandlerContext ctx, Socks5Message resp) {

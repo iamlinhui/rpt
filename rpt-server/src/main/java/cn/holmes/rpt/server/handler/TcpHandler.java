@@ -14,6 +14,8 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -25,6 +27,7 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
     private final Channel serverChannel;
     private final RemoteConfig remoteConfig;
     private boolean activated;
+    private final Deque<ByteBuf> pending = new ArrayDeque<>();
 
     public TcpHandler(Channel serverChannel, RemoteConfig remoteConfig) {
         this.serverChannel = serverChannel;
@@ -53,6 +56,20 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
             ctx.fireUserEventTriggered(evt);
             return;
         }
+        Channel proxyChannel = ctx.channel().attr(Server.PROXY).get();
+        ByteBuf buf;
+        while ((buf = pending.poll()) != null) {
+            if (!buf.isReadable()) {
+                buf.release();
+                continue;
+            }
+            if (Objects.isNull(proxyChannel)) {
+                buf.release();
+                continue;
+            }
+            TrafficStatsCache.recordIn(serverChannel.id().asLongText(), buf.readableBytes());
+            send(proxyChannel, MessageType.TYPE_DATA, buf, ctx);
+        }
         ctx.channel().config().setAutoRead(true);
     }
 
@@ -76,7 +93,7 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
         // 从外部连接接收到的数据 转发到客户端
         Channel proxyChannel = ctx.channel().attr(Server.PROXY).get();
         if (Objects.isNull(proxyChannel)) {
-            ctx.close();
+            pending.add(buf.retain());
             return;
         }
         TrafficStatsCache.recordIn(serverChannel.id().asLongText(), buf.readableBytes());
@@ -88,6 +105,10 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        ByteBuf buf;
+        while ((buf = pending.poll()) != null) {
+            buf.release();
+        }
         Optional.ofNullable(serverChannel.attr(Server.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(ctx.channel().id().asLongText()));
         Channel proxyChannel = ctx.channel().attr(Server.PROXY).getAndSet(null);
         if (Objects.nonNull(proxyChannel) && proxyChannel.isActive()) {
