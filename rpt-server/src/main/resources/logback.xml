@@ -22,7 +22,7 @@
         </rollingPolicy>
     </appender>
 
-    <logger name="log4j.logger.io.netty" level="error"/>
+    <logger name="io.netty" level="error"/>
 
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
