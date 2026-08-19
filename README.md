@@ -5,7 +5,7 @@
 <h1 align="center">RPT - Reverse Proxy Tool</h1>
 
 <p align="center">
-  <strong>一个高性能的内网穿透工具，将局域网个人电脑、服务器代理映射到公网</strong>
+  <strong>一个高性能的内网穿透 / 反向代理 / 正向代理工具，支持 TCP/UDP 上层协议、HTTP 域名复用与 SOCKS5 动态代理</strong>
 </p>
 
 <p align="center">
@@ -38,7 +38,7 @@
 
 ## 🚀 项目简介
 
-**RPT (Reverse Proxy Tool)** 是一款基于 Netty 的内网穿透工具，通过在公网服务器与内网客户端之间建立安全隧道，将内网服务暴露到公网，实现外部访问。
+**RPT (Reverse Proxy Tool)** 是一款内网穿透 / 反向代理 / 正向代理工具，服务端基于 Netty，提供 Java 与 Go 双语言客户端，通过 SSL 双向认证在公网服务器与内网客户端之间建立安全隧道，将内网服务暴露到公网；支持 TCP/UDP 上层协议、HTTP 域名复用与 SOCKS5 动态代理，内置 Dashboard 监控面板。
 
 ### 工作原理
 
