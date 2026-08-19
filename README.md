@@ -5,6 +5,10 @@
 <h1 align="center">RPT - Reverse Proxy Tool</h1>
 
 <p align="center">
+  <a href="README.md">中文</a> | <a href="README_EN.md">English</a>
+</p>
+
+<p align="center">
   <strong>一个高性能的内网穿透 / 反向代理 / 正向代理工具，支持 TCP/UDP 上层协议、HTTP 域名复用与 SOCKS5 动态代理</strong>
 </p>
 
