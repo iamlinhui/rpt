@@ -83,6 +83,16 @@
                 <artifactId>caffeine</artifactId>
                 <version>2.9.3</version>
             </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcpkix-jdk15on</artifactId>
+                <version>1.70</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bctls-jdk15on</artifactId>
+                <version>1.70</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

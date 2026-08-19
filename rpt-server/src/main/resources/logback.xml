@@ -22,7 +22,7 @@
         </rollingPolicy>
     </appender>
 
-    <logger name="io.netty" level="error"/>
+    <logger name="io.netty" level="ERROR"/>
 
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
