@@ -8,6 +8,7 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.socksx.v5.*;
+import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.handler.timeout.ReadTimeoutException;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import org.slf4j.Logger;
@@ -19,9 +20,8 @@ public class Socks5Handler extends SimpleChannelInboundHandler<Socks5Message> {
 
     private static final Logger logger = LoggerFactory.getLogger(Socks5Handler.class);
 
-    private static final long HANDSHAKE_TIMEOUT_SECONDS = 10;
-
     private static final String NAME_TIMEOUT = "socksTimeout";
+    private static final String NAME_IDLE = "socksIdle";
     private static final String NAME_INIT_DECODER = "socksInitDecoder";
     private static final String NAME_AUTH_DECODER = "socksAuthDecoder";
     private static final String NAME_CMD_DECODER = "socksCmdDecoder";
@@ -40,7 +40,7 @@ public class Socks5Handler extends SimpleChannelInboundHandler<Socks5Message> {
     @Override
     public void handlerAdded(ChannelHandlerContext ctx) {
         // ReadTimeout → InitDecoder → Encoder → Socks5Handler
-        ctx.pipeline().addBefore(ctx.name(), NAME_TIMEOUT, new ReadTimeoutHandler(HANDSHAKE_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        ctx.pipeline().addBefore(ctx.name(), NAME_TIMEOUT, new ReadTimeoutHandler(10, TimeUnit.SECONDS));
         ctx.pipeline().addBefore(ctx.name(), NAME_INIT_DECODER, new Socks5InitialRequestDecoder());
         ctx.pipeline().addBefore(ctx.name(), NAME_ENCODER, Socks5ServerEncoder.DEFAULT);
     }
@@ -108,7 +108,8 @@ public class Socks5Handler extends SimpleChannelInboundHandler<Socks5Message> {
             ctx.pipeline().addLast(new TcpHandler(serverChannel, remoteConfig));
             ctx.pipeline().remove(NAME_CMD_DECODER);
             ctx.pipeline().remove(NAME_ENCODER);
-            ctx.pipeline().remove(NAME_TIMEOUT);
+            // 握手超时 → 代理阶段空闲超时
+            ctx.pipeline().replace(NAME_TIMEOUT, NAME_IDLE, new IdleStateHandler(0, 0, 600, TimeUnit.SECONDS));
             ctx.pipeline().remove(this);
         });
     }

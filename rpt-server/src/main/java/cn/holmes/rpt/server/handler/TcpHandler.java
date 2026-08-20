@@ -13,6 +13,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.timeout.IdleStateEvent;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -52,6 +53,10 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+        if (evt instanceof IdleStateEvent) {
+            ctx.close();
+            return;
+        }
         if (!Objects.equals(ProxyType.TCP, evt)) {
             ctx.fireUserEventTriggered(evt);
             return;
