@@ -43,7 +43,7 @@ var pngData []byte
 
 const (
 	appTitle   = "Reverse Proxy Tool"
-	appVersion = "2.7.0"
+	appVersion = "2.7.1"
 )
 
 func main() {

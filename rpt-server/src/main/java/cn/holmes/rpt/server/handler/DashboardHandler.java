@@ -107,8 +107,12 @@ public class DashboardHandler extends SimpleChannelInboundHandler<FullHttpReques
             Map<String, Channel> channels = ch.attr(Server.CHANNELS).get();
             client.put("activeSessions", channels != null ? channels.size() : 0);
 
-            // Proxy channels (由客户端ProxyChannelCache建立的代理连接数)
+            // Proxy channels (当前活跃会话数，多路复用下k个会话跑在n条共享隧道上)
             client.put("proxyChannels", TrafficStatsCache.proxyChannels(entry.getKey()));
+
+            // Tunnels (客户端建立的共享数据隧道数)
+            Set<Channel> tunnelSet = ch.attr(Server.TUNNEL_SET).get();
+            client.put("tunnels", tunnelSet != null ? tunnelSet.size() : 0);
 
             // Traffic
             long[] traffic = TrafficStatsCache.getTraffic(entry.getKey());

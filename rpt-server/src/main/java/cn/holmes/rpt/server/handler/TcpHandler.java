@@ -44,9 +44,9 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        Channel proxyChannel = ctx.channel().attr(Server.PROXY).get();
-        if (Objects.nonNull(proxyChannel)) {
-            proxyChannel.config().setAutoRead(ctx.channel().isWritable());
+        Channel tunnel = ctx.channel().attr(Server.PROXY).get();
+        if (Objects.nonNull(tunnel)) {
+            tunnel.config().setAutoRead(ctx.channel().isWritable());
         }
         super.channelWritabilityChanged(ctx);
     }
@@ -61,19 +61,19 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
             ctx.fireUserEventTriggered(evt);
             return;
         }
-        Channel proxyChannel = ctx.channel().attr(Server.PROXY).get();
+        Channel tunnel = ctx.channel().attr(Server.PROXY).get();
         ByteBuf buf;
         while ((buf = pending.poll()) != null) {
             if (!buf.isReadable()) {
                 buf.release();
                 continue;
             }
-            if (Objects.isNull(proxyChannel)) {
+            if (Objects.isNull(tunnel)) {
                 buf.release();
                 continue;
             }
             TrafficStatsCache.recordIn(serverChannel.id().asLongText(), buf.readableBytes());
-            send(proxyChannel, MessageType.TYPE_DATA, buf, ctx);
+            send(tunnel, MessageType.TYPE_DATA, buf, ctx);
         }
         ctx.channel().config().setAutoRead(true);
     }
@@ -96,13 +96,13 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, ByteBuf buf) throws Exception {
         // 从外部连接接收到的数据 转发到客户端
-        Channel proxyChannel = ctx.channel().attr(Server.PROXY).get();
-        if (Objects.isNull(proxyChannel)) {
+        Channel tunnel = ctx.channel().attr(Server.PROXY).get();
+        if (Objects.isNull(tunnel)) {
             pending.add(buf.retain());
             return;
         }
         TrafficStatsCache.recordIn(serverChannel.id().asLongText(), buf.readableBytes());
-        send(proxyChannel, MessageType.TYPE_DATA, buf.retain(), ctx);
+        send(tunnel, MessageType.TYPE_DATA, buf.retain(), ctx);
     }
 
     /**
@@ -115,15 +115,16 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
             buf.release();
         }
         Optional.ofNullable(serverChannel.attr(Server.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(ctx.channel().id().asLongText()));
-        Channel proxyChannel = ctx.channel().attr(Server.PROXY).getAndSet(null);
-        if (Objects.nonNull(proxyChannel) && proxyChannel.isActive()) {
-            proxyChannel.attr(Server.LOCAL).set(null);
-            proxyChannel.config().setAutoRead(true);
-            String serverId = proxyChannel.attr(Server.SERVER_ID).getAndSet(null);
-            if (serverId != null) {
-                TrafficStatsCache.decrementProxyChannels(serverId);
-            }
-            send(proxyChannel, MessageType.TYPE_DISCONNECTED, Unpooled.EMPTY_BUFFER, ctx);
+        Channel tunnel = ctx.channel().attr(Server.PROXY).getAndSet(null);
+        if (Objects.nonNull(tunnel) && tunnel.isActive()) {
+            tunnel.config().setAutoRead(true);
+            String channelId = ctx.channel().id().asLongText();
+            Optional.ofNullable(tunnel.attr(Server.STREAM_SET).get()).ifPresent(streamSet -> {
+                if (streamSet.remove(channelId)) {
+                    TrafficStatsCache.decrementProxyChannels(serverChannel.id().asLongText());
+                }
+            });
+            send(tunnel, MessageType.TYPE_DISCONNECTED, Unpooled.EMPTY_BUFFER, ctx);
         }
     }
 

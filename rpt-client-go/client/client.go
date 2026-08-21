@@ -13,21 +13,29 @@ import (
 
 	"rpt-client-go/config"
 	"rpt-client-go/protocol"
-	"rpt-client-go/proxy"
+	"rpt-client-go/tunnel"
 )
+
+// session 承载在共享隧道上的一个外部连接（以channelId路由）
+type session struct {
+	local  io.ReadWriteCloser
+	tunnel *protocol.Conn
+	meta   *protocol.Meta
+}
 
 type Client struct {
 	cfg        *config.ClientConfig
 	tlsConfig  *tls.Config
-	pool       *proxy.Pool
+	tunnels    *tunnel.Pool
 	serverAddr string
 
 	mu         sync.Mutex
-	channels   map[string]io.Closer // channelId -> local connection
+	sessions   map[string]*session // channelId -> session
+	serverId   string
 	stopped    bool
-	stopCh     chan struct{}  // closed by Stop() to interrupt backoff sleep
-	resetDelay bool           // set to true after successful auth
-	serverConn *protocol.Conn // active server connection, for forced close
+	stopCh     chan struct{} // closed by Stop() to interrupt backoff sleep
+	resetDelay bool          // set to true after successful auth
+	serverConn *protocol.Conn
 }
 
 func New(cfg *config.ClientConfig, tlsConfig *tls.Config) *Client {
@@ -36,12 +44,12 @@ func New(cfg *config.ClientConfig, tlsConfig *tls.Config) *Client {
 		cfg:        cfg,
 		tlsConfig:  tlsConfig,
 		serverAddr: addr,
-		channels:   make(map[string]io.Closer),
+		sessions:   make(map[string]*session),
 		stopCh:     make(chan struct{}),
 	}
-	c.pool = proxy.NewPool(func() (*protocol.Conn, error) {
+	c.tunnels = tunnel.NewPool(func() (*protocol.Conn, error) {
 		return protocol.DialTLS(addr, tlsConfig)
-	})
+	}, c.handleTunnelMessage, c.handleTunnelClosed)
 	return c
 }
 
@@ -66,9 +74,9 @@ func (c *Client) Run() {
 		if err != nil {
 			log.Printf("[client] connection error: %v", err)
 		}
-		// Clear local channels and pool on disconnect
-		c.clearChannels()
-		c.pool.Clear()
+		// 控制通道断开：关闭所有隧道与会话本地连接
+		c.tunnels.Close()
+		c.closeSessions()
 		if c.resetDelay {
 			c.resetDelay = false
 			delay = 0
@@ -93,16 +101,16 @@ func (c *Client) Stop() {
 	if sc != nil {
 		sc.Close()
 	}
-	c.clearChannels()
-	c.pool.Clear()
+	c.tunnels.Close()
+	c.closeSessions()
 }
 
-func (c *Client) clearChannels() {
+func (c *Client) closeSessions() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	for id, ch := range c.channels {
-		ch.Close()
-		delete(c.channels, id)
+	for id, s := range c.sessions {
+		s.local.Close()
+		delete(c.sessions, id)
 	}
 }
 
@@ -153,14 +161,11 @@ func (c *Client) handleMessage(serverConn *protocol.Conn, msg *protocol.Message)
 		c.handleAuth(serverConn, msg)
 	case protocol.TypeConnected:
 		go c.handleConnected(serverConn, msg)
-	case protocol.TypeData:
-		c.handleData(msg)
-	case protocol.TypeDisconnected:
-		c.handleDisconnected(msg)
 	case protocol.TypeKeepalive:
 		// respond with keepalive
 		serverConn.Send(&protocol.Message{Type: protocol.TypeKeepalive})
 	}
+	// TypeData/TypeDisconnected 只会到达共享隧道，由 handleTunnelMessage 处理
 }
 
 func (c *Client) handleAuth(serverConn *protocol.Conn, msg *protocol.Message) {
@@ -172,8 +177,12 @@ func (c *Client) handleAuth(serverConn *protocol.Conn, msg *protocol.Message) {
 	}
 	if msg.Meta.Connection {
 		log.Printf("[auth] connected successfully, clientKey: %s", msg.Meta.ClientKey)
+		c.mu.Lock()
+		c.serverId = msg.Meta.ServerId
+		c.mu.Unlock()
 		c.resetDelay = true
-		c.pool.Init()
+		// 建立n条共享数据隧道，k个外部会话通过channelId复用（serverId由服务端注册响应回填）
+		c.tunnels.Init(c.cfg.ClientKey, msg.Meta.ServerId, c.cfg.TunnelCount)
 	} else {
 		log.Printf("[auth] connection rejected, clientKey: %s", msg.Meta.ClientKey)
 	}
@@ -199,10 +208,9 @@ func (c *Client) handleConnected(serverConn *protocol.Conn, msg *protocol.Messag
 		msg.Meta.SetRemoteConfig(rc)
 	}
 
-	// Get a proxy connection from pool
-	proxyConn, err := c.pool.Get()
-	if err != nil {
-		log.Printf("[connected] failed to get proxy conn: %v", err)
+	// 轮询选取共享隧道承载该会话
+	t := c.tunnels.Pick()
+	if t == nil {
 		serverConn.Send(&protocol.Message{
 			Type: protocol.TypeDisconnected,
 			Meta: msg.Meta,
@@ -211,219 +219,147 @@ func (c *Client) handleConnected(serverConn *protocol.Conn, msg *protocol.Messag
 	}
 
 	if rc.ProxyType == "UDP" {
-		c.connectUDP(serverConn, proxyConn, msg.Meta, rc)
+		c.connectUDP(serverConn, t, msg.Meta, rc)
 	} else {
-		c.connectTCP(serverConn, proxyConn, msg.Meta, rc)
+		c.connectTCP(serverConn, t, msg.Meta, rc)
 	}
 }
 
-func (c *Client) connectTCP(serverConn *protocol.Conn, proxyConn *protocol.Conn, meta *protocol.Meta, rc *protocol.RemoteConfigMsg) {
+func (c *Client) connectTCP(serverConn *protocol.Conn, t *protocol.Conn, meta *protocol.Meta, rc *protocol.RemoteConfigMsg) {
 	localAddr := net.JoinHostPort(rc.LocalIp, strconv.Itoa(rc.LocalPort))
 	localConn, err := net.DialTimeout("tcp", localAddr, 5*time.Second)
 	if err != nil {
 		log.Printf("[tcp] connect local %s failed: %v", localAddr, err)
-		c.notifyDisconnected(serverConn, proxyConn, meta)
+		serverConn.Send(&protocol.Message{
+			Type: protocol.TypeDisconnected,
+			Meta: meta,
+		})
 		return
 	}
-
-	done, endSession := c.startRelay(localConn, proxyConn, meta)
-
-	// Bidirectional relay
-	go c.relayLocalToProxy(localConn, proxyConn, meta, done, endSession)
-	go c.relayProxyToLocal(localConn, proxyConn, endSession)
+	c.registerSession(localConn, t, meta)
+	go c.relayLocalToTunnel(meta.ChannelId)
 }
 
-func (c *Client) connectUDP(serverConn *protocol.Conn, proxyConn *protocol.Conn, meta *protocol.Meta, rc *protocol.RemoteConfigMsg) {
+func (c *Client) connectUDP(serverConn *protocol.Conn, t *protocol.Conn, meta *protocol.Meta, rc *protocol.RemoteConfigMsg) {
 	localAddr := net.JoinHostPort(rc.LocalIp, strconv.Itoa(rc.LocalPort))
 	udpAddr, err := net.ResolveUDPAddr("udp", localAddr)
 	if err != nil {
 		log.Printf("[udp] resolve %s failed: %v", localAddr, err)
-		c.notifyDisconnected(serverConn, proxyConn, meta)
+		serverConn.Send(&protocol.Message{
+			Type: protocol.TypeDisconnected,
+			Meta: meta,
+		})
 		return
 	}
 
 	udpConn, err := net.DialUDP("udp", nil, udpAddr)
 	if err != nil {
 		log.Printf("[udp] dial %s failed: %v", localAddr, err)
-		c.notifyDisconnected(serverConn, proxyConn, meta)
+		serverConn.Send(&protocol.Message{
+			Type: protocol.TypeDisconnected,
+			Meta: meta,
+		})
 		return
 	}
-
-	done, endSession := c.startRelay(udpConn, proxyConn, meta)
-
-	// Relay: UDP local -> proxy
-	go func() {
-		buf := make([]byte, 65535)
-		for {
-			n, err := udpConn.Read(buf)
-			if err != nil {
-				select {
-				case <-done:
-					return
-				default:
-				}
-				proxyConn.Send(&protocol.Message{
-					Type: protocol.TypeDisconnected,
-					Meta: meta,
-				})
-				endSession(true)
-				return
-			}
-			data := buf[:n]
-			if sendErr := proxyConn.Send(&protocol.Message{
-				Type: protocol.TypeData,
-				Meta: meta,
-				Data: data,
-			}); sendErr != nil {
-				endSession(false)
-				return
-			}
-		}
-	}()
-
-	// Relay: proxy -> UDP local
-	go c.relayProxyToLocal(udpConn, proxyConn, endSession)
+	c.registerSession(udpConn, t, meta)
+	go c.relayLocalToTunnel(meta.ChannelId)
 }
 
-// startRelay registers the local connection, sends the connected ACK to the
-// server, and returns the coordination primitives for the bidirectional relay:
-//   - done: closed by endSession so the local->proxy reader can stop after teardown
-//   - endSession: idempotent teardown that closes the local conn, drops the channel
-//     map entry, and either returns the proxy conn to the pool or closes it.
-func (c *Client) startRelay(local io.Closer, proxyConn *protocol.Conn, meta *protocol.Meta) (done <-chan struct{}, endSession func(bool)) {
-	channelId := meta.ChannelId
+// registerSession 登记会话并经隧道发送connected ACK（服务端按meta.channelId绑定会话）
+func (c *Client) registerSession(local io.ReadWriteCloser, t *protocol.Conn, meta *protocol.Meta) {
 	c.mu.Lock()
-	c.channels[channelId] = local
+	c.sessions[meta.ChannelId] = &session{local: local, tunnel: t, meta: meta}
 	c.mu.Unlock()
-
-	// Send connected ACK
-	proxyConn.Send(&protocol.Message{
+	t.Send(&protocol.Message{
 		Type: protocol.TypeConnected,
 		Meta: meta,
 	})
-
-	var once sync.Once
-	d := make(chan struct{})
-	done = d
-	endSession = func(returnToPool bool) {
-		once.Do(func() {
-			close(d)
-			local.Close()
-			c.removeChannel(channelId)
-			if returnToPool {
-				c.pool.Put(proxyConn)
-			} else {
-				proxyConn.Close()
-			}
-		})
-	}
-	return done, endSession
 }
 
-// notifyDisconnected is the local-dial failure path: return the proxy conn to
-// the pool and tell the server this channel is gone, before any session starts.
-func (c *Client) notifyDisconnected(serverConn *protocol.Conn, proxyConn *protocol.Conn, meta *protocol.Meta) {
-	c.pool.Put(proxyConn)
-	serverConn.Send(&protocol.Message{
-		Type: protocol.TypeDisconnected,
-		Meta: meta,
-	})
-}
-
-func (c *Client) relayLocalToProxy(local net.Conn, proxyConn *protocol.Conn, meta *protocol.Meta, done <-chan struct{}, endSession func(bool)) {
+// relayLocalToTunnel 本地->隧道中继，本地关闭时经隧道通知服务端结束会话
+func (c *Client) relayLocalToTunnel(channelId string) {
 	buf := make([]byte, 32*1024)
 	for {
-		n, err := local.Read(buf)
+		s := c.session(channelId)
+		if s == nil {
+			return
+		}
+		n, err := s.local.Read(buf)
 		if n > 0 {
-			// Zero-copy: use buf[:n] directly; Send completes synchronously
-			// before the next Read reuses the buffer.
-			select {
-			case <-done:
-				return
-			default:
-			}
-			if sendErr := proxyConn.Send(&protocol.Message{
+			if sendErr := s.tunnel.Send(&protocol.Message{
 				Type: protocol.TypeData,
-				Meta: meta,
+				Meta: s.meta,
 				Data: buf[:n],
 			}); sendErr != nil {
-				endSession(false)
+				// 隧道已坏，隧道读循环会清理该会话，这里直接退出
 				return
 			}
 		}
 		if err != nil {
-			// Local closed. If session already ended via the other goroutine, skip.
-			select {
-			case <-done:
-				return
-			default:
-			}
-			// Notify server of disconnect. Do NOT return proxy conn to pool here —
-			// relayProxyToLocal is still blocking on Receive(). Let that goroutine
-			// handle the pool return when it receives the server's disconnect reply.
-			if sendErr := proxyConn.Send(&protocol.Message{
-				Type: protocol.TypeDisconnected,
-				Meta: meta,
-			}); sendErr != nil {
-				// Send failed — proxy conn is broken. endSession(false) will close it
-				// and relayProxyToLocal's Receive will error out too.
-				endSession(false)
-			}
+			// 本地关闭：通知服务端释放会话，隧道保持复用
+			c.endSession(channelId, true)
 			return
 		}
 	}
 }
 
-// relayProxyToLocal relays server->local data. local is an io.Writer — a net.Conn
-// for TCP sessions or a *net.UDPConn for UDP sessions. On a server TypeDisconnected
-// the proxy conn is returned to the pool; on any read/write error it is closed.
-func (c *Client) relayProxyToLocal(local io.Writer, proxyConn *protocol.Conn, endSession func(bool)) {
-	for {
-		msg, err := proxyConn.Receive()
-		if err != nil {
-			// Read error — connection is broken, close everything.
-			endSession(false)
-			return
-		}
-		switch msg.Type {
-		case protocol.TypeData:
-			if len(msg.Data) > 0 {
-				if _, werr := local.Write(msg.Data); werr != nil {
-					endSession(false)
-					return
-				}
-			}
-		case protocol.TypeDisconnected:
-			// Server indicates session end. This goroutine is the reader so it's
-			// safe to return the proxy conn to the pool — no one else is reading.
-			endSession(true)
-			return
-		case protocol.TypeKeepalive:
-			// ignore keepalive
-		}
-	}
-}
-
-func (c *Client) handleData(msg *protocol.Message) {
-	// Data on the server connection is handled in the proxy relay goroutines.
-	// This is for data arriving on the main server channel (not expected normally).
-}
-
-func (c *Client) handleDisconnected(msg *protocol.Message) {
+// handleTunnelMessage 共享隧道下行消息：按meta.channelId路由到会话本地连接
+func (c *Client) handleTunnelMessage(conn *protocol.Conn, msg *protocol.Message) {
 	if msg.Meta == nil {
 		return
 	}
-	channelId := msg.Meta.ChannelId
-	c.mu.Lock()
-	if ch, ok := c.channels[channelId]; ok {
-		ch.Close()
-		delete(c.channels, channelId)
+	switch msg.Type {
+	case protocol.TypeData:
+		s := c.session(msg.Meta.ChannelId)
+		if s == nil || len(msg.Data) == 0 {
+			return
+		}
+		if _, err := s.local.Write(msg.Data); err != nil {
+			c.endSession(msg.Meta.ChannelId, true)
+		}
+	case protocol.TypeDisconnected:
+		// 服务端通知会话结束，隧道保持复用
+		c.endSession(msg.Meta.ChannelId, false)
 	}
-	c.mu.Unlock()
 }
 
-func (c *Client) removeChannel(channelId string) {
+// handleTunnelClosed 隧道断开：关闭其上承载的所有外部连接（补连由隧道池负责）
+func (c *Client) handleTunnelClosed(conn *protocol.Conn) {
 	c.mu.Lock()
-	delete(c.channels, channelId)
+	var doomed []string
+	for id, s := range c.sessions {
+		if s.tunnel == conn {
+			doomed = append(doomed, id)
+		}
+	}
 	c.mu.Unlock()
+	for _, id := range doomed {
+		c.endSession(id, false)
+	}
+}
+
+// endSession 幂等拆除会话；notify为true时经隧道发TypeDisconnected通知服务端
+func (c *Client) endSession(channelId string, notify bool) {
+	c.mu.Lock()
+	s, ok := c.sessions[channelId]
+	if ok {
+		delete(c.sessions, channelId)
+	}
+	c.mu.Unlock()
+	if !ok {
+		return
+	}
+	s.local.Close()
+	if notify && !s.tunnel.IsClosed() {
+		s.tunnel.Send(&protocol.Message{
+			Type: protocol.TypeDisconnected,
+			Meta: s.meta,
+		})
+	}
+}
+
+func (c *Client) session(channelId string) *session {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.sessions[channelId]
 }

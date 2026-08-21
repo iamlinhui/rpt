@@ -83,7 +83,7 @@ public class RegisterExecutor implements MessageExecutor {
     }
 
     private void fillRemoteResult(Channel serverChannel, Meta meta) throws Exception {
-        meta.setConnection(true).setRemoteResult(new CopyOnWriteArrayList<>());
+        meta.setConnection(true).setServerId(serverChannel.id().asLongText()).setRemoteResult(new CopyOnWriteArrayList<>());
         List<RemoteConfig> remoteConfigList = Optional.ofNullable(meta.getRemoteConfigList()).orElse(Collections.emptyList());
         if (remoteConfigList.isEmpty()) {
             return;

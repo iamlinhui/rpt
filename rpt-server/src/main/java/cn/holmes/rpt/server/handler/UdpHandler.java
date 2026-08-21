@@ -49,6 +49,11 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
     private final RemoteConfig remoteConfig;
 
+    /**
+     * 本端口对应的UDP DatagramChannel（channelActive时赋值，按端口共享）
+     */
+    private Channel udpChannel;
+
     private final Map<String, InetSocketAddress> senderAddressMap = new ConcurrentHashMap<>();
 
     private final Map<String, Channel> proxyChannelMap = new ConcurrentHashMap<>();
@@ -69,6 +74,7 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        udpChannel = ctx.channel();
         ctx.channel().attr(Server.PROXY_TYPE).set(ProxyType.UDP);
         timeoutChecker = ctx.channel().eventLoop().scheduleAtFixedRate(this::cleanIdleSessions, SESSION_TIMEOUT, SESSION_TIMEOUT / 2, TimeUnit.SECONDS);
     }
@@ -111,13 +117,9 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
             return;
         }
         String channelId = toChannelId(sender);
-
         lastActiveMap.put(channelId, System.currentTimeMillis());
-
         ByteBuf data = packet.content().retainedDuplicate();
-
         TrafficStatsCache.recordIn(serverChannel.id().asLongText(), data.readableBytes());
-
         if (!senderAddressMap.containsKey(channelId)) {
             // 新的发送者，创建虚拟会话
             senderAddressMap.put(channelId, sender);
@@ -145,22 +147,24 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
     }
 
     /**
-     * 绑定代理通道并刷新缓冲数据。
-     * 由服务端ConnectedExecutor在代理通道建立后调用。
+     * 绑定隧道并刷新缓冲数据
      */
-    private void bindProxy(String channelId, Channel proxyChannel) {
+    private void bindProxy(String channelId, Channel tunnel) {
         InetSocketAddress address = senderAddressMap.get(channelId);
         if (address == null) {
             return;
         }
-        proxyChannel.attr(Server.UDP_SENDER).set(address);
-        proxyChannelMap.put(channelId, proxyChannel);
+        // 发送者地址按会话记录在共享的UDP本地通道上
+        udpChannel.attr(Server.UDP_SENDERS).setIfAbsent(new ConcurrentHashMap<>());
+        Map<String, InetSocketAddress> senders = udpChannel.attr(Server.UDP_SENDERS).get();
+        senders.put(channelId, address);
+        proxyChannelMap.put(channelId, tunnel);
         // 刷新缓冲的数据
         Queue<ByteBuf> buffer = channelBufferMap.remove(channelId);
         if (buffer != null) {
             ByteBuf data;
             while ((data = buffer.poll()) != null) {
-                sendMessage(proxyChannel, MessageType.TYPE_DATA, data, channelId);
+                sendMessage(tunnel, MessageType.TYPE_DATA, data, channelId);
             }
         }
     }
@@ -171,6 +175,10 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
     private void removeSession(String channelId) {
         Optional.ofNullable(serverChannel.attr(Server.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(channelId));
         senderAddressMap.remove(channelId);
+        Map<String, InetSocketAddress> senders = udpChannel != null ? udpChannel.attr(Server.UDP_SENDERS).get() : null;
+        if (senders != null) {
+            senders.remove(channelId);
+        }
         // 释放缓冲区中未发送的ByteBuf
         Queue<ByteBuf> buffer = channelBufferMap.remove(channelId);
         if (buffer != null) {
@@ -180,16 +188,17 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
             }
         }
         lastActiveMap.remove(channelId);
-        Channel proxyChannel = proxyChannelMap.remove(channelId);
-        // 通过代理通道通知客户端断开，客户端会关闭本地通道并将proxyChannel归还连接池复用
-        if (proxyChannel != null && proxyChannel.isActive()) {
-            proxyChannel.attr(Server.LOCAL).set(null);
-            proxyChannel.attr(Server.UDP_SENDER).set(null);
-            String serverId = proxyChannel.attr(Server.SERVER_ID).getAndSet(null);
-            if (serverId != null) {
-                TrafficStatsCache.decrementProxyChannels(serverId);
-            }
-            sendMessage(proxyChannel, MessageType.TYPE_DISCONNECTED, Unpooled.EMPTY_BUFFER, channelId);
+        Channel tunnel = proxyChannelMap.remove(channelId);
+        // 通过隧道通知客户端断开该会话，隧道本身保持复用
+        if (tunnel != null && tunnel.isActive()) {
+            String serverId = serverChannel.id().asLongText();
+            Optional.ofNullable(tunnel.attr(Server.STREAM_SET).get()).ifPresent(streamSet -> {
+                // remove返回true才递减
+                if (streamSet.remove(channelId)) {
+                    TrafficStatsCache.decrementProxyChannels(serverId);
+                }
+            });
+            sendMessage(tunnel, MessageType.TYPE_DISCONNECTED, Unpooled.EMPTY_BUFFER, channelId);
         }
     }
 

@@ -10,7 +10,8 @@ public enum MessageType {
     TYPE_CONNECTED(3, "建立连接"),
     TYPE_DISCONNECTED(4, "断开连接"),
     TYPE_KEEPALIVE(5, "心跳"),
-    TYPE_DATA(6, "数据传输");
+    TYPE_DATA(6, "数据传输"),
+    TYPE_TUNNEL(7, "隧道注册");
 
     MessageType(int code, String desc) {
         this.code = code;

@@ -4,20 +4,25 @@ import cn.holmes.rpt.base.config.ProxyType;
 import cn.holmes.rpt.base.executor.MessageExecutor;
 import cn.holmes.rpt.base.executor.MessageExecutorFactory;
 import cn.holmes.rpt.base.protocol.Message;
+import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.utils.Constants.Server;
+import cn.holmes.rpt.base.utils.FireEvent;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
-import io.netty.buffer.Unpooled;
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
- * 处理服务器接收到的客户端连接
+ * 处理服务器接收到的客户端连接（控制通道 + 共享数据隧道）
  */
 public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
@@ -25,9 +30,19 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        Channel localChannel = ctx.channel().attr(Server.LOCAL).get();
-        if (Objects.nonNull(localChannel)) {
-            localChannel.config().setAutoRead(ctx.channel().isWritable());
+        Set<String> streamSet = ctx.channel().attr(Server.STREAM_SET).get();
+        if (Objects.nonNull(streamSet)) {
+            Channel serverChannel = ServerChannelCache.getServerChannelMap().get(ctx.channel().attr(Server.SERVER_ID).get());
+            Map<String, Channel> channelMap = Objects.nonNull(serverChannel) ? serverChannel.attr(Server.CHANNELS).get() : null;
+            if (Objects.nonNull(channelMap)) {
+                boolean writable = ctx.channel().isWritable();
+                for (String channelId : streamSet) {
+                    Channel localChannel = channelMap.get(channelId);
+                    if (Objects.nonNull(localChannel)) {
+                        localChannel.config().setAutoRead(writable);
+                    }
+                }
+            }
         }
         super.channelWritabilityChanged(ctx);
     }
@@ -48,37 +63,56 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     }
 
     /**
-     * 连接中断
+     * 连接中断：区分控制通道与共享数据隧道
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         String clientKey = ctx.channel().attr(Server.CLIENT_KEY).getAndSet(null);
-        // 代理连接/未知连接
         if (Objects.isNull(clientKey)) {
-            Channel localChannel = ctx.channel().attr(Server.LOCAL).getAndSet(null);
-            String serverId = ctx.channel().attr(Server.SERVER_ID).getAndSet(null);
-            if (serverId != null) {
-                TrafficStatsCache.decrementProxyChannels(serverId);
-            }
-            if (Objects.nonNull(localChannel)) {
-                logger.info("服务端-客户端代理连接中断");
-                if (localChannel.isActive()) {
-                    ProxyType proxyType = localChannel.attr(Server.PROXY_TYPE).get();
-                    localChannel.attr(Server.PROXY).set(null);
-                    if (!Objects.equals(proxyType, ProxyType.UDP)) {
-                        localChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
-                    }
-                }
-            }
+            // 共享数据隧道断开：关闭其上承载的所有会话
+            closeTunnelStreams(ctx.channel());
             return;
         }
         logger.info("服务端-客户端连接中断,{}", clientKey);
-        ServerChannelCache.getServerChannelMap().remove(ctx.channel().id().asLongText());
-        TrafficStatsCache.remove(ctx.channel().id().asLongText());
+        String serverId = ctx.channel().id().asLongText();
+        ServerChannelCache.getServerChannelMap().remove(serverId);
+        TrafficStatsCache.remove(serverId);
+        Optional.ofNullable(ctx.channel().attr(Server.TUNNEL_SET).getAndSet(null)).ifPresent(tunnelSet -> tunnelSet.forEach(Channel::close));
         Optional.ofNullable(ctx.channel().attr(Server.CHANNELS).getAndSet(null)).ifPresent(this::clear);
         Optional.ofNullable(ctx.channel().attr(Server.TCP_PORT_CHANNEL_FUTURE).getAndSet(null)).ifPresent(this::close);
         Optional.ofNullable(ctx.channel().attr(Server.UDP_PORT_CHANNEL_FUTURE).getAndSet(null)).ifPresent(this::close);
         Optional.ofNullable(ctx.channel().attr(Server.DOMAIN).getAndSet(null)).ifPresent(ServerChannelCache::remove);
+    }
+
+    /**
+     * 隧道断开：按反向索引关闭其上承载的外部连接并递减计数
+     */
+    private void closeTunnelStreams(Channel tunnel) {
+        String serverId = tunnel.attr(Server.SERVER_ID).getAndSet(null);
+        Set<String> streamSet = tunnel.attr(Server.STREAM_SET).getAndSet(null);
+        Channel serverChannel = Objects.nonNull(serverId) ? ServerChannelCache.getServerChannelMap().get(serverId) : null;
+        Optional.ofNullable(serverChannel).map(ch -> ch.attr(Server.TUNNEL_SET).get()).ifPresent(tunnelSet -> tunnelSet.remove(tunnel));
+        Map<String, Channel> channelMap = Objects.nonNull(serverChannel) ? serverChannel.attr(Server.CHANNELS).get() : null;
+        if (Objects.isNull(streamSet)) {
+            return;
+        }
+        logger.info("服务端-数据隧道中断,serverId:{},承载会话数:{}", serverId, streamSet.size());
+        for (String channelId : streamSet) {
+            if (Objects.nonNull(channelMap)) {
+                Channel localChannel = channelMap.remove(channelId);
+                if (Objects.nonNull(localChannel)) {
+                    if (Objects.equals(localChannel.attr(Server.PROXY_TYPE).get(), ProxyType.UDP)) {
+                        // UDP本地通道按端口共享，通知UdpHandler清理该会话状态
+                        localChannel.pipeline().fireUserEventTriggered(new FireEvent(channelId, tunnel, MessageType.TYPE_DISCONNECTED));
+                    } else {
+                        localChannel.close();
+                    }
+                }
+            }
+            if (Objects.nonNull(serverId)) {
+                TrafficStatsCache.decrementProxyChannels(serverId);
+            }
+        }
     }
 
     private void clear(Map<String, Channel> channelMap) {

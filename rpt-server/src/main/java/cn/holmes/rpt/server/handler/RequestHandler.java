@@ -48,9 +48,9 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        Channel proxyChannel = ctx.channel().attr(Server.PROXY).get();
-        if (Objects.nonNull(proxyChannel)) {
-            proxyChannel.config().setAutoRead(ctx.channel().isWritable());
+        Channel tunnel = ctx.channel().attr(Server.PROXY).get();
+        if (Objects.nonNull(tunnel)) {
+            tunnel.config().setAutoRead(ctx.channel().isWritable());
         }
         super.channelWritabilityChanged(ctx);
     }
@@ -78,15 +78,16 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             return;
         }
         Optional.ofNullable(serverChannel.attr(Server.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(ctx.channel().id().asLongText()));
-        Channel proxyChannel = ctx.channel().attr(Server.PROXY).getAndSet(null);
-        if (Objects.nonNull(proxyChannel) && proxyChannel.isActive()) {
-            proxyChannel.attr(Server.LOCAL).set(null);
-            proxyChannel.config().setAutoRead(true);
-            String serverId = proxyChannel.attr(Server.SERVER_ID).getAndSet(null);
-            if (serverId != null) {
-                TrafficStatsCache.decrementProxyChannels(serverId);
-            }
-            send(proxyChannel, ctx, domain, MessageType.TYPE_DISCONNECTED, Unpooled.EMPTY_BUFFER);
+        Channel tunnel = ctx.channel().attr(Server.PROXY).getAndSet(null);
+        if (Objects.nonNull(tunnel) && tunnel.isActive()) {
+            tunnel.config().setAutoRead(true);
+            String channelId = ctx.channel().id().asLongText();
+            Optional.ofNullable(tunnel.attr(Server.STREAM_SET).get()).ifPresent(streamSet -> {
+                if (streamSet.remove(channelId)) {
+                    TrafficStatsCache.decrementProxyChannels(serverChannel.id().asLongText());
+                }
+            });
+            send(tunnel, ctx, domain, MessageType.TYPE_DISCONNECTED, Unpooled.EMPTY_BUFFER);
         }
     }
 
@@ -190,8 +191,12 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         remoteConfig.setDomain(domain);
 
         Meta meta = new Meta(ctx.channel().id().asLongText(), remoteConfig);
-        meta.setServerId(complex.id().asLongText());
-
+        Channel serverChannel = ServerChannelCache.getServerDomainChannelMap().get(domain);
+        if (Objects.isNull(serverChannel)) {
+            data.release();
+            return;
+        }
+        meta.setServerId(serverChannel.id().asLongText());
         complex.writeAndFlush(new Message(typeConnect, meta, data));
     }
 }

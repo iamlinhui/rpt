@@ -14,6 +14,11 @@ public class ClientConfig {
     private String clientKey;
     private List<RemoteConfig> config;
 
+    /**
+     * 共享数据隧道数量（k个外部连接复用n条隧道，默认4）
+     */
+    private int tunnelCount = 4;
+
     public String getServerIp() {
         return serverIp;
     }
@@ -81,5 +86,13 @@ public class ClientConfig {
 
     public void setConfig(List<RemoteConfig> config) {
         this.config = config;
+    }
+
+    public int getTunnelCount() {
+        return tunnelCount;
+    }
+
+    public void setTunnelCount(int tunnelCount) {
+        this.tunnelCount = tunnelCount;
     }
 }

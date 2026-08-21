@@ -6,7 +6,7 @@ import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.utils.Application;
 import cn.holmes.rpt.base.utils.Config;
 import cn.holmes.rpt.base.utils.Constants.Client;
-import cn.holmes.rpt.client.cache.ProxyChannelCache;
+import cn.holmes.rpt.client.cache.TunnelPool;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -20,9 +20,10 @@ import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
- * 服务器连接处理器
+ * 服务器连接处理器：控制通道负责注册/重连，共享数据隧道承载多路复用会话
  */
 public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
@@ -30,9 +31,17 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        Channel localChannel = ctx.channel().attr(Client.LOCAL).get();
-        if (Objects.nonNull(localChannel)) {
-            localChannel.config().setAutoRead(ctx.channel().isWritable());
+        Set<String> streamSet = ctx.channel().attr(Client.STREAM_SET).get();
+        Channel control = ctx.channel().attr(Client.CONTROL).get();
+        Map<String, Channel> channelMap = Objects.nonNull(control) ? control.attr(Client.CHANNELS).get() : null;
+        if (Objects.nonNull(streamSet) && Objects.nonNull(channelMap)) {
+            boolean writable = ctx.channel().isWritable();
+            for (String channelId : streamSet) {
+                Channel localChannel = channelMap.get(channelId);
+                if (Objects.nonNull(localChannel)) {
+                    localChannel.config().setAutoRead(writable);
+                }
+            }
         }
         super.channelWritabilityChanged(ctx);
     }
@@ -49,19 +58,29 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         Application<Bootstrap> application = ctx.channel().attr(Client.APPLICATION).getAndSet(null);
         if (Objects.nonNull(application)) {
+            // 控制通道中断：关闭所有隧道与本地连接，整体重连
             logger.info("客户端-服务端连接中断,{}:{}", Config.getClientConfig().getServerIp(), Config.getClientConfig().getServerPort());
+            TunnelPool.getInstance().closeAll();
             Optional.ofNullable(ctx.channel().attr(Client.CHANNELS).get()).ifPresent(this::clear);
-            application.start(15);
+            application.start(3);
             return;
         }
-        logger.info("客户端-服务端代理连接中断");
-        close(ctx.channel().attr(Client.LOCAL).getAndSet(null));
-        ProxyChannelCache.delete(ctx.channel());
+        // 共享数据隧道中断：关闭其上承载的会话本地连接，由隧道池自动补连
+        logger.info("客户端-共享数据隧道中断,当前隧道数:{}", TunnelPool.getInstance().size());
+        Channel controlChannel = ctx.channel().attr(Client.CONTROL).get();
+        Map<String, Channel> channelMap = Objects.nonNull(controlChannel) ? controlChannel.attr(Client.CHANNELS).get() : null;
+        Set<String> streamSet = ctx.channel().attr(Client.STREAM_SET).getAndSet(null);
+        if (Objects.nonNull(streamSet) && Objects.nonNull(channelMap)) {
+            for (String channelId : streamSet) {
+                close(channelMap.remove(channelId));
+            }
+        }
+        TunnelPool.getInstance().onTunnelClosed(ctx.channel());
     }
 
     private void close(Channel localChannel) {
         if (Objects.nonNull(localChannel) && localChannel.isActive()) {
-            localChannel.attr(Client.PROXY).set(null);
+            localChannel.attr(Client.TUNNEL).set(null);
             // UDP DatagramChannel不接受原始byte[]写入，直接关闭
             InetSocketAddress udpTarget = localChannel.attr(Client.UDP_TARGET).getAndSet(null);
             if (udpTarget != null) {

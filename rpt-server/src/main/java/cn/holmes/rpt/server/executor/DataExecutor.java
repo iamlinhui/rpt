@@ -4,7 +4,9 @@ import cn.holmes.rpt.base.config.ProxyType;
 import cn.holmes.rpt.base.executor.MessageExecutor;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
+import cn.holmes.rpt.base.protocol.Meta;
 import cn.holmes.rpt.base.utils.Constants.Server;
+import cn.holmes.rpt.server.cache.ServerChannelCache;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -13,8 +15,12 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
 
 import java.net.InetSocketAddress;
+import java.util.Map;
 import java.util.Objects;
 
+/**
+ * 隧道下行数据路由
+ */
 public class DataExecutor implements MessageExecutor {
 
     @Override
@@ -24,18 +30,28 @@ public class DataExecutor implements MessageExecutor {
 
     @Override
     public void execute(ChannelHandlerContext context, Message message) throws Exception {
-        Channel localChannel = context.channel().attr(Server.LOCAL).get();
+        Meta meta = message.getMeta();
+        if (Objects.isNull(meta) || Objects.isNull(meta.getServerId()) || Objects.isNull(meta.getChannelId())) {
+            return;
+        }
+        Channel serverChannel = ServerChannelCache.getServerChannelMap().get(meta.getServerId());
+        if (Objects.isNull(serverChannel)) {
+            return;
+        }
+        Map<String, Channel> localChannelMap = serverChannel.attr(Server.CHANNELS).get();
+        if (Objects.isNull(localChannelMap)) {
+            return;
+        }
+        Channel localChannel = localChannelMap.get(meta.getChannelId());
         if (Objects.isNull(localChannel)) {
             return;
         }
         ProxyType proxyType = localChannel.attr(Server.PROXY_TYPE).get();
-        Channel proxyChannel = context.channel();
         ByteBuf data = message.hasDataBuf() ? message.getDataBuf().retain() : Unpooled.EMPTY_BUFFER;
-        if (message.getMeta() != null && message.getMeta().getServerId() != null) {
-            TrafficStatsCache.recordOut(message.getMeta().getServerId(), data.readableBytes());
-        }
+        TrafficStatsCache.recordOut(meta.getServerId(), data.readableBytes());
         if (Objects.equals(ProxyType.UDP, proxyType)) {
-            InetSocketAddress udpSender = proxyChannel.attr(Server.UDP_SENDER).get();
+            Map<String, InetSocketAddress> senders = localChannel.attr(Server.UDP_SENDERS).get();
+            InetSocketAddress udpSender = Objects.nonNull(senders) ? senders.get(meta.getChannelId()) : null;
             if (udpSender == null) {
                 data.release();
                 return;

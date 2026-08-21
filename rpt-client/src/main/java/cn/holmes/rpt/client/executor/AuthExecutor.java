@@ -4,7 +4,7 @@ import cn.holmes.rpt.base.executor.MessageExecutor;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.utils.Constants.Client;
-import cn.holmes.rpt.client.cache.ProxyChannelCache;
+import cn.holmes.rpt.client.cache.TunnelPool;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,8 +31,7 @@ public class AuthExecutor implements MessageExecutor {
         if (connection) {
             logger.info("连接成功,当前秘钥:{}", message.getMeta().getClientKey());
             context.channel().attr(Client.CHANNELS).setIfAbsent(new ConcurrentHashMap<>(1024));
-            // 预热代理连接池，避免首次请求因TLS握手延迟导致失败
-            ProxyChannelCache.init(context.channel());
+            TunnelPool.getInstance().init(context.channel(), message.getMeta().getServerId());
             return;
         }
         logger.info("连接失败,当前秘钥:{}", message.getMeta().getClientKey());

@@ -15,6 +15,7 @@ const (
 	TypeDisconnected = 4
 	TypeKeepalive    = 5
 	TypeData         = 6
+	TypeTunnel       = 7
 )
 
 // SerializationType codes

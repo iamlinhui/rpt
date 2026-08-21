@@ -33,6 +33,7 @@ type ClientConfig struct {
 	ClientCertPath string         `yaml:"clientCertPath"`
 	ClientKeyPath  string         `yaml:"clientKeyPath"`
 	ClientKey      string         `yaml:"clientKey"`
+	TunnelCount    int            `yaml:"tunnelCount"`
 	Config         []RemoteConfig `yaml:"config"`
 	configDir      string
 }

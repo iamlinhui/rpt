@@ -7,9 +7,7 @@ import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
 import cn.holmes.rpt.base.utils.Config;
-import cn.holmes.rpt.base.utils.Constants.Client;
-import cn.holmes.rpt.base.utils.Listener;
-import cn.holmes.rpt.client.cache.ProxyChannelCache;
+import cn.holmes.rpt.client.cache.TunnelPool;
 import cn.holmes.rpt.client.handler.TcpHandler;
 import cn.holmes.rpt.client.handler.UdpHandler;
 import io.netty.bootstrap.Bootstrap;
@@ -23,7 +21,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 
 import java.util.Objects;
 
-public class ConnectedExecutor implements MessageExecutor, Listener<Meta> {
+public class ConnectedExecutor implements MessageExecutor {
 
     private static final EventLoopGroup LOOP_GROUP = new NioEventLoopGroup();
 
@@ -39,8 +37,7 @@ public class ConnectedExecutor implements MessageExecutor, Listener<Meta> {
         if (Objects.isNull(remoteConfig)) {
             return;
         }
-        ProxyType proxyType = remoteConfig.getProxyType();
-        if (Objects.equals(ProxyType.HTTP, proxyType)) {
+        if (Objects.equals(ProxyType.HTTP, remoteConfig.getProxyType())) {
             String domain = remoteConfig.getDomain();
             // 补全配置信息
             RemoteConfig httpConfig = Config.getClientConfig().getHttpConfig(domain);
@@ -49,63 +46,49 @@ public class ConnectedExecutor implements MessageExecutor, Listener<Meta> {
             }
             meta.setRemoteConfig(httpConfig);
         }
-        // 绑定代理连接
-        ProxyChannelCache.get(context.channel(), meta, this);
-    }
-
-    @Override
-    public void fail(Channel serverChannel, Meta meta) {
-        serverChannel.writeAndFlush(new Message(MessageType.TYPE_DISCONNECTED, meta, Unpooled.EMPTY_BUFFER));
-    }
-
-    @Override
-    public void success(Channel serverChannel, Channel proxyChannel, Meta meta) {
-        RemoteConfig remoteConfig = meta.getRemoteConfig();
+        // 轮询选取共享隧道
+        Channel tunnel = TunnelPool.getInstance().pick();
+        if (Objects.isNull(tunnel)) {
+            context.channel().writeAndFlush(new Message(MessageType.TYPE_DISCONNECTED, meta, Unpooled.EMPTY_BUFFER));
+            return;
+        }
+        Channel control = context.channel();
         if (Objects.equals(ProxyType.UDP, remoteConfig.getProxyType())) {
-            connectUdp(serverChannel, proxyChannel, meta);
+            connectUdp(control, tunnel, meta);
         } else {
-            connectTcp(serverChannel, proxyChannel, meta);
+            connectTcp(control, tunnel, meta);
         }
     }
 
-    private void connectTcp(Channel serverChannel, Channel proxyChannel, Meta meta) {
+    private void connectTcp(Channel control, Channel tunnel, Meta meta) {
         RemoteConfig remoteConfig = meta.getRemoteConfig();
         Bootstrap localBootstrap = new Bootstrap();
         localBootstrap.group(LOOP_GROUP).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel channel) throws Exception {
-                channel.pipeline().addLast(new TcpHandler(serverChannel, meta));
+                channel.pipeline().addLast(new TcpHandler(control, tunnel, meta));
             }
         });
         localBootstrap.connect(remoteConfig.getLocalIp(), remoteConfig.getLocalPort()).addListener((ChannelFutureListener) future -> {
-            if (future.isSuccess()) {
-                future.channel().attr(Client.PROXY).set(proxyChannel);
-                proxyChannel.attr(Client.LOCAL).set(future.channel());
-            } else {
-                ProxyChannelCache.put(proxyChannel);
-                serverChannel.writeAndFlush(new Message(MessageType.TYPE_DISCONNECTED, meta, Unpooled.EMPTY_BUFFER));
+            if (!future.isSuccess()) {
+                control.writeAndFlush(new Message(MessageType.TYPE_DISCONNECTED, meta, Unpooled.EMPTY_BUFFER));
             }
         });
     }
 
-    private void connectUdp(Channel serverChannel, Channel proxyChannel, Meta meta) {
+    private void connectUdp(Channel control, Channel tunnel, Meta meta) {
         Bootstrap udpBootstrap = new Bootstrap();
         udpBootstrap.group(LOOP_GROUP).channel(NioDatagramChannel.class).handler(new ChannelInitializer<DatagramChannel>() {
             @Override
             protected void initChannel(DatagramChannel channel) throws Exception {
-                channel.pipeline().addLast(new UdpHandler(serverChannel, meta));
+                channel.pipeline().addLast(new UdpHandler(control, tunnel, meta));
             }
         });
         // UDP不需要connect，只需要bind到一个随机本地端口
         udpBootstrap.bind(0).addListener((ChannelFutureListener) future -> {
-            if (future.isSuccess()) {
-                proxyChannel.attr(Client.LOCAL).set(future.channel());
-                future.channel().attr(Client.PROXY).set(proxyChannel);
-            } else {
-                ProxyChannelCache.put(proxyChannel);
-                serverChannel.writeAndFlush(new Message(MessageType.TYPE_DISCONNECTED, meta, Unpooled.EMPTY_BUFFER));
+            if (!future.isSuccess()) {
+                control.writeAndFlush(new Message(MessageType.TYPE_DISCONNECTED, meta, Unpooled.EMPTY_BUFFER));
             }
         });
     }
-
 }

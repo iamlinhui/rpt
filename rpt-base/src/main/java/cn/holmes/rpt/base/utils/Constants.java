@@ -10,6 +10,7 @@ import io.netty.util.AttributeKey;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public interface Constants {
 
@@ -24,19 +25,39 @@ public interface Constants {
         AttributeKey<Long> CONNECT_TIME = AttributeKey.newInstance("CONNECT_TIME");
         AttributeKey<Map<String, Channel>> CHANNELS = AttributeKey.newInstance("CHANNELS");
         AttributeKey<Channel> PROXY = AttributeKey.newInstance("PROXY");
-        AttributeKey<Channel> LOCAL = AttributeKey.newInstance("LOCAL");
         AttributeKey<String> SERVER_ID = AttributeKey.newInstance("SERVER_ID");
         AttributeKey<ProxyType> PROXY_TYPE = AttributeKey.newInstance("PROXY_TYPE");
-        AttributeKey<InetSocketAddress> UDP_SENDER = AttributeKey.newInstance("UDP_SENDER");
         AttributeKey<Target> DYNAMIC_TARGET = AttributeKey.newInstance("DYNAMIC_TARGET");
+        /**
+         * 隧道上承载的会话channelId集合（多路复用反向索引，隧道断开时据此清理会话）
+         */
+        AttributeKey<Set<String>> STREAM_SET = AttributeKey.newInstance("STREAM_SET");
+        /**
+         * 控制通道上挂的共享数据隧道集合（控制通道断开时一并关闭）
+         */
+        AttributeKey<Set<Channel>> TUNNEL_SET = AttributeKey.newInstance("TUNNEL_SET");
+        /**
+         * UDP本地通道上的会话channelId → 对端发送者地址（多路复用下按会话区分，挂在UDP DatagramChannel上）
+         */
+        AttributeKey<Map<String, InetSocketAddress>> UDP_SENDERS = AttributeKey.newInstance("UDP_SENDERS");
     }
 
     interface Client {
         AttributeKey<Application<Bootstrap>> APPLICATION = AttributeKey.newInstance("APPLICATION");
 
         AttributeKey<Map<String, Channel>> CHANNELS = AttributeKey.newInstance("CHANNELS");
-        AttributeKey<Channel> PROXY = AttributeKey.newInstance("PROXY");
-        AttributeKey<Channel> LOCAL = AttributeKey.newInstance("LOCAL");
+        /**
+         * 本地连接 → 承载它的共享隧道
+         */
+        AttributeKey<Channel> TUNNEL = AttributeKey.newInstance("TUNNEL");
+        /**
+         * 共享隧道 → 控制通道
+         */
+        AttributeKey<Channel> CONTROL = AttributeKey.newInstance("CONTROL");
+        /**
+         * 隧道上承载的会话channelId集合（隧道级背压、隧道断开时清理本地连接）
+         */
+        AttributeKey<Set<String>> STREAM_SET = AttributeKey.newInstance("CLIENT_STREAM_SET");
         AttributeKey<InetSocketAddress> UDP_TARGET = AttributeKey.newInstance("UDP_TARGET");
     }
 

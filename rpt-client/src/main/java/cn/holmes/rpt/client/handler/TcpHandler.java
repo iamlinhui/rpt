@@ -10,27 +10,29 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 
-import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 客户端TCP本地连接处理器
  */
 public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
-    private final Channel serverChannel;
+    private final Channel control;
+    private final Channel tunnel;
     private final Meta meta;
 
-    public TcpHandler(Channel serverChannel, Meta meta) {
-        this.serverChannel = serverChannel;
+    public TcpHandler(Channel control, Channel tunnel, Meta meta) {
+        this.control = control;
+        this.tunnel = tunnel;
         this.meta = meta;
     }
 
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        Channel proxyChannel = ctx.channel().attr(Client.PROXY).get();
-        if (Objects.nonNull(proxyChannel)) {
-            proxyChannel.config().setAutoRead(ctx.channel().isWritable());
+        if (tunnel.isActive()) {
+            tunnel.config().setAutoRead(ctx.channel().isWritable());
         }
         super.channelWritabilityChanged(ctx);
     }
@@ -38,21 +40,23 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         ctx.channel().config().setAutoRead(false);
-        Channel proxyChannel = ctx.channel().attr(Client.PROXY).get();
-        serverChannel.attr(Client.CHANNELS).get().put(meta.getChannelId(), ctx.channel());
-        send(proxyChannel, MessageType.TYPE_CONNECTED, Unpooled.EMPTY_BUFFER);
+        ctx.channel().attr(Client.TUNNEL).set(tunnel);
+        tunnel.attr(Client.STREAM_SET).setIfAbsent(ConcurrentHashMap.newKeySet());
+        Set<String> streamSet = tunnel.attr(Client.STREAM_SET).get();
+        streamSet.add(meta.getChannelId());
+        control.attr(Client.CHANNELS).get().put(meta.getChannelId(), ctx.channel());
+        send(tunnel, MessageType.TYPE_CONNECTED, Unpooled.EMPTY_BUFFER);
         ctx.channel().config().setAutoRead(true);
     }
 
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, ByteBuf buf) throws Exception {
-        Channel proxyChannel = ctx.channel().attr(Client.PROXY).get();
-        if (Objects.isNull(proxyChannel)) {
+        if (!tunnel.isActive()) {
             ctx.close();
             return;
         }
-        send(proxyChannel, MessageType.TYPE_DATA, buf.retain());
+        send(tunnel, MessageType.TYPE_DATA, buf.retain());
     }
 
 
@@ -61,10 +65,10 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        Optional.ofNullable(serverChannel.attr(Client.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(meta.getChannelId()));
-        Channel proxyChannel = ctx.channel().attr(Client.PROXY).get();
-        if (Objects.nonNull(proxyChannel) && proxyChannel.isActive()) {
-            send(proxyChannel, MessageType.TYPE_DISCONNECTED, Unpooled.EMPTY_BUFFER);
+        Optional.ofNullable(control.attr(Client.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(meta.getChannelId()));
+        Optional.ofNullable(tunnel.attr(Client.STREAM_SET).get()).ifPresent(streamSet -> streamSet.remove(meta.getChannelId()));
+        if (tunnel.isActive()) {
+            send(tunnel, MessageType.TYPE_DISCONNECTED, Unpooled.EMPTY_BUFFER);
         }
     }
 
@@ -76,7 +80,7 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
         ctx.close();
     }
 
-    private void send(Channel proxyChannel, MessageType type, ByteBuf data) {
-        proxyChannel.writeAndFlush(new Message(type, meta, data));
+    private void send(Channel tunnel, MessageType type, ByteBuf data) {
+        tunnel.writeAndFlush(new Message(type, meta, data));
     }
 }
