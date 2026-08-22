@@ -9,6 +9,8 @@ import cn.holmes.rpt.base.utils.Constants.Client;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,6 +43,8 @@ public class TunnelPool {
 
     private final AtomicInteger roundRobin = new AtomicInteger();
 
+    private final EventLoopGroup poolGroup = new NioEventLoopGroup();
+
     public static TunnelPool getInstance() {
         return INSTANCE;
     }
@@ -49,6 +53,7 @@ public class TunnelPool {
      * 初始化n条共享隧道
      */
     public void init(Channel control, String serverId) {
+        control.attr(Client.SERVER_ID).set(serverId);
         int tunnelCount = Math.max(1, Math.min(Config.getClientConfig().getTunnelCount(), 16));
         logger.info("客户端开始建立{}条共享数据隧道", tunnelCount);
         for (int i = 0; i < tunnelCount; i++) {
@@ -60,12 +65,13 @@ public class TunnelPool {
      * 轮询选择一条活跃隧道
      */
     public Channel pick() {
-        int size = tunnels.size();
+        Channel[] snapshot = tunnels.toArray(new Channel[0]);
+        int size = snapshot.length;
         if (size == 0) {
             return null;
         }
         for (int i = 0; i < size; i++) {
-            Channel tunnel = tunnels.get(Math.floorMod(roundRobin.getAndIncrement(), tunnels.size()));
+            Channel tunnel = snapshot[Math.floorMod(roundRobin.getAndIncrement(), size)];
             if (tunnel.isActive()) {
                 return tunnel;
             }
@@ -78,12 +84,15 @@ public class TunnelPool {
      */
     public void onTunnelClosed(Channel tunnel) {
         tunnels.remove(tunnel);
-        Channel controlChannel = tunnel.attr(Client.CONTROL).getAndSet(null);
-        if (Objects.isNull(controlChannel) || !controlChannel.isActive()) {
+        Channel control = tunnel.attr(Client.CONTROL).getAndSet(null);
+        if (Objects.isNull(control) || !control.isActive()) {
             return;
         }
-        String serverId = controlChannel.id().asLongText();
-        controlChannel.eventLoop().schedule(() -> connect(controlChannel, serverId, 3), 3, TimeUnit.SECONDS);
+        String serverId = control.attr(Client.SERVER_ID).get();
+        if (Objects.isNull(serverId)) {
+            return;
+        }
+        poolGroup.schedule(() -> connect(control, serverId, 3), 3, TimeUnit.SECONDS);
     }
 
     /**
@@ -122,10 +131,10 @@ public class TunnelPool {
                 tunnel.writeAndFlush(message);
                 tunnels.add(tunnel);
                 logger.info("客户端共享数据隧道建立成功,当前隧道数:{}", tunnels.size());
-            } else {
-                logger.info("客户端共享数据隧道建立失败:{},{}秒后重试", future.cause().getMessage(), Math.min(backoff + 3, RECONNECT_BACKOFF_LIMIT));
-                control.eventLoop().schedule(() -> connect(control, serverId, Math.min(backoff + 3, RECONNECT_BACKOFF_LIMIT)), Math.min(backoff + 3, RECONNECT_BACKOFF_LIMIT), TimeUnit.SECONDS);
+                return;
             }
+            logger.info("客户端共享数据隧道建立失败:{},{}秒后重试", future.cause().getMessage(), Math.min(backoff + 3, RECONNECT_BACKOFF_LIMIT));
+            poolGroup.schedule(() -> connect(control, serverId, Math.min(backoff + 3, RECONNECT_BACKOFF_LIMIT)), Math.min(backoff + 3, RECONNECT_BACKOFF_LIMIT), TimeUnit.SECONDS);
         });
     }
 }

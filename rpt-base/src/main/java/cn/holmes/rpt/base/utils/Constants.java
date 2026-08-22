@@ -55,6 +55,10 @@ public interface Constants {
          */
         AttributeKey<Channel> CONTROL = AttributeKey.newInstance("CONTROL");
         /**
+         * 控制通道上服务端回填的serverId（服务端侧控制通道channel id，隧道补连注册用）
+         */
+        AttributeKey<String> SERVER_ID = AttributeKey.newInstance("CLIENT_SERVER_ID");
+        /**
          * 隧道上承载的会话channelId集合（隧道级背压、隧道断开时清理本地连接）
          */
         AttributeKey<Set<String>> STREAM_SET = AttributeKey.newInstance("CLIENT_STREAM_SET");

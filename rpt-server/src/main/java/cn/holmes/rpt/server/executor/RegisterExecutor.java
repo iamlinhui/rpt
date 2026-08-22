@@ -77,6 +77,7 @@ public class RegisterExecutor implements MessageExecutor {
         }
         logger.info("授权注册成功,客户端使用的秘钥:{}", meta.getClientKey());
         ServerChannelCache.getServerChannelMap().put(context.channel().id().asLongText(), context.channel());
+        context.channel().attr(Server.SERVER_ID).set(context.channel().id().asLongText());
         context.channel().attr(Server.CHANNELS).setIfAbsent(new ConcurrentHashMap<>(1024));
         context.channel().attr(Server.CONNECT_TIME).set(System.currentTimeMillis());
         TrafficStatsCache.incrementConnections();

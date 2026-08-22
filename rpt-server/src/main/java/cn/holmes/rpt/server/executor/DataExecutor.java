@@ -34,6 +34,9 @@ public class DataExecutor implements MessageExecutor {
         if (Objects.isNull(meta) || Objects.isNull(meta.getServerId()) || Objects.isNull(meta.getChannelId())) {
             return;
         }
+        if (!Objects.equals(context.channel().attr(Server.SERVER_ID).get(), meta.getServerId())) {
+            return;
+        }
         Channel serverChannel = ServerChannelCache.getServerChannelMap().get(meta.getServerId());
         if (Objects.isNull(serverChannel)) {
             return;

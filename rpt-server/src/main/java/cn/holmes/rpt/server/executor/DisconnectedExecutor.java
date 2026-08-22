@@ -28,6 +28,9 @@ public class DisconnectedExecutor implements MessageExecutor {
     @Override
     public void execute(ChannelHandlerContext context, Message message) throws Exception {
         String serverId = message.getMeta().getServerId();
+        if (!Objects.equals(context.channel().attr(Server.SERVER_ID).get(), serverId)) {
+            return;
+        }
         Channel serverChannel = ServerChannelCache.getServerChannelMap().get(serverId);
         if (Objects.isNull(serverChannel)) {
             return;

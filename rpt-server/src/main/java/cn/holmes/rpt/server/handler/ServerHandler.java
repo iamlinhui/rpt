@@ -98,6 +98,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         }
         logger.info("服务端-数据隧道中断,serverId:{},承载会话数:{}", serverId, streamSet.size());
         for (String channelId : streamSet) {
+            if (!streamSet.remove(channelId)) {
+                continue;
+            }
             if (Objects.nonNull(channelMap)) {
                 Channel localChannel = channelMap.remove(channelId);
                 if (Objects.nonNull(localChannel)) {
