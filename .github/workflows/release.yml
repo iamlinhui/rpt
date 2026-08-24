@@ -155,7 +155,14 @@ jobs:
 
   # ============== Wails Desktop (macOS) ==============
   build-desktop-macos:
-    runs-on: macos-latest
+    strategy:
+      matrix:
+        include:
+          - runner: macos-13
+            arch: amd64
+          - runner: macos-latest
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
 
@@ -167,19 +174,19 @@ jobs:
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
-      - name: Build Desktop (macOS)
+      - name: Build Desktop (macOS ${{ matrix.arch }})
         working-directory: rpt-desktop-go
         run: wails build -clean -s
 
       - name: Package as zip
         working-directory: rpt-desktop-go/build/bin
-        run: zip -r ../../../rpt-desktop-macos.zip *.app
+        run: zip -r ../../../rpt-desktop-macos-${{ matrix.arch }}.zip *.app
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-macos
-          path: rpt-desktop-macos.zip
+          name: desktop-macos-${{ matrix.arch }}
+          path: rpt-desktop-macos-${{ matrix.arch }}.zip
 
   # ============== Create Release ==============
   release:
@@ -217,7 +224,8 @@ jobs:
           # Desktop
           cp artifacts/desktop-windows/* release/rpt-desktop-${VERSION}-windows.exe
           cp artifacts/desktop-linux/* release/rpt-desktop-${VERSION}-linux
-          cp artifacts/desktop-macos/* release/rpt-desktop-${VERSION}-macos.zip
+          cp artifacts/desktop-macos-amd64/* release/rpt-desktop-${VERSION}-macos-amd64.zip
+          cp artifacts/desktop-macos-arm64/* release/rpt-desktop-${VERSION}-macos-arm64.zip
 
           ls -lh release/
 
