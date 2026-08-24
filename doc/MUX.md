@@ -70,7 +70,7 @@ graph LR
 
 | Code | 类型 | 方向 | 含义 |
 |------|------|------|------|
-| 7 | TYPE_TUNNEL | Client→Server | 隧道注册（tunnel_new 已有） |
+| 7 | TYPE_TUNNEL | Client→Server | 隧道注册 |
 | **8** | **TYPE_PAUSE** | **双向** | 通道暂停：缓冲区达高水位 |
 | **9** | **TYPE_RESUME** | **双向** | 通道恢复：缓冲区排空至低水位 |
 
