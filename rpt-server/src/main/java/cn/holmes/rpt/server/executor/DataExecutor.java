@@ -1,10 +1,13 @@
 package cn.holmes.rpt.server.executor;
 
 import cn.holmes.rpt.base.config.ProxyType;
+import cn.holmes.rpt.base.config.ServerConfig;
 import cn.holmes.rpt.base.executor.MessageExecutor;
+import cn.holmes.rpt.base.mux.ChannelBuffer;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
+import cn.holmes.rpt.base.utils.Config;
 import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
@@ -53,6 +56,7 @@ public class DataExecutor implements MessageExecutor {
         ByteBuf data = message.hasDataBuf() ? message.getDataBuf().retain() : Unpooled.EMPTY_BUFFER;
         TrafficStatsCache.recordOut(meta.getServerId(), data.readableBytes());
         if (Objects.equals(ProxyType.UDP, proxyType)) {
+            // UDP本地通道按端口共享，无法挂per-session缓冲区，直接写出不排队
             Map<String, InetSocketAddress> senders = localChannel.attr(Server.UDP_SENDERS).get();
             InetSocketAddress udpSender = Objects.nonNull(senders) ? senders.get(meta.getChannelId()) : null;
             if (udpSender == null) {
@@ -62,7 +66,56 @@ public class DataExecutor implements MessageExecutor {
             localChannel.writeAndFlush(new DatagramPacket(data, udpSender));
             return;
         }
-        // TCP/HTTP: 直接写ByteBuf，零拷贝
-        localChannel.writeAndFlush(data);
+        // TCP/HTTP: 经通道级缓冲区写出，慢的外部连接只堆自己的队列，不再拖停整条隧道
+        buffer(localChannel).write(data);
+    }
+
+    /**
+     * 外部连接恢复可写时排空积压，由TcpHandler/RequestHandler的channelWritabilityChanged调用
+     */
+    public static void drain(Channel localChannel) {
+        ChannelBuffer buffer = localChannel.attr(Server.BUFFER).get();
+        if (Objects.nonNull(buffer)) {
+            buffer.drain();
+        }
+    }
+
+    /**
+     * 外部连接断开时释放积压，防止ByteBuf泄漏
+     */
+    public static void release(Channel localChannel) {
+        ChannelBuffer buffer = localChannel.attr(Server.BUFFER).getAndSet(null);
+        if (Objects.nonNull(buffer)) {
+            buffer.release();
+        }
+        localChannel.attr(Server.PAUSED).set(null);
+    }
+
+    /**
+     * 懒创建该外部连接的通道级缓冲区
+     */
+    private ChannelBuffer buffer(Channel localChannel) {
+        ChannelBuffer buffer = localChannel.attr(Server.BUFFER).get();
+        if (Objects.nonNull(buffer)) {
+            return buffer;
+        }
+        ServerConfig config = Config.getServerConfig();
+        ChannelBuffer created = new ChannelBuffer(localChannel, config.getHighWater(), config.getLowWater(), config.getCapacity(), () -> signal(localChannel, MessageType.TYPE_PAUSE), () -> signal(localChannel, MessageType.TYPE_RESUME));
+        ChannelBuffer previous = localChannel.attr(Server.BUFFER).setIfAbsent(created);
+        return Objects.nonNull(previous) ? previous : created;
+    }
+
+    /**
+     * 向客户端发送该通道的背压信号，隧道与会话标识在回调时实时读取
+     */
+    private void signal(Channel localChannel, MessageType type) {
+        Channel tunnel = localChannel.attr(Server.PROXY).get();
+        String channelId = localChannel.attr(Server.CHANNEL_ID).get();
+        String serverId = localChannel.attr(Server.SERVER_ID).get();
+        if (Objects.isNull(tunnel) || !tunnel.isActive() || Objects.isNull(channelId) || Objects.isNull(serverId)) {
+            return;
+        }
+        Meta meta = new Meta().setChannelId(channelId).setServerId(serverId);
+        tunnel.writeAndFlush(new Message(type, meta, Unpooled.EMPTY_BUFFER));
     }
 }

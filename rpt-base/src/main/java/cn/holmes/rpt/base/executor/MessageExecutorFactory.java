@@ -18,6 +18,9 @@ public class MessageExecutorFactory {
     }
 
     public static MessageExecutor getMessageExecutor(MessageType messageType) {
+        if (messageType == null) {
+            return null;
+        }
         return MESSAGE_EXECUTOR_MAP.get(messageType);
     }
 }

@@ -56,26 +56,28 @@ sequenceDiagram
     Note over C,S: 1. Connection Establishment
     C->>S: Mutual SSL handshake
     S->>S: Verify client certificate + Token
-    S-->>C: Authenticated, tunnel established
+    S-->>C: Authenticated, control channel established
     C->>S: Report port mapping config (TCP/UDP/HTTP/SOCKS5)
     S->>S: Bind public ports and register domain routes
+    C->>S: TYPE_TUNNEL × n (establish n shared data tunnels)
+    Note over C,S: k external sessions multiplexed over n tunnels, routed by channelId
 
     Note over U,L: 2. TCP/UDP Proxy Flow
     U->>S: Connect to public remotePort (e.g. 4389)
     S->>S: Match port mapping rule + IP region filter
-    S->>C: Forward request over SSL tunnel
+    S->>C: Forward request over shared tunnel (routed by channelId)
     C->>L: Connect to local service localIp:localPort (e.g. 127.0.0.1:3389)
     L-->>C: Return response data
-    C-->>S: Forward back over SSL tunnel
+    C-->>S: Forward back over shared tunnel
     S-->>U: Return to external user
 
     Note over U,L: 3. HTTP Proxy Flow (Port Multiplexing)
     U->>S: HTTP request test.domain.com:6234
     S->>S: Parse Host domain route + Cookie session validation
-    S->>C: Forward HTTP request over SSL tunnel
+    S->>C: Forward HTTP request over shared tunnel
     C->>L: Forward to local web service (e.g. 127.0.0.1:8080)
     L-->>C: Return HTTP response
-    C-->>S: Forward back over SSL tunnel
+    C-->>S: Forward back over shared tunnel
     S-->>U: Return HTTP response
 
     Note over U,L: 4. Keepalive
@@ -101,6 +103,7 @@ sequenceDiagram
 | ⬆️ **Protocol Upgrade** | HTTP requests support upgrade to WebSocket, HTTP/2 |
 | 📊 **Dashboard** | Built-in web management panel for real-time monitoring of online clients, traffic stats, and throughput |
 | ⚡ **Zero-Copy Transmission** | Full-link zero-copy based on Netty ByteBuf retainedSlice, direct off-heap memory forwarding |
+| 🔀 **Multiplexing + Per-Channel Backpressure** | k logical channels multiplexed over n TLS tunnels; per-channel water-mark buffers prevent head-of-line blocking. |
 | 🔄 **Auto Reconnect** | Client exponential backoff auto-reconnect + heartbeat keepalive; tunnel auto-recovers after network fluctuation |
 | 🖥️ **Desktop Client** | GUI desktop client, out of the box |
 | 🐳 **Docker Deployment** | Docker images provided, one-click start |
@@ -259,6 +262,11 @@ dashboardUser: admin
 # Dashboard login password
 dashboardPassword: admin
 
+# ──── Per-channel backpressure (optional, defaults shown) ────
+highWater: 262144       # High water mark (bytes), default 256KB
+lowWater: 65536         # Low water mark (bytes), default 64KB
+capacity: 4194304       # Hard limit (bytes), default 4MB
+
 # Client authorization token list
 token:
   - clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
@@ -283,6 +291,9 @@ token:
 | `dashboardPort` | int | `0` | Dashboard management panel port; 0 disables it |
 | `dashboardUser` | String | - | Dashboard login username |
 | `dashboardPassword` | String | - | Dashboard login password |
+| `highWater` | long | `262144` | Per-channel backpressure high water mark (bytes); sends PAUSE when reached |
+| `lowWater` | long | `65536` | Per-channel backpressure low water mark (bytes); sends RESUME when drained below |
+| `capacity` | long | `4194304` | Hard backlog limit per channel (bytes); closes channel when exceeded |
 | `token[].clientKey` | String | - | Client authorization key (UUID) |
 | `token[].minPort` | int | `1024` | Minimum allowed port |
 | `token[].maxPort` | int | `65535` | Maximum allowed port |
@@ -307,6 +318,12 @@ clientKeyPath: pkcs8_client.key
 
 # Authorization key (must match a token entry in server.yml)
 clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
+
+# ──── Multiplexing config (optional, defaults shown) ────
+tunnelCount: 4           # Number of shared data tunnels, default 4
+highWater: 262144         # High water mark (bytes), default 256KB
+lowWater: 65536           # Low water mark (bytes), default 64KB
+capacity: 4194304         # Hard limit (bytes), default 4MB
 
 # Port mapping config list
 config:
@@ -356,6 +373,10 @@ config:
 | `clientCertPath` | String | Client certificate path (default `client.crt`) |
 | `clientKeyPath` | String | Client private key path (default `pkcs8_client.key`) |
 | `clientKey` | String | Client authorization key |
+| `tunnelCount` | int | Number of shared data tunnels (default `4`) |
+| `highWater` | long | Per-channel backpressure high water mark (bytes, default `262144`); sends PAUSE when reached |
+| `lowWater` | long | Per-channel backpressure low water mark (bytes, default `65536`); sends RESUME when drained below |
+| `capacity` | long | Hard backlog limit per channel (bytes, default `4194304`); closes channel when exceeded |
 | `config[].proxyType` | String | Proxy type: `TCP` / `UDP` / `HTTP` / `SOCKS5` |
 | `config[].localIp` | String | Intranet target service IP (SOCKS5 is dynamically specified by client, not needed) |
 | `config[].localPort` | int | Intranet target service port (SOCKS5 is dynamically specified by client, not needed) |

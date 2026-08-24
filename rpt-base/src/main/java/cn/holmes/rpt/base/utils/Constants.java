@@ -1,6 +1,7 @@
 package cn.holmes.rpt.base.utils;
 
 import cn.holmes.rpt.base.config.ProxyType;
+import cn.holmes.rpt.base.mux.ChannelBuffer;
 import cn.holmes.rpt.base.serialize.api.SerializationType;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -40,6 +41,18 @@ public interface Constants {
          * UDP本地通道上的会话channelId → 对端发送者地址（多路复用下按会话区分，挂在UDP DatagramChannel上）
          */
         AttributeKey<Map<String, InetSocketAddress>> UDP_SENDERS = AttributeKey.newInstance("UDP_SENDERS");
+        /**
+         * 外部连接上的通道级带水位线缓冲区（隧道→外部连接方向，达高水位发TYPE_PAUSE）
+         */
+        AttributeKey<ChannelBuffer> BUFFER = AttributeKey.newInstance("SERVER_BUFFER");
+        /**
+         * 外部连接被通道级TYPE_PAUSE暂停中，隧道级背压恢复时跳过该通道
+         */
+        AttributeKey<Boolean> PAUSED = AttributeKey.newInstance("SERVER_PAUSED");
+        /**
+         * 外部连接对应的会话channelId（供缓冲区回调构造PAUSE/RESUME的Meta）
+         */
+        AttributeKey<String> CHANNEL_ID = AttributeKey.newInstance("SERVER_CHANNEL_ID");
     }
 
     interface Client {
@@ -63,6 +76,18 @@ public interface Constants {
          */
         AttributeKey<Set<String>> STREAM_SET = AttributeKey.newInstance("CLIENT_STREAM_SET");
         AttributeKey<InetSocketAddress> UDP_TARGET = AttributeKey.newInstance("UDP_TARGET");
+        /**
+         * 本地连接上的通道级带水位线缓冲区（隧道→本地连接方向，达高水位发TYPE_PAUSE）
+         */
+        AttributeKey<ChannelBuffer> BUFFER = AttributeKey.newInstance("CLIENT_BUFFER");
+        /**
+         * 本地连接被通道级TYPE_PAUSE暂停中，隧道级背压恢复时跳过该通道
+         */
+        AttributeKey<Boolean> PAUSED = AttributeKey.newInstance("CLIENT_PAUSED");
+        /**
+         * 本地连接对应的会话channelId（供缓冲区回调构造PAUSE/RESUME的Meta）
+         */
+        AttributeKey<String> CHANNEL_ID = AttributeKey.newInstance("CLIENT_CHANNEL_ID");
     }
 
 }

@@ -23,6 +23,7 @@
     </appender>
 
     <logger name="io.netty" level="ERROR"/>
+    <logger name="cn.holmes.rpt.base.handler" level="ERROR"/>
 
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>

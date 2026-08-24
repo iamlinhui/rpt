@@ -1,9 +1,12 @@
 package cn.holmes.rpt.client.executor;
 
+import cn.holmes.rpt.base.config.ClientConfig;
 import cn.holmes.rpt.base.executor.MessageExecutor;
+import cn.holmes.rpt.base.mux.ChannelBuffer;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
+import cn.holmes.rpt.base.utils.Config;
 import cn.holmes.rpt.base.utils.Constants.Client;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -39,11 +42,60 @@ public class DataExecutor implements MessageExecutor {
         ByteBuf data = message.hasDataBuf() ? message.getDataBuf().retain() : Unpooled.EMPTY_BUFFER;
         InetSocketAddress udpTarget = localChannel.attr(Client.UDP_TARGET).get();
         if (udpTarget != null) {
-            // UDP: 直接转发ByteBuf，零拷贝
+            // UDP: 数据报排队没有意义，直接转发，零拷贝
             localChannel.writeAndFlush(new DatagramPacket(data, udpTarget));
             return;
         }
-        // TCP/HTTP: 直接写ByteBuf，零拷贝
-        localChannel.writeAndFlush(data);
+        // TCP/HTTP: 经通道级缓冲区写出，慢的本地服务只堆自己的队列，不再拖停整条隧道
+        buffer(localChannel).write(data);
+    }
+
+    /**
+     * 本地连接恢复可写时排空积压，由TcpHandler的channelWritabilityChanged调用
+     */
+    public static void drain(Channel localChannel) {
+        ChannelBuffer buffer = localChannel.attr(Client.BUFFER).get();
+        if (Objects.nonNull(buffer)) {
+            buffer.drain();
+        }
+    }
+
+    /**
+     * 本地连接断开时释放积压，防止ByteBuf泄漏
+     */
+    public static void release(Channel localChannel) {
+        ChannelBuffer buffer = localChannel.attr(Client.BUFFER).getAndSet(null);
+        if (Objects.nonNull(buffer)) {
+            buffer.release();
+        }
+        localChannel.attr(Client.PAUSED).set(null);
+    }
+
+    /**
+     * 懒创建该本地连接的通道级缓冲区
+     */
+    private ChannelBuffer buffer(Channel localChannel) {
+        ChannelBuffer buffer = localChannel.attr(Client.BUFFER).get();
+        if (Objects.nonNull(buffer)) {
+            return buffer;
+        }
+        ClientConfig config = Config.getClientConfig();
+        ChannelBuffer created = new ChannelBuffer(localChannel, config.getHighWater(), config.getLowWater(), config.getCapacity(), () -> signal(localChannel, MessageType.TYPE_PAUSE), () -> signal(localChannel, MessageType.TYPE_RESUME));
+        ChannelBuffer previous = localChannel.attr(Client.BUFFER).setIfAbsent(created);
+        return Objects.nonNull(previous) ? previous : created;
+    }
+
+    /**
+     * 向服务端发送该通道的背压信号，隧道与会话标识在回调时实时读取
+     */
+    private void signal(Channel localChannel, MessageType type) {
+        Channel tunnel = localChannel.attr(Client.TUNNEL).get();
+        String channelId = localChannel.attr(Client.CHANNEL_ID).get();
+        String serverId = localChannel.attr(Client.SERVER_ID).get();
+        if (Objects.isNull(tunnel) || !tunnel.isActive() || Objects.isNull(channelId) || Objects.isNull(serverId)) {
+            return;
+        }
+        Meta meta = new Meta().setChannelId(channelId).setServerId(serverId);
+        tunnel.writeAndFlush(new Message(type, meta, Unpooled.EMPTY_BUFFER));
     }
 }

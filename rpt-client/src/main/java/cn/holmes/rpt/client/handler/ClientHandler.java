@@ -29,6 +29,11 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientHandler.class);
 
+    /**
+     * 隧道级背压：隧道写缓冲区满时暂停其上所有通道的本地连接读取。
+     * <p>
+     * 恢复时跳过被通道级TYPE_PAUSE暂停的通道，否则会顶掉更细粒度的暂停。
+     */
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
         Set<String> streamSet = ctx.channel().attr(Client.STREAM_SET).get();
@@ -38,9 +43,13 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
             boolean writable = ctx.channel().isWritable();
             for (String channelId : streamSet) {
                 Channel localChannel = channelMap.get(channelId);
-                if (Objects.nonNull(localChannel)) {
-                    localChannel.config().setAutoRead(writable);
+                if (Objects.isNull(localChannel)) {
+                    continue;
                 }
+                if (writable && Boolean.TRUE.equals(localChannel.attr(Client.PAUSED).get())) {
+                    continue;
+                }
+                localChannel.config().setAutoRead(writable);
             }
         }
         super.channelWritabilityChanged(ctx);

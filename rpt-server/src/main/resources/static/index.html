@@ -6,8 +6,8 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
     <meta name="author" content="Lynn"/>
     <meta name="description"
-          content="一个可用于内网穿透的工具，将局域网个人电脑、服务器映射到公网。支持TCP/UDP/HTTP/SOCKS5协议，SSL加密传输。"/>
-    <meta name="keywords" content="内网穿透,反向代理,TCP,UDP,HTTP,SOCKS5,SSL,端口映射,远程桌面,SSH,SOCKS5代理"/>
+          content="一个可用于内网穿透的工具，将局域网个人电脑、服务器映射到公网。支持TCP/UDP/HTTP/SOCKS5协议，SSL加密传输，多路复用与通道级背压。"/>
+    <meta name="keywords" content="内网穿透,反向代理,TCP,UDP,HTTP,SOCKS5,SSL,端口映射,远程桌面,SSH,SOCKS5代理,多路复用,通道级背压,零拷贝"/>
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"/>
     <link rel="icon" href="data:image/png;base64,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">
@@ -195,6 +195,8 @@
             <span class="ant-tag ant-tag-gold">SSL 加密传输</span>
             <span class="ant-tag ant-tag-purple">IP 地域过滤</span>
             <span class="ant-tag ant-tag-primary">零拷贝传输</span>
+            <span class="ant-tag ant-tag-cyan">多路复用</span>
+            <span class="ant-tag ant-tag-green">通道级背压</span>
         </div>
         <div class="hero-actions">
             <a class="ant-btn ant-btn-primary" href="https://github.com/iamlinhui/rpt/releases" target="_blank">
@@ -297,6 +299,33 @@
                 </div>
                 <h3>断线自动重连</h3>
                 <p>客户端支持指数退避自动重连与心跳保活，网络波动后自动恢复隧道，无需人工干预。</p>
+            </div>
+            <div class="ant-card fade-in">
+                <div class="ant-card-icon ant-card-icon-primary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm11-2h2v3h3v2h-3v3h-2v-3h-3v-2h3v-3z"/>
+                    </svg>
+                </div>
+                <h3>多路复用 + 通道级背压</h3>
+                <p>k 条逻辑通道复用 n 条 TLS 隧道，per-channel 水位线缓冲区防止慢通道队头阻塞，PAUSE/RESUME 协议实现双向背压。</p>
+            </div>
+            <div class="ant-card fade-in">
+                <div class="ant-card-icon ant-card-icon-cyan">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20 7h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zM10 4h4v3h-4V4z"/>
+                    </svg>
+                </div>
+                <h3>Docker 部署</h3>
+                <p>服务端、Java客户端、Go客户端均提供 Docker 镜像，挂载配置目录即可一键启动。</p>
+            </div>
+            <div class="ant-card fade-in">
+                <div class="ant-card-icon ant-card-icon-green">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M1.811 10.231c-.047 0-.058-.023-.035-.059l.246-.315c.023-.035.081-.058.128-.058h4.172c.046 0 .058.035.035.07l-.199.303c-.023.036-.081.071-.117.071zM.047 11.306c-.047 0-.059-.023-.035-.058l.245-.316c.023-.035.082-.058.129-.058h5.328c.047 0 .07.035.058.07l-.093.28c-.012.047-.058.07-.105.07zm2.828 1.075c-.047 0-.059-.035-.035-.07l.163-.292c.023-.035.07-.07.117-.07h2.337c.047 0 .07.035.07.082l-.023.28c0 .047-.047.082-.082.082zM17.803 10.022c-.745.187-1.257.315-1.997.502-.176.046-.187.058-.34-.128-.175-.21-.304-.35-.548-.467-.736-.362-1.452-.257-2.107.187-.774.526-1.175 1.3-1.163 2.217.012.92.655 1.68 1.558 1.797.78.105 1.442-.14 1.985-.714.116-.14.222-.292.352-.467H13.28c-.245 0-.304-.152-.222-.351.152-.362.432-.968.596-1.27.035-.07.117-.187.246-.187h3.595c-.024.269-.024.538-.059.808-.105.745-.35 1.452-.745 2.1-.642 1.058-1.523 1.82-2.652 2.264-.934.363-1.903.444-2.885.234-1.116-.245-1.985-.832-2.605-1.82-.537-.854-.724-1.797-.606-2.804.14-1.199.617-2.252 1.43-3.147.96-1.058 2.155-1.703 3.584-1.867 1.175-.14 2.287.035 3.298.678.768.49 1.315 1.152 1.652 2.006.07.105.023.164-.117.199z"/>
+                    </svg>
+                </div>
+                <h3>Go 客户端</h3>
+                <p>轻量级 Go 实现，交叉编译多平台，无需 JVM 环境，适合嵌入式和资源受限场景。</p>
             </div>
         </div>
     </div>
@@ -506,6 +535,10 @@
             line([s(K, 'dashboardUser'), ': ', s(V, 'admin')]),
             line([s(C, '# Dashboard登录密码')]),
             line([s(K, 'dashboardPassword'), ': ', s(V, 'admin')]),
+            line([s(C, '# 通道级背压（可选，以下为默认值）')]),
+            line([s(K, 'highWater'), ': ', s(V, '262144')]),
+            line([s(K, 'lowWater'), ': ', s(V, '65536')]),
+            line([s(K, 'capacity'), ': ', s(V, '4194304')]),
             line([s(C, '#授权给客户端的秘钥')]),
             line([s(K, 'token'), ':']),
             line(['  - ', s(K, 'clientKey'), ': ', s(V, 'b0cc39c7-1b78-4ff6-9486-020399f569e9')]),
@@ -530,6 +563,11 @@
             line([s(K, 'clientKeyPath'), ': ', s(V, 'pkcs8_client.key')]),
             line([s(C, '#授权给客户端的秘钥')]),
             line([s(K, 'clientKey'), ': ', s(V, 'b0cc39c7-1b78-4ff6-9486-020399f569e9')]),
+            line([s(C, '# 多路复用配置（可选，以下为默认值）')]),
+            line([s(K, 'tunnelCount'), ': ', s(V, '4')]),
+            line([s(K, 'highWater'), ': ', s(V, '262144')]),
+            line([s(K, 'lowWater'), ': ', s(V, '65536')]),
+            line([s(K, 'capacity'), ': ', s(V, '4194304')]),
             line(['']),
             line([s(C, '# remotePort与localPort映射配置')]),
             line([s(K, 'config'), ':']),

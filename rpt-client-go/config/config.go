@@ -34,8 +34,39 @@ type ClientConfig struct {
 	ClientKeyPath  string         `yaml:"clientKeyPath"`
 	ClientKey      string         `yaml:"clientKey"`
 	TunnelCount    int            `yaml:"tunnelCount"`
-	Config         []RemoteConfig `yaml:"config"`
-	configDir      string
+	// 通道级背压水位线（字节）：积压达 HighWater 发 TYPE_PAUSE，回落到 LowWater 发 TYPE_RESUME；
+	// Capacity 为兜底硬上限，触达即关闭该通道（不丢数据）
+	HighWater int64          `yaml:"highWater"`
+	LowWater  int64          `yaml:"lowWater"`
+	Capacity  int64          `yaml:"capacity"`
+	Config    []RemoteConfig `yaml:"config"`
+	configDir string
+}
+
+// 水位线默认值，与 Java 端保持一致
+const (
+	defaultHighWater = 256 * 1024
+	defaultLowWater  = 64 * 1024
+	defaultCapacity  = 4 * 1024 * 1024
+)
+
+// applyDefaults 未配置或配置不合法时回落到默认水位线
+func (c *ClientConfig) applyDefaults() {
+	if c.HighWater <= 0 {
+		c.HighWater = defaultHighWater
+	}
+	if c.LowWater <= 0 {
+		c.LowWater = defaultLowWater
+	}
+	if c.LowWater >= c.HighWater {
+		c.LowWater = c.HighWater / 4
+	}
+	if c.Capacity < c.HighWater {
+		c.Capacity = defaultCapacity
+		if c.Capacity < c.HighWater {
+			c.Capacity = c.HighWater
+		}
+	}
 }
 
 func (c *ClientConfig) GetCaPath() string {
@@ -80,6 +111,7 @@ func LoadClientConfig(path string) (*ClientConfig, error) {
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
+	cfg.applyDefaults()
 	if absPath, err := filepath.Abs(path); err == nil {
 		cfg.configDir = filepath.Dir(absPath)
 	} else {

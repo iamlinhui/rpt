@@ -2,3 +2,5 @@ cn.holmes.rpt.client.executor.AuthExecutor
 cn.holmes.rpt.client.executor.ConnectedExecutor
 cn.holmes.rpt.client.executor.DataExecutor
 cn.holmes.rpt.client.executor.DisconnectedExecutor
+cn.holmes.rpt.client.executor.PauseExecutor
+cn.holmes.rpt.client.executor.ResumeExecutor

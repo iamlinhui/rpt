@@ -19,6 +19,21 @@ public class ClientConfig {
      */
     private int tunnelCount = 4;
 
+    /**
+     * 通道级背压高水位（字节）：单通道积压达到该值时向服务端发TYPE_PAUSE
+     */
+    private long highWater = 256 * 1024L;
+
+    /**
+     * 通道级背压低水位（字节）：单通道积压排空到该值时向服务端发TYPE_RESUME
+     */
+    private long lowWater = 64 * 1024L;
+
+    /**
+     * 单通道积压硬上限（字节）：背压正常时不会触及，触及即关闭该通道
+     */
+    private long capacity = 4 * 1024 * 1024L;
+
     public String getServerIp() {
         return serverIp;
     }
@@ -94,5 +109,29 @@ public class ClientConfig {
 
     public void setTunnelCount(int tunnelCount) {
         this.tunnelCount = tunnelCount;
+    }
+
+    public long getHighWater() {
+        return highWater;
+    }
+
+    public void setHighWater(long highWater) {
+        this.highWater = highWater;
+    }
+
+    public long getLowWater() {
+        return lowWater;
+    }
+
+    public void setLowWater(long lowWater) {
+        this.lowWater = lowWater;
+    }
+
+    public long getCapacity() {
+        return capacity;
+    }
+
+    public void setCapacity(long capacity) {
+        this.capacity = capacity;
     }
 }

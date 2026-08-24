@@ -4,6 +4,7 @@ import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
 import cn.holmes.rpt.base.utils.Constants.Client;
+import cn.holmes.rpt.client.executor.DataExecutor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -29,11 +30,12 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
         this.meta = meta;
     }
 
+    /**
+     * 本地连接恢复可写：只排空本通道积压，不再停整条隧道（原实现是队头阻塞的根源）
+     */
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        if (tunnel.isActive()) {
-            tunnel.config().setAutoRead(ctx.channel().isWritable());
-        }
+        DataExecutor.drain(ctx.channel());
         super.channelWritabilityChanged(ctx);
     }
 
@@ -41,6 +43,9 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         ctx.channel().config().setAutoRead(false);
         ctx.channel().attr(Client.TUNNEL).set(tunnel);
+        // 供通道级缓冲区回调构造PAUSE/RESUME的Meta
+        ctx.channel().attr(Client.CHANNEL_ID).set(meta.getChannelId());
+        ctx.channel().attr(Client.SERVER_ID).set(meta.getServerId());
         tunnel.attr(Client.STREAM_SET).setIfAbsent(ConcurrentHashMap.newKeySet());
         Set<String> streamSet = tunnel.attr(Client.STREAM_SET).get();
         streamSet.add(meta.getChannelId());
@@ -65,6 +70,7 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        DataExecutor.release(ctx.channel());
         Optional.ofNullable(control.attr(Client.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(meta.getChannelId()));
         Optional.ofNullable(tunnel.attr(Client.STREAM_SET).get()).ifPresent(streamSet -> streamSet.remove(meta.getChannelId()));
         if (tunnel.isActive()) {

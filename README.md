@@ -56,26 +56,28 @@ sequenceDiagram
     Note over C,S: 1.建立连接阶段
     C->>S: SSL 双向认证握手
     S->>S: 验证客户端证书 + Token
-    S-->>C: 认证通过，隧道建立
+    S-->>C: 认证通过，控制通道建立
     C->>S: 上报端口映射配置 (TCP/UDP/HTTP/SOCKS5)
     S->>S: 绑定公网端口 和 注册域名路由
+    C->>S: TYPE_TUNNEL × n (建立 n 条共享数据隧道)
+    Note over C,S: k 个外部会话复用 n 条隧道，按 channelId 路由
 
     Note over U,L: 2.TCP/UDP 代理流程
     U->>S: 连接公网 remotePort (如 4389)
     S->>S: 匹配端口映射规则 和 IP地域过滤
-    S->>C: 通过 SSL 隧道转发请求
+    S->>C: 通过共享隧道转发请求 (按 channelId 路由)
     C->>L: 连接本地服务 localIp:localPort (如 127.0.0.1:3389)
     L-->>C: 返回响应数据
-    C-->>S: 通过 SSL 隧道回传
+    C-->>S: 通过共享隧道回传
     S-->>U: 返回给外部用户
 
     Note over U,L: 3.HTTP 代理流程 (端口复用)
     U->>S: HTTP 请求 test.domain.com:6234
     S->>S: 解析 Host 域名路由 和 Cookie 会话验证
-    S->>C: 通过 SSL 隧道转发 HTTP 请求
+    S->>C: 通过共享隧道转发 HTTP 请求
     C->>L: 转发到本地 Web 服务 (如 127.0.0.1:8080)
     L-->>C: 返回 HTTP 响应
-    C-->>S: 通过 SSL 隧道回传
+    C-->>S: 通过共享隧道回传
     S-->>U: 返回 HTTP 响应
 
     Note over U,L: 4.连接保活
@@ -101,6 +103,7 @@ sequenceDiagram
 | ⬆️ **协议升级** | HTTP 请求支持升级为 WebSocket、HTTP/2 |
 | 📊 **Dashboard** | 内置 Web 管理面板，实时监控在线客户端、流量统计、流速监控 |
 | ⚡ **零拷贝传输** | 基于 Netty ByteBuf retainedSlice 全链路零拷贝，堆外内存直接转发 |
+| 🔀 **多路复用 + 通道级背压** | k 条逻辑通道复用 n 条 TLS 隧道，per-channel 水位线缓冲区防止慢通道队头阻塞 |
 | 🔄 **断线自动重连** | 客户端指数退避自动重连 + 心跳保活，网络波动后自动恢复隧道 |
 | 🖥️ **桌面客户端** | 提供 GUI 桌面客户端，开箱即用 |
 | 🐳 **Docker 部署** | 提供 Docker 镜像，一键启动 |
@@ -259,6 +262,11 @@ dashboardUser: admin
 # Dashboard登录密码
 dashboardPassword: admin
 
+# ──── 通道级背压（可选，以下为默认值）────
+highWater: 262144       # 高水位（字节），默认 256KB
+lowWater: 65536         # 低水位（字节），默认 64KB
+capacity: 4194304       # 硬上限（字节），默认 4MB
+
 # 客户端授权Token列表
 token:
   - clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
@@ -283,6 +291,9 @@ token:
 | `dashboardPort` | int | `0` | Dashboard管理面板端口，为0不开启 |
 | `dashboardUser` | String | - | Dashboard登录账号 |
 | `dashboardPassword` | String | - | Dashboard登录密码 |
+| `highWater` | long | `262144` | 通道级背压高水位（字节），积压达此值发 PAUSE |
+| `lowWater` | long | `65536` | 通道级背压低水位（字节），排空到此值发 RESUME |
+| `capacity` | long | `4194304` | 单通道积压硬上限（字节），触及即关闭该通道 |
 | `token[].clientKey` | String | - | 客户端授权密钥 (UUID) |
 | `token[].minPort` | int | `1024` | 允许绑定的最小端口号 |
 | `token[].maxPort` | int | `65535` | 允许绑定的最大端口号 |
@@ -307,6 +318,12 @@ clientKeyPath: pkcs8_client.key
 
 # 授权密钥 (与server.yml中token列表对应)
 clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
+
+# ──── 多路复用配置（可选，以下为默认值）────
+tunnelCount: 4           # 共享数据隧道数量，默认 4
+highWater: 262144         # 高水位（字节），默认 256KB
+lowWater: 65536           # 低水位（字节），默认 64KB
+capacity: 4194304         # 硬上限（字节），默认 4MB
 
 # 端口映射配置列表
 config:
@@ -356,6 +373,10 @@ config:
 | `clientCertPath` | String | 客户端证书路径（默认 `client.crt`） |
 | `clientKeyPath` | String | 客户端私钥路径（默认 `pkcs8_client.key`） |
 | `clientKey` | String | 客户端授权密钥 |
+| `tunnelCount` | int | 共享数据隧道数量（默认 `4`） |
+| `highWater` | long | 通道级背压高水位（字节，默认 `262144`），积压达此值发 PAUSE |
+| `lowWater` | long | 通道级背压低水位（字节，默认 `65536`），排空到此值发 RESUME |
+| `capacity` | long | 单通道积压硬上限（字节，默认 `4194304`），触及即关闭该通道 |
 | `config[].proxyType` | String | 代理类型：`TCP` / `UDP` / `HTTP` / `SOCKS5` |
 | `config[].localIp` | String | 内网目标服务IP (SOCKS5 模式由客户端动态指定，无需配置) |
 | `config[].localPort` | int | 内网目标服务端口 (SOCKS5 模式由客户端动态指定，无需配置) |

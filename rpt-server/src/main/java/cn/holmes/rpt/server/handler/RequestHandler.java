@@ -10,6 +10,7 @@ import cn.holmes.rpt.base.utils.StringUtils;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
 import cn.holmes.rpt.server.coder.HttpEncoder;
+import cn.holmes.rpt.server.executor.DataExecutor;
 import cn.holmes.rpt.server.utils.AuthGuard;
 import cn.holmes.rpt.server.utils.FullHttpHelper;
 import io.netty.buffer.ByteBuf;
@@ -44,14 +45,16 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         ctx.channel().attr(Server.PROXY_TYPE).set(ProxyType.HTTP);
+        // 通道级背压回调据此定位会话
+        ctx.channel().attr(Server.CHANNEL_ID).set(ctx.channel().id().asLongText());
     }
 
+    /**
+     * 外部连接恢复可写：只排空本通道积压，不再停整条隧道（队头阻塞）
+     */
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        Channel tunnel = ctx.channel().attr(Server.PROXY).get();
-        if (Objects.nonNull(tunnel)) {
-            tunnel.config().setAutoRead(ctx.channel().isWritable());
-        }
+        DataExecutor.drain(ctx.channel());
         super.channelWritabilityChanged(ctx);
     }
 
@@ -66,6 +69,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         ctx.channel().config().setAutoRead(true);
+        DataExecutor.release(ctx.channel());
         FullHttpRequest request;
         while ((request = requestMessage.poll()) != null) {
             ReferenceCountUtil.release(request);
@@ -80,7 +84,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         Optional.ofNullable(serverChannel.attr(Server.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(ctx.channel().id().asLongText()));
         Channel tunnel = ctx.channel().attr(Server.PROXY).getAndSet(null);
         if (Objects.nonNull(tunnel) && tunnel.isActive()) {
-            tunnel.config().setAutoRead(true);
             String channelId = ctx.channel().id().asLongText();
             Optional.ofNullable(tunnel.attr(Server.STREAM_SET).get()).ifPresent(streamSet -> {
                 if (streamSet.remove(channelId)) {
@@ -156,6 +159,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             if (!connecting) {
                 connecting = true;
                 ctx.channel().config().setAutoRead(false);
+                ctx.channel().attr(Server.SERVER_ID).set(serverChannel.id().asLongText());
                 serverChannel.attr(Server.CHANNELS).get().put(ctx.channel().id().asLongText(), ctx.channel());
                 send(serverChannel, ctx, domain, MessageType.TYPE_CONNECTED, Unpooled.EMPTY_BUFFER);
             }

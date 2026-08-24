@@ -16,6 +16,10 @@ const (
 	TypeKeepalive    = 5
 	TypeData         = 6
 	TypeTunnel       = 7
+	// TypePause/TypeResume 为通道级背压信号：对端该通道积压达高水位发 Pause，
+	// 排空到低水位发 Resume，收到方停止/恢复读取本端源数据。
+	TypePause  = 8
+	TypeResume = 9
 )
 
 // SerializationType codes

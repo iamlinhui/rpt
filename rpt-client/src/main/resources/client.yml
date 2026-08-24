@@ -5,6 +5,11 @@ clientCertPath: client.crt
 clientKeyPath: pkcs8_client.key
 clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
 tunnelCount: 4
+# 通道级背压水位线（字节）：积压达highWater向对端发TYPE_PAUSE，回落到lowWater发TYPE_RESUME
+# capacity为兜底硬上限，正常不会触达，超过即关闭该通道（不丢数据）
+highWater: 262144
+lowWater: 65536
+capacity: 4194304
 config:
   - proxyType: TCP
     localIp: 127.0.0.1

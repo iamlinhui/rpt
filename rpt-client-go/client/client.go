@@ -3,24 +3,34 @@ package client
 import (
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"rpt-client-go/config"
+	"rpt-client-go/mux"
 	"rpt-client-go/protocol"
 	"rpt-client-go/tunnel"
 )
 
 // session 承载在共享隧道上的一个外部连接（以channelId路由）
 type session struct {
-	local  io.ReadWriteCloser
+	local  net.Conn
 	tunnel *protocol.Conn
 	meta   *protocol.Meta
+	// buf 下行积压队列：隧道读循环只入队不写本地，由 sessionWriter 消费，避免慢本地服务拖停整条隧道
+	buf *mux.ChannelBuf
+	// paused 被服务端 TYPE_PAUSE 暂停中，本地->隧道方向停止读取
+	paused int32
+	// resumeCh 唤醒因暂停而阻塞的中继循环（容量1，用非阻塞投递）
+	resumeCh chan struct{}
+	// done 会话已拆除，唤醒阻塞在暂停等待中的中继循环
+	done chan struct{}
 }
 
 type Client struct {
@@ -107,10 +117,14 @@ func (c *Client) Stop() {
 
 func (c *Client) closeSessions() {
 	c.mu.Lock()
-	defer c.mu.Unlock()
+	doomed := make([]*session, 0, len(c.sessions))
 	for id, s := range c.sessions {
-		s.local.Close()
+		doomed = append(doomed, s)
 		delete(c.sessions, id)
+	}
+	c.mu.Unlock()
+	for _, s := range doomed {
+		s.teardown()
 	}
 }
 
@@ -236,8 +250,7 @@ func (c *Client) connectTCP(serverConn *protocol.Conn, t *protocol.Conn, meta *p
 		})
 		return
 	}
-	c.registerSession(localConn, t, meta)
-	go c.relayLocalToTunnel(meta.ChannelId)
+	go c.relayLocalToTunnel(c.registerSession(localConn, t, meta), meta.ChannelId)
 }
 
 func (c *Client) connectUDP(serverConn *protocol.Conn, t *protocol.Conn, meta *protocol.Meta, rc *protocol.RemoteConfigMsg) {
@@ -261,28 +274,69 @@ func (c *Client) connectUDP(serverConn *protocol.Conn, t *protocol.Conn, meta *p
 		})
 		return
 	}
-	c.registerSession(udpConn, t, meta)
-	go c.relayLocalToTunnel(meta.ChannelId)
+	go c.relayLocalToTunnel(c.registerSession(udpConn, t, meta), meta.ChannelId)
 }
 
 // registerSession 登记会话并经隧道发送connected ACK（服务端按meta.channelId绑定会话）
-func (c *Client) registerSession(local io.ReadWriteCloser, t *protocol.Conn, meta *protocol.Meta) {
+func (c *Client) registerSession(local net.Conn, t *protocol.Conn, meta *protocol.Meta) *session {
+	s := &session{
+		local:    local,
+		tunnel:   t,
+		meta:     meta,
+		resumeCh: make(chan struct{}, 1),
+		done:     make(chan struct{}),
+	}
+	s.buf = mux.New(c.cfg.HighWater, c.cfg.LowWater, c.cfg.Capacity,
+		func() { c.signal(s, protocol.TypePause) },
+		func() { c.signal(s, protocol.TypeResume) })
 	c.mu.Lock()
-	c.sessions[meta.ChannelId] = &session{local: local, tunnel: t, meta: meta}
+	c.sessions[meta.ChannelId] = s
 	c.mu.Unlock()
 	t.Send(&protocol.Message{
 		Type: protocol.TypeConnected,
 		Meta: meta,
 	})
+	go c.sessionWriter(s, meta.ChannelId)
+	return s
+}
+
+// signal 向服务端发送本通道的背压信号，由缓冲区水位回调触发
+func (c *Client) signal(s *session, msgType int) {
+	if s.tunnel.IsClosed() {
+		return
+	}
+	s.tunnel.Send(&protocol.Message{
+		Type: msgType,
+		Meta: s.meta,
+	})
+}
+
+// sessionWriter 隧道->本地方向的唯一写者：从积压队列取数据写本地连接。
+// 隧道读循环因此永不阻塞在慢本地服务上。
+func (c *Client) sessionWriter(s *session, channelId string) {
+	for {
+		data := s.buf.Pop()
+		if data == nil {
+			return
+		}
+		if _, err := s.local.Write(data); err != nil {
+			c.endSession(channelId, true)
+			return
+		}
+	}
 }
 
 // relayLocalToTunnel 本地->隧道中继，本地关闭时经隧道通知服务端结束会话
-func (c *Client) relayLocalToTunnel(channelId string) {
+func (c *Client) relayLocalToTunnel(s *session, channelId string) {
 	buf := make([]byte, 32*1024)
 	for {
-		s := c.session(channelId)
-		if s == nil {
-			return
+		// 被服务端暂停：阻塞等待恢复，不做轮询
+		for atomic.LoadInt32(&s.paused) == 1 {
+			select {
+			case <-s.resumeCh:
+			case <-s.done:
+				return
+			}
 		}
 		n, err := s.local.Read(buf)
 		if n > 0 {
@@ -296,6 +350,11 @@ func (c *Client) relayLocalToTunnel(channelId string) {
 			}
 		}
 		if err != nil {
+			// 读超时是 PAUSE 打断在途 Read 的手段，不是会话结束：已读到的字节上面已发出，回到暂停检查点
+			var netErr net.Error
+			if errors.As(err, &netErr) && netErr.Timeout() {
+				continue
+			}
 			// 本地关闭：通知服务端释放会话，隧道保持复用
 			c.endSession(channelId, true)
 			return
@@ -314,9 +373,16 @@ func (c *Client) handleTunnelMessage(conn *protocol.Conn, msg *protocol.Message)
 		if s == nil || len(msg.Data) == 0 {
 			return
 		}
-		if _, err := s.local.Write(msg.Data); err != nil {
+		// 入队即返回，写本地由 sessionWriter 负责；msg.Data 是每条消息独立分配的切片，可安全异步持有
+		if !s.buf.TryPush(msg.Data) {
+			// 代理已向发送方 ACK 过这些字节，丢弃等于静默损坏字节流，只能关闭该通道
+			log.Printf("[mux] channel %s backlog exceeded %d bytes, closing session", msg.Meta.ChannelId, c.cfg.Capacity)
 			c.endSession(msg.Meta.ChannelId, true)
 		}
+	case protocol.TypePause:
+		c.pauseSession(msg.Meta.ChannelId)
+	case protocol.TypeResume:
+		c.resumeSession(msg.Meta.ChannelId)
 	case protocol.TypeDisconnected:
 		// 服务端通知会话结束，隧道保持复用
 		c.endSession(msg.Meta.ChannelId, false)
@@ -338,6 +404,42 @@ func (c *Client) handleTunnelClosed(conn *protocol.Conn) {
 	}
 }
 
+// pauseSession 收到服务端 TYPE_PAUSE：停止本地->隧道方向读取，并打断在途的阻塞 Read
+func (c *Client) pauseSession(channelId string) {
+	s := c.session(channelId)
+	if s == nil {
+		return
+	}
+	if !atomic.CompareAndSwapInt32(&s.paused, 0, 1) {
+		return
+	}
+	// 过期的读截止时间使在途 Read 立即返回超时，中继循环随即回到暂停检查点
+	s.local.SetReadDeadline(time.Now())
+}
+
+// resumeSession 收到服务端 TYPE_RESUME：清除读截止时间并唤醒中继循环
+func (c *Client) resumeSession(channelId string) {
+	s := c.session(channelId)
+	if s == nil {
+		return
+	}
+	if !atomic.CompareAndSwapInt32(&s.paused, 1, 0) {
+		return
+	}
+	s.local.SetReadDeadline(time.Time{})
+	select {
+	case s.resumeCh <- struct{}{}:
+	default:
+	}
+}
+
+// teardown 释放会话本地资源：关闭连接、清空积压、唤醒两个中继 goroutine 退出
+func (s *session) teardown() {
+	close(s.done)
+	s.buf.Close()
+	s.local.Close()
+}
+
 // endSession 幂等拆除会话；notify为true时经隧道发TypeDisconnected通知服务端
 func (c *Client) endSession(channelId string, notify bool) {
 	c.mu.Lock()
@@ -349,7 +451,7 @@ func (c *Client) endSession(channelId string, notify bool) {
 	if !ok {
 		return
 	}
-	s.local.Close()
+	s.teardown()
 	if notify && !s.tunnel.IsClosed() {
 		s.tunnel.Send(&protocol.Message{
 			Type: protocol.TypeDisconnected,

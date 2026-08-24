@@ -11,7 +11,15 @@ public enum MessageType {
     TYPE_DISCONNECTED(4, "断开连接"),
     TYPE_KEEPALIVE(5, "心跳"),
     TYPE_DATA(6, "数据传输"),
-    TYPE_TUNNEL(7, "隧道注册");
+    TYPE_TUNNEL(7, "隧道注册"),
+    /**
+     * 通道级背压：对端该通道缓冲区达高水位，停止读取本端源数据
+     */
+    TYPE_PAUSE(8, "通道暂停"),
+    /**
+     * 通道级背压恢复：对端该通道缓冲区排空到低水位，恢复读取本端源数据
+     */
+    TYPE_RESUME(9, "通道恢复");
 
     MessageType(int code, String desc) {
         this.code = code;

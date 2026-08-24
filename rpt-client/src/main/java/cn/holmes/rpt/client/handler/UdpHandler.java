@@ -32,14 +32,6 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
     }
 
     @Override
-    public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        if (tunnel.isActive()) {
-            tunnel.config().setAutoRead(ctx.channel().isWritable());
-        }
-        super.channelWritabilityChanged(ctx);
-    }
-
-    @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         ctx.channel().config().setAutoRead(false);
         ctx.channel().attr(Client.TUNNEL).set(tunnel);

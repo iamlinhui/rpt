@@ -8,6 +8,7 @@ import cn.holmes.rpt.base.protocol.Meta;
 import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.base.utils.Target;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
+import cn.holmes.rpt.server.executor.DataExecutor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -42,12 +43,12 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
         }
     }
 
+    /**
+     * 外部连接恢复可写：只排空本通道积压，不再停整条隧道（队头阻塞）
+     */
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        Channel tunnel = ctx.channel().attr(Server.PROXY).get();
-        if (Objects.nonNull(tunnel)) {
-            tunnel.config().setAutoRead(ctx.channel().isWritable());
-        }
+        DataExecutor.drain(ctx.channel());
         super.channelWritabilityChanged(ctx);
     }
 
@@ -88,6 +89,9 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
         }
         activated = true;
         ctx.channel().attr(Server.PROXY_TYPE).set(ProxyType.TCP);
+        // 通道级背压回调据此定位会话与所属客户端
+        ctx.channel().attr(Server.CHANNEL_ID).set(ctx.channel().id().asLongText());
+        ctx.channel().attr(Server.SERVER_ID).set(serverChannel.id().asLongText());
         serverChannel.attr(Server.CHANNELS).get().put(ctx.channel().id().asLongText(), ctx.channel());
         ctx.channel().config().setAutoRead(false);
         send(serverChannel, MessageType.TYPE_CONNECTED, Unpooled.EMPTY_BUFFER, ctx);
@@ -114,10 +118,10 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
         while ((buf = pending.poll()) != null) {
             buf.release();
         }
+        DataExecutor.release(ctx.channel());
         Optional.ofNullable(serverChannel.attr(Server.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(ctx.channel().id().asLongText()));
         Channel tunnel = ctx.channel().attr(Server.PROXY).getAndSet(null);
         if (Objects.nonNull(tunnel) && tunnel.isActive()) {
-            tunnel.config().setAutoRead(true);
             String channelId = ctx.channel().id().asLongText();
             Optional.ofNullable(tunnel.attr(Server.STREAM_SET).get()).ifPresent(streamSet -> {
                 if (streamSet.remove(channelId)) {
