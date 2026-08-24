@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/energye/systray v1.0.3
-	github.com/wailsapp/wails/v2 v2.12.0
+	github.com/wailsapp/wails/v2 v2.15.0
 	golang.org/x/image v0.39.0
 	gopkg.in/yaml.v3 v3.0.1
 	rpt-client-go v0.0.0
