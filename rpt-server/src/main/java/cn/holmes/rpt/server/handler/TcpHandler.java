@@ -2,13 +2,13 @@ package cn.holmes.rpt.server.handler;
 
 import cn.holmes.rpt.base.config.ProxyType;
 import cn.holmes.rpt.base.config.RemoteConfig;
+import cn.holmes.rpt.base.mux.ChannelBuffer;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
 import cn.holmes.rpt.base.utils.Constants.Server;
 import cn.holmes.rpt.base.utils.Target;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
-import cn.holmes.rpt.server.executor.DataExecutor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -48,7 +48,11 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
      */
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        DataExecutor.drain(ctx.channel());
+        // 外部连接恢复可写时排空积压
+        ChannelBuffer buffer = ctx.channel().attr(Server.BUFFER).get();
+        if (Objects.nonNull(buffer)) {
+            buffer.drain();
+        }
         super.channelWritabilityChanged(ctx);
     }
 
@@ -118,7 +122,12 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
         while ((buf = pending.poll()) != null) {
             buf.release();
         }
-        DataExecutor.release(ctx.channel());
+        // 外部连接断开时释放积压，防止ByteBuf泄漏
+        ChannelBuffer buffer = ctx.channel().attr(Server.BUFFER).getAndSet(null);
+        if (Objects.nonNull(buffer)) {
+            buffer.release();
+        }
+        ctx.channel().attr(Server.PAUSED).set(null);
         Optional.ofNullable(serverChannel.attr(Server.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(ctx.channel().id().asLongText()));
         Channel tunnel = ctx.channel().attr(Server.PROXY).getAndSet(null);
         if (Objects.nonNull(tunnel) && tunnel.isActive()) {

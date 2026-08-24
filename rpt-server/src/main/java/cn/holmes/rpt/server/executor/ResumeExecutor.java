@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 
+import static cn.holmes.rpt.server.executor.PauseExecutor.locate;
+
 /**
  * 通道级背压恢复：收到 TYPE_RESUME 后恢复该通道的外部连接读取。
  * <p>
@@ -28,7 +30,7 @@ public class ResumeExecutor implements MessageExecutor {
 
     @Override
     public void execute(ChannelHandlerContext context, Message message) throws Exception {
-        Channel localChannel = PauseExecutor.locate(message);
+        Channel localChannel = locate(message);
         if (Objects.isNull(localChannel)) {
             return;
         }

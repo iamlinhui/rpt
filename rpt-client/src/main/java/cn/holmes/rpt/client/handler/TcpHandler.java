@@ -1,5 +1,6 @@
 package cn.holmes.rpt.client.handler;
 
+import cn.holmes.rpt.base.mux.ChannelBuffer;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
@@ -11,6 +12,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -35,7 +37,11 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
      */
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        DataExecutor.drain(ctx.channel());
+        // 本地连接恢复可写时排空积压
+        ChannelBuffer buffer = ctx.channel().attr(Client.BUFFER).get();
+        if (Objects.nonNull(buffer)) {
+            buffer.drain();
+        }
         super.channelWritabilityChanged(ctx);
     }
 
@@ -70,7 +76,12 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        DataExecutor.release(ctx.channel());
+        // 本地连接断开时释放积压，防止ByteBuf泄漏
+        ChannelBuffer buffer = ctx.channel().attr(Client.BUFFER).getAndSet(null);
+        if (Objects.nonNull(buffer)) {
+            buffer.release();
+        }
+        ctx.channel().attr(Client.PAUSED).set(null);
         Optional.ofNullable(control.attr(Client.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(meta.getChannelId()));
         Optional.ofNullable(tunnel.attr(Client.STREAM_SET).get()).ifPresent(streamSet -> streamSet.remove(meta.getChannelId()));
         if (tunnel.isActive()) {

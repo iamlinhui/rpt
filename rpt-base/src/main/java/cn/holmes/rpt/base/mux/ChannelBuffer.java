@@ -8,13 +8,16 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.function.BiConsumer;
+
+import cn.holmes.rpt.base.protocol.MessageType;
 
 /**
  * 通道级带水位线缓冲区：隧道下行数据先入本通道队列，再按目标连接的可写性排空。
  * <p>
  * 共享隧道上一个慢通道不再拖停整条隧道——积压只堆在自己的队列里，达到高水位时
- * 通过 {@code onPause} 回调向对端发 TYPE_PAUSE，让对端停止读取该通道的源数据；
- * 排空到低水位再通过 {@code onResume} 发 TYPE_RESUME 恢复。
+ * 通过 {@code onStateChange} 回调向对端发 TYPE_PAUSE / TYPE_RESUME：积压达到高水位时
+ * 通知对端停止读取该通道的源数据，排空到低水位再恢复。
  * <p>
  * 线程模型：所有状态只在目标连接自己的 eventLoop 上访问，{@link #write} 从隧道
  * eventLoop 调用时会自动 hop 过去。因此队列用非线程安全的 {@link ArrayDeque} 即可，
@@ -32,9 +35,7 @@ public final class ChannelBuffer {
 
     private final long capacity;
 
-    private final Runnable onPause;
-
-    private final Runnable onResume;
+    private final BiConsumer<Channel, MessageType> onStateChange;
 
     /**
      * 以下三个字段只在 target.eventLoop() 上读写
@@ -47,13 +48,12 @@ public final class ChannelBuffer {
 
     private boolean closed;
 
-    public ChannelBuffer(Channel target, long highWater, long lowWater, long capacity, Runnable onPause, Runnable onResume) {
+    public ChannelBuffer(Channel target, long highWater, long lowWater, long capacity, BiConsumer<Channel, MessageType> onStateChange) {
         this.target = target;
         this.highWater = highWater;
         this.lowWater = lowWater;
         this.capacity = capacity;
-        this.onPause = onPause;
-        this.onResume = onResume;
+        this.onStateChange = onStateChange;
     }
 
     /**
@@ -120,7 +120,7 @@ public final class ChannelBuffer {
         bytes += size;
         if (!paused && bytes >= highWater) {
             paused = true;
-            onPause.run();
+            onStateChange.accept(target, MessageType.TYPE_PAUSE);
         }
         doDrain();
     }
@@ -136,7 +136,7 @@ public final class ChannelBuffer {
         }
         if (paused && bytes <= lowWater) {
             paused = false;
-            onResume.run();
+            onStateChange.accept(target, MessageType.TYPE_RESUME);
         }
     }
 

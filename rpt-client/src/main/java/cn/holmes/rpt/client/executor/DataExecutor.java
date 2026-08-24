@@ -51,27 +51,6 @@ public class DataExecutor implements MessageExecutor {
     }
 
     /**
-     * 本地连接恢复可写时排空积压，由TcpHandler的channelWritabilityChanged调用
-     */
-    public static void drain(Channel localChannel) {
-        ChannelBuffer buffer = localChannel.attr(Client.BUFFER).get();
-        if (Objects.nonNull(buffer)) {
-            buffer.drain();
-        }
-    }
-
-    /**
-     * 本地连接断开时释放积压，防止ByteBuf泄漏
-     */
-    public static void release(Channel localChannel) {
-        ChannelBuffer buffer = localChannel.attr(Client.BUFFER).getAndSet(null);
-        if (Objects.nonNull(buffer)) {
-            buffer.release();
-        }
-        localChannel.attr(Client.PAUSED).set(null);
-    }
-
-    /**
      * 懒创建该本地连接的通道级缓冲区
      */
     private ChannelBuffer buffer(Channel localChannel) {
@@ -80,7 +59,7 @@ public class DataExecutor implements MessageExecutor {
             return buffer;
         }
         ClientConfig config = Config.getClientConfig();
-        ChannelBuffer created = new ChannelBuffer(localChannel, config.getHighWater(), config.getLowWater(), config.getCapacity(), () -> signal(localChannel, MessageType.TYPE_PAUSE), () -> signal(localChannel, MessageType.TYPE_RESUME));
+        ChannelBuffer created = new ChannelBuffer(localChannel, config.getHighWater(), config.getLowWater(), config.getCapacity(), this::signal);
         ChannelBuffer previous = localChannel.attr(Client.BUFFER).setIfAbsent(created);
         return Objects.nonNull(previous) ? previous : created;
     }

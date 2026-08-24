@@ -2,6 +2,7 @@ package cn.holmes.rpt.server.handler;
 
 import cn.holmes.rpt.base.config.ProxyType;
 import cn.holmes.rpt.base.config.RemoteConfig;
+import cn.holmes.rpt.base.mux.ChannelBuffer;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
@@ -10,7 +11,6 @@ import cn.holmes.rpt.base.utils.StringUtils;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
 import cn.holmes.rpt.server.coder.HttpEncoder;
-import cn.holmes.rpt.server.executor.DataExecutor;
 import cn.holmes.rpt.server.utils.AuthGuard;
 import cn.holmes.rpt.server.utils.FullHttpHelper;
 import io.netty.buffer.ByteBuf;
@@ -54,7 +54,11 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
      */
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        DataExecutor.drain(ctx.channel());
+        // 外部连接恢复可写时排空积压
+        ChannelBuffer buffer = ctx.channel().attr(Server.BUFFER).get();
+        if (Objects.nonNull(buffer)) {
+            buffer.drain();
+        }
         super.channelWritabilityChanged(ctx);
     }
 
@@ -69,7 +73,12 @@ public class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         ctx.channel().config().setAutoRead(true);
-        DataExecutor.release(ctx.channel());
+        // 外部连接断开时释放积压，防止ByteBuf泄漏
+        ChannelBuffer buffer = ctx.channel().attr(Server.BUFFER).getAndSet(null);
+        if (Objects.nonNull(buffer)) {
+            buffer.release();
+        }
+        ctx.channel().attr(Server.PAUSED).set(null);
         FullHttpRequest request;
         while ((request = requestMessage.poll()) != null) {
             ReferenceCountUtil.release(request);
