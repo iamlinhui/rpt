@@ -171,11 +171,15 @@ jobs:
         working-directory: rpt-desktop-go
         run: wails build -clean -s
 
+      - name: Package as zip
+        working-directory: rpt-desktop-go/build/bin
+        run: zip -r ../../../rpt-desktop-macos.zip *.app
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: desktop-macos
-          path: rpt-desktop-go/build/bin/*
+          path: rpt-desktop-go/rpt-desktop-macos.zip
 
   # ============== Create Release ==============
   release:
@@ -213,10 +217,7 @@ jobs:
           # Desktop
           cp artifacts/desktop-windows/* release/rpt-desktop-${VERSION}-windows.exe
           cp artifacts/desktop-linux/* release/rpt-desktop-${VERSION}-linux
-          for f in artifacts/desktop-macos/*; do
-            name=$(basename "$f")
-            cp "$f" "release/rpt-desktop-${VERSION}-macos-${name}"
-          done
+          cp artifacts/desktop-macos/* release/rpt-desktop-${VERSION}-macos.zip
 
           ls -lh release/
 
