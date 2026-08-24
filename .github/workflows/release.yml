@@ -179,7 +179,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: desktop-macos
-          path: rpt-desktop-go/rpt-desktop-macos.zip
+          path: rpt-desktop-macos.zip
 
   # ============== Create Release ==============
   release:
