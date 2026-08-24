@@ -155,14 +155,14 @@ jobs:
 
   # ============== Wails Desktop (macOS) ==============
   build-desktop-macos:
+    runs-on: macos-latest
     strategy:
       matrix:
         include:
-          - runner: macos-13
-            arch: amd64
-          - runner: macos-latest
-            arch: arm64
-    runs-on: ${{ matrix.runner }}
+          - arch: amd64
+            platform: darwin/amd64
+          - arch: arm64
+            platform: darwin/arm64
     steps:
       - uses: actions/checkout@v4
 
@@ -176,7 +176,7 @@ jobs:
 
       - name: Build Desktop (macOS ${{ matrix.arch }})
         working-directory: rpt-desktop-go
-        run: wails build -clean -s
+        run: wails build -clean -s -platform ${{ matrix.platform }}
 
       - name: Package as zip
         working-directory: rpt-desktop-go/build/bin
