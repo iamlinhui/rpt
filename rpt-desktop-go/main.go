@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/energye/systray"
+	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"github.com/wailsapp/wails/v2"
@@ -72,6 +73,12 @@ func main() {
 		},
 		Bind: []interface{}{
 			app,
+		},
+		Mac: &mac.Options{
+			TitleBar: &mac.TitleBar{
+				FullSizeContent: true,
+			},
+			Appearance: mac.DefaultAppearance,
 		},
 		Windows: &wopts.Options{
 			WebviewIsTransparent: false,
