@@ -14,7 +14,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-2.8.0-blue.svg" alt="version"/>
-  <img src="https://img.shields.io/badge/license-GNU-green.svg" alt="license"/>
+  <img src="https://img.shields.io/badge/license-GPL-green.svg" alt="license"/>
   <img src="https://img.shields.io/badge/Java-8+-orange.svg" alt="java"/>
   <img src="https://img.shields.io/badge/Go-1.20+-00ADD8.svg" alt="go"/>
   <img src="https://img.shields.io/badge/Netty-4.1-red.svg" alt="netty"/>
