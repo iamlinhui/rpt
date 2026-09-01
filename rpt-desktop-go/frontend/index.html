@@ -22,6 +22,7 @@
   --shadow:0 4px 16px rgba(16,24,40,.08);
   --shadow-lg:0 12px 40px rgba(16,24,40,.16);
   --r-sm:6px;--r:10px;--r-lg:14px;
+  --chevron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a6573' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
 body[data-theme="dark"]{
   --bg:#0e1116;--surface:#171b22;--surface-2:#1e232c;--surface-3:#262c37;
@@ -35,6 +36,7 @@ body[data-theme="dark"]{
   --tag-http-bg:rgba(22,163,74,.18);--tag-http-fg:#5fd684;
   --tag-socks5-bg:rgba(124,58,237,.20);--tag-socks5-fg:#b58dff;
   --log-bg:#0a0c11;--log-border:rgba(255,255,255,.05);
+  --chevron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239aa3b2' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
 html,body{height:100%}
 body{font-family:"Microsoft YaHei","PingFang SC","-apple-system","Segoe UI","Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;user-select:none;-webkit-font-smoothing:antialiased}
@@ -175,7 +177,8 @@ tr:hover .row-actions{opacity:1}
 .form-lb{width:78px;font-size:13px;color:var(--text-2);flex-shrink:0;display:flex;align-items:center;gap:2px}
 .form-in{flex:1;padding:8px 11px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);color:var(--text);font-size:13px;outline:none;transition:all .15s;font-family:inherit}
 .form-in:focus{border-color:var(--primary);background:var(--surface);box-shadow:0 0 0 3px var(--primary-soft)}
-select.form-in{background:var(--surface-2);cursor:pointer}
+select.form-in{-webkit-appearance:none;appearance:none;background:var(--surface-2) var(--chevron) no-repeat right 11px center/13px 13px;cursor:pointer;padding-right:32px}
+select.form-in:focus{background:var(--surface) var(--chevron) no-repeat right 11px center/13px 13px}
 .form-req{color:var(--danger);margin-left:2px}
 .form-hint{font-size:11.5px;color:var(--text-3);margin-top:4px;margin-left:78px;line-height:1.4}
 .file-row{display:flex;gap:6px;flex:1}
