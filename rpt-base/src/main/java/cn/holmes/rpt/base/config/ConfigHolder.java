@@ -1,7 +1,6 @@
-package cn.holmes.rpt.base.utils;
+package cn.holmes.rpt.base.config;
 
-import cn.holmes.rpt.base.config.ClientConfig;
-import cn.holmes.rpt.base.config.ServerConfig;
+import cn.holmes.rpt.base.utils.StringUtils;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -14,9 +13,9 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.Optional;
 
-public class Config {
+public class ConfigHolder {
 
-    private static final Logger logger = LoggerFactory.getLogger(Config.class);
+    private static final Logger logger = LoggerFactory.getLogger(ConfigHolder.class);
 
     private static ServerConfig serverConfig;
     private static ClientConfig clientConfig;
@@ -52,11 +51,11 @@ public class Config {
     }
 
     public static void readServerConfig(String[] args) {
-        Optional.ofNullable(readConfig(args, ServerConfig.class)).ifPresent(Config::setServerConfig);
+        Optional.ofNullable(readConfig(args, ServerConfig.class)).ifPresent(ConfigHolder::setServerConfig);
     }
 
     public static void readClientConfig(String[] args) {
-        Optional.ofNullable(readConfig(args, ClientConfig.class)).ifPresent(Config::setClientConfig);
+        Optional.ofNullable(readConfig(args, ClientConfig.class)).ifPresent(ConfigHolder::setClientConfig);
     }
 
     private static <T> T readConfig(String[] args, Class<T> clazz) {

@@ -6,9 +6,9 @@ import cn.holmes.rpt.base.handler.IdleCheckHandler;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
-import cn.holmes.rpt.base.utils.Application;
-import cn.holmes.rpt.base.utils.Config;
-import cn.holmes.rpt.base.utils.Constants;
+import cn.holmes.rpt.base.bootstrap.Application;
+import cn.holmes.rpt.base.config.ConfigHolder;
+import cn.holmes.rpt.base.utils.Attributes;
 import cn.holmes.rpt.client.handler.ClientHandler;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFutureListener;
@@ -44,7 +44,7 @@ public class ClientApplication extends Application<Bootstrap> {
 
     @Override
     public Application<Bootstrap> config(String[] args) {
-        Config.readClientConfig(args);
+        ConfigHolder.readClientConfig(args);
         return this;
     }
 
@@ -85,15 +85,15 @@ public class ClientApplication extends Application<Bootstrap> {
         if (clientWorkerGroup.isShuttingDown() || clientWorkerGroup.isShutdown()) {
             return;
         }
-        ClientConfig clientConfig = Config.getClientConfig();
+        ClientConfig clientConfig = ConfigHolder.getClientConfig();
         logger.info("客户端开始连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
         bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
-                future.channel().attr(Constants.Client.APPLICATION).set(this);
+                future.channel().attr(Attributes.Client.APPLICATION).set(this);
                 //连接建立成功，发送注册请求
                 Message message = new Message();
                 message.setType(MessageType.TYPE_REGISTER);
-                message.setMeta(new Meta(Config.getClientConfig().getClientKey(), Config.getClientConfig().getConfig()));
+                message.setMeta(new Meta(ConfigHolder.getClientConfig().getClientKey(), ConfigHolder.getClientConfig().getConfig()));
                 future.channel().writeAndFlush(message);
             } else {
                 logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), future.cause().getMessage());
@@ -117,7 +117,7 @@ public class ClientApplication extends Application<Bootstrap> {
     }
 
     private SslContext buildSslContext() throws IOException {
-        ClientConfig clientConfig = Config.getClientConfig();
+        ClientConfig clientConfig = ConfigHolder.getClientConfig();
         String clientCaPath = Optional.ofNullable(clientConfig.getClientCaPath()).orElse("ca.crt");
         String clientCertPath = Optional.ofNullable(clientConfig.getClientCertPath()).orElse("client.crt");
         String clientKeyPath = Optional.ofNullable(clientConfig.getClientKeyPath()).orElse("pkcs8_client.key");

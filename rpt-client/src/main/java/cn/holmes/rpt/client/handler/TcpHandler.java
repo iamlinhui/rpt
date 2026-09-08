@@ -4,7 +4,7 @@ import cn.holmes.rpt.base.mux.ChannelBuffer;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
-import cn.holmes.rpt.base.utils.Constants.Client;
+import cn.holmes.rpt.base.utils.Attributes.Client;
 import cn.holmes.rpt.client.executor.DataExecutor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;

@@ -1,0 +1,28 @@
+# 默认：由 Git 判断文本/二进制，文本在仓库中存为 LF，检出时按平台还原
+* text=auto
+
+# ---- 必须始终是 LF（在 Linux 容器/服务器上执行或解析）----
+# CRLF 会让行尾的 \r 进入命令参数，导致 bash / Docker / nginx 解析出错
+*.sh          text eol=lf
+Dockerfile    text eol=lf
+.dockerignore text eol=lf
+Caddyfile     text eol=lf
+*.conf        text eol=lf
+
+# ---- 必须始终是 CRLF（Windows 批处理要求）----
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# ---- 二进制：禁止任何行尾或编码转换 ----
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.mmdb binary
+*.jar  binary
+*.exe  binary
+*.dll  binary
+*.so   binary
+*.zip  binary
+*.gz   binary

@@ -1,9 +1,8 @@
-package cn.holmes.rpt.base.utils;
+package cn.holmes.rpt.base.protocol;
 
-import cn.holmes.rpt.base.protocol.MessageType;
 import io.netty.channel.Channel;
 
-public class FireEvent {
+public class ChannelEvent {
 
     private String channelId;
 
@@ -11,7 +10,7 @@ public class FireEvent {
 
     private MessageType messageType;
 
-    public FireEvent(String channelId, Channel proxyChannel, MessageType messageType) {
+    public ChannelEvent(String channelId, Channel proxyChannel, MessageType messageType) {
         this.channelId = channelId;
         this.proxyChannel = proxyChannel;
         this.messageType = messageType;

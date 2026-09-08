@@ -1,8 +1,8 @@
 package cn.holmes.rpt.server.handler;
 
 import cn.holmes.rpt.base.config.RemoteConfig;
-import cn.holmes.rpt.base.utils.Constants.Server;
-import cn.holmes.rpt.base.utils.Target;
+import cn.holmes.rpt.base.utils.Attributes.Server;
+import cn.holmes.rpt.base.protocol.Endpoint;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -97,7 +97,7 @@ public class Socks5Handler extends SimpleChannelInboundHandler<Socks5Message> {
             failAndClose(ctx, new DefaultSocks5CommandResponse(Socks5CommandStatus.FAILURE, Socks5AddressType.IPv4));
             return;
         }
-        ctx.channel().attr(Server.DYNAMIC_TARGET).set(new Target(host, port));
+        ctx.channel().attr(Server.DYNAMIC_TARGET).set(new Endpoint(host, port));
         logger.debug("socks5 握手成功, target={}:{}", host, port);
         ctx.channel().config().setAutoRead(false);
         ctx.writeAndFlush(new DefaultSocks5CommandResponse(Socks5CommandStatus.SUCCESS, Socks5AddressType.IPv4)).addListener((ChannelFutureListener) future -> {

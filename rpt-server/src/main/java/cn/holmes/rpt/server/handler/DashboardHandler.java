@@ -2,8 +2,8 @@ package cn.holmes.rpt.server.handler;
 
 import cn.holmes.rpt.base.config.ServerConfig;
 import cn.holmes.rpt.base.serialize.json.JacksonUtil;
-import cn.holmes.rpt.base.utils.Config;
-import cn.holmes.rpt.base.utils.Constants.Server;
+import cn.holmes.rpt.base.config.ConfigHolder;
+import cn.holmes.rpt.base.utils.Attributes.Server;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
 import cn.holmes.rpt.server.utils.AuthGuard;
@@ -25,7 +25,7 @@ public class DashboardHandler extends SimpleChannelInboundHandler<FullHttpReques
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest req) throws Exception {
-        ServerConfig config = Config.getServerConfig();
+        ServerConfig config = ConfigHolder.getServerConfig();
         String user = config.getDashboardUser();
         String pass = config.getDashboardPassword();
         if (user != null && !user.isEmpty()) {
@@ -55,7 +55,7 @@ public class DashboardHandler extends SimpleChannelInboundHandler<FullHttpReques
     }
 
     private void handleStatus(ChannelHandlerContext ctx, FullHttpRequest req) throws Exception {
-        ServerConfig config = Config.getServerConfig();
+        ServerConfig config = ConfigHolder.getServerConfig();
         long uptime = TrafficStatsCache.uptime();
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("uptime", uptime);

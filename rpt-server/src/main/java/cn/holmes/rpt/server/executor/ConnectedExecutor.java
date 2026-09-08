@@ -5,8 +5,8 @@ import cn.holmes.rpt.base.executor.MessageExecutor;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
-import cn.holmes.rpt.base.utils.Constants.Server;
-import cn.holmes.rpt.base.utils.FireEvent;
+import cn.holmes.rpt.base.utils.Attributes.Server;
+import cn.holmes.rpt.base.protocol.ChannelEvent;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
 import io.netty.buffer.Unpooled;
@@ -59,7 +59,7 @@ public class ConnectedExecutor implements MessageExecutor {
         TrafficStatsCache.incrementProxyChannels(serverId);
         ProxyType proxyType = localChannel.attr(Server.PROXY_TYPE).get();
         if (Objects.equals(ProxyType.UDP, proxyType)) {
-            FireEvent fireEvent = new FireEvent(channelId, tunnel, getMessageType());
+            ChannelEvent fireEvent = new ChannelEvent(channelId, tunnel, getMessageType());
             localChannel.pipeline().fireUserEventTriggered(fireEvent);
             return;
         }

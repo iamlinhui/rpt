@@ -5,7 +5,7 @@ import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
 import cn.holmes.rpt.base.serialize.SerializerDispatcher;
 import cn.holmes.rpt.base.serialize.api.SerializationType;
-import cn.holmes.rpt.base.utils.Constants;
+import cn.holmes.rpt.base.utils.Attributes;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
@@ -22,7 +22,7 @@ public class MessageEncoder extends MessageToByteEncoder<Message> {
 
     @Override
     protected void encode(ChannelHandlerContext channelHandlerContext, Message message, ByteBuf out) throws Exception {
-        SerializationType serializationType = Optional.ofNullable(channelHandlerContext.channel().attr(Constants.SERIALIZATION_TYPE).get()).orElse(message.getSerialization());
+        SerializationType serializationType = Optional.ofNullable(channelHandlerContext.channel().attr(Attributes.SERIALIZATION_TYPE).get()).orElse(message.getSerialization());
         MessageType type = message.getType();
         out.writeInt(type.getCode());
         out.writeInt(serializationType.getCode());

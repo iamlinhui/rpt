@@ -6,8 +6,8 @@ import cn.holmes.rpt.base.mux.ChannelBuffer;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
-import cn.holmes.rpt.base.utils.Config;
-import cn.holmes.rpt.base.utils.Constants.Client;
+import cn.holmes.rpt.base.config.ConfigHolder;
+import cn.holmes.rpt.base.utils.Attributes.Client;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -58,7 +58,7 @@ public class DataExecutor implements MessageExecutor {
         if (Objects.nonNull(buffer)) {
             return buffer;
         }
-        ClientConfig config = Config.getClientConfig();
+        ClientConfig config = ConfigHolder.getClientConfig();
         ChannelBuffer created = new ChannelBuffer(localChannel, config.getHighWater(), config.getLowWater(), config.getCapacity(), this::signal);
         ChannelBuffer previous = localChannel.attr(Client.BUFFER).setIfAbsent(created);
         return Objects.nonNull(previous) ? previous : created;

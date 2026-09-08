@@ -7,8 +7,8 @@ import cn.holmes.rpt.base.executor.MessageExecutor;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
-import cn.holmes.rpt.base.utils.Config;
-import cn.holmes.rpt.base.utils.Constants.Server;
+import cn.holmes.rpt.base.config.ConfigHolder;
+import cn.holmes.rpt.base.utils.Attributes.Server;
 import cn.holmes.rpt.base.utils.StringUtils;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
@@ -58,7 +58,7 @@ public class RegisterExecutor implements MessageExecutor {
         Meta meta = message.getMeta();
         context.channel().attr(Server.CLIENT_KEY).set(String.valueOf(meta.getClientKey()));
 
-        if (!Config.getServerConfig().authorize(meta.getClientKey())) {
+        if (!ConfigHolder.getServerConfig().authorize(meta.getClientKey())) {
             logger.info("授权失败,客户端使用的秘钥:{}", meta.getClientKey());
             Message res = new Message();
             res.setType(MessageType.TYPE_AUTH);
@@ -120,7 +120,7 @@ public class RegisterExecutor implements MessageExecutor {
     }
 
     private void registerHttp(Channel serverChannel, Meta meta, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {
-        if (Config.getServerConfig().getHttpPort() == 0) {
+        if (ConfigHolder.getServerConfig().getHttpPort() == 0) {
             meta.setConnection(false).addRemoteResult("服务端未开启HTTP穿透功能");
             countDownLatch.countDown();
             return;
@@ -156,12 +156,12 @@ public class RegisterExecutor implements MessageExecutor {
     }
 
     private void bindTcpPort(Channel serverChannel, Meta meta, RemoteConfig remoteConfig, CountDownLatch countDownLatch, ProxyType proxyType, Supplier<ChannelHandler> tailHandlerFactory) {
-        if (remoteConfig.getRemotePort() == 0 || remoteConfig.getRemotePort() == Config.getServerConfig().getServerPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getHttpPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getDashboardPort()) {
+        if (remoteConfig.getRemotePort() == 0 || remoteConfig.getRemotePort() == ConfigHolder.getServerConfig().getServerPort() || remoteConfig.getRemotePort() == ConfigHolder.getServerConfig().getHttpPort() || remoteConfig.getRemotePort() == ConfigHolder.getServerConfig().getDashboardPort()) {
             meta.setConnection(false).addRemoteResult(String.format("需要绑定的%s端口[%s]不合法", proxyType, remoteConfig.getRemotePort()));
             countDownLatch.countDown();
             return;
         }
-        ServerToken serverToken = Config.getServerConfig().getServerToken(meta.getClientKey());
+        ServerToken serverToken = ConfigHolder.getServerConfig().getServerToken(meta.getClientKey());
         if (!serverToken.authorize(remoteConfig.getRemotePort())) {
             meta.setConnection(false).addRemoteResult(String.format("需要绑定的%s端口[%s]范围不合法", proxyType, remoteConfig.getRemotePort()));
             countDownLatch.countDown();
@@ -172,7 +172,7 @@ public class RegisterExecutor implements MessageExecutor {
         remoteBootstrap.group(REMOTE_BOSS_GROUP, REMOTE_WORKER_GROUP).channel(NioServerSocketChannel.class).option(ChannelOption.SO_REUSEADDR, true).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel channel) throws Exception {
-                if (Config.getServerConfig().ipFilterEnabled()) {
+                if (ConfigHolder.getServerConfig().ipFilterEnabled()) {
                     channel.pipeline().addLast(RULE_BASED_IP_FILTER);
                 }
                 channel.pipeline().addLast(tailHandlerFactory.get());
@@ -180,7 +180,7 @@ public class RegisterExecutor implements MessageExecutor {
         });
 
         logger.info("服务端开始建立{}端口绑定[{}]", proxyType, remoteConfig.getRemotePort());
-        remoteBootstrap.bind(Config.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).addListener((ChannelFutureListener) channelFuture -> {
+        remoteBootstrap.bind(ConfigHolder.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).addListener((ChannelFutureListener) channelFuture -> {
             if (channelFuture.isSuccess()) {
                 serverChannel.attr(Server.TCP_PORT_CHANNEL_FUTURE).get().put(remoteConfig.getRemotePort(), channelFuture);
                 meta.addRemoteResult(String.format("服务端绑定%s端口[%s]成功", proxyType, remoteConfig.getRemotePort()));
@@ -193,12 +193,12 @@ public class RegisterExecutor implements MessageExecutor {
     }
 
     private void registerUdp(Channel serverChannel, Meta meta, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {
-        if (remoteConfig.getRemotePort() == 0 || remoteConfig.getRemotePort() == Config.getServerConfig().getServerPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getHttpPort() || remoteConfig.getRemotePort() == Config.getServerConfig().getDashboardPort()) {
+        if (remoteConfig.getRemotePort() == 0 || remoteConfig.getRemotePort() == ConfigHolder.getServerConfig().getServerPort() || remoteConfig.getRemotePort() == ConfigHolder.getServerConfig().getHttpPort() || remoteConfig.getRemotePort() == ConfigHolder.getServerConfig().getDashboardPort()) {
             meta.setConnection(false).addRemoteResult(String.format("需要绑定的UDP端口[%s]不合法", remoteConfig.getRemotePort()));
             countDownLatch.countDown();
             return;
         }
-        ServerToken serverToken = Config.getServerConfig().getServerToken(meta.getClientKey());
+        ServerToken serverToken = ConfigHolder.getServerConfig().getServerToken(meta.getClientKey());
         if (!serverToken.authorize(remoteConfig.getRemotePort())) {
             meta.setConnection(false).addRemoteResult(String.format("需要绑定的UDP端口[%s]范围不合法", remoteConfig.getRemotePort()));
             countDownLatch.countDown();
@@ -213,7 +213,7 @@ public class RegisterExecutor implements MessageExecutor {
         });
 
         logger.info("服务端开始建立UDP端口绑定[{}]", remoteConfig.getRemotePort());
-        udpBootstrap.bind(Config.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).addListener((ChannelFutureListener) channelFuture -> {
+        udpBootstrap.bind(ConfigHolder.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).addListener((ChannelFutureListener) channelFuture -> {
             if (channelFuture.isSuccess()) {
                 serverChannel.attr(Server.UDP_PORT_CHANNEL_FUTURE).get().put(remoteConfig.getRemotePort(), channelFuture);
                 meta.addRemoteResult(String.format("服务端绑定UDP端口[%s]成功", remoteConfig.getRemotePort()));

@@ -4,7 +4,7 @@ import cn.holmes.rpt.base.config.ProxyType;
 import cn.holmes.rpt.base.executor.MessageExecutor;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
-import cn.holmes.rpt.base.utils.Constants.Server;
+import cn.holmes.rpt.base.utils.Attributes.Server;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
 import cn.holmes.rpt.server.handler.ServerHandler;
 import io.netty.channel.Channel;

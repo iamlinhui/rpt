@@ -3,7 +3,7 @@ package cn.holmes.rpt.client.executor;
 import cn.holmes.rpt.base.executor.MessageExecutor;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
-import cn.holmes.rpt.base.utils.Constants.Client;
+import cn.holmes.rpt.base.utils.Attributes.Client;
 import cn.holmes.rpt.client.cache.TunnelPool;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;

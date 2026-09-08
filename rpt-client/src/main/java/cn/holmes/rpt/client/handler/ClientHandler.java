@@ -3,9 +3,9 @@ package cn.holmes.rpt.client.handler;
 import cn.holmes.rpt.base.executor.MessageExecutor;
 import cn.holmes.rpt.base.executor.MessageExecutorFactory;
 import cn.holmes.rpt.base.protocol.Message;
-import cn.holmes.rpt.base.utils.Application;
-import cn.holmes.rpt.base.utils.Config;
-import cn.holmes.rpt.base.utils.Constants.Client;
+import cn.holmes.rpt.base.bootstrap.Application;
+import cn.holmes.rpt.base.config.ConfigHolder;
+import cn.holmes.rpt.base.utils.Attributes.Client;
 import cn.holmes.rpt.client.cache.TunnelPool;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
@@ -68,7 +68,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         Application<Bootstrap> application = ctx.channel().attr(Client.APPLICATION).getAndSet(null);
         if (Objects.nonNull(application)) {
             // 控制通道中断：关闭所有隧道与本地连接，整体重连
-            logger.info("客户端-服务端连接中断,{}:{}", Config.getClientConfig().getServerIp(), Config.getClientConfig().getServerPort());
+            logger.info("客户端-服务端连接中断,{}:{}", ConfigHolder.getClientConfig().getServerIp(), ConfigHolder.getClientConfig().getServerPort());
             TunnelPool.getInstance().closeAll();
             Optional.ofNullable(ctx.channel().attr(Client.CHANNELS).get()).ifPresent(this::clear);
             application.start(3);

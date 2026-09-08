@@ -6,7 +6,7 @@ import cn.holmes.rpt.base.executor.MessageExecutor;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
-import cn.holmes.rpt.base.utils.Config;
+import cn.holmes.rpt.base.config.ConfigHolder;
 import cn.holmes.rpt.client.cache.TunnelPool;
 import cn.holmes.rpt.client.handler.TcpHandler;
 import cn.holmes.rpt.client.handler.UdpHandler;
@@ -40,7 +40,7 @@ public class ConnectedExecutor implements MessageExecutor {
         if (Objects.equals(ProxyType.HTTP, remoteConfig.getProxyType())) {
             String domain = remoteConfig.getDomain();
             // 补全配置信息
-            RemoteConfig httpConfig = Config.getClientConfig().getHttpConfig(domain);
+            RemoteConfig httpConfig = ConfigHolder.getClientConfig().getHttpConfig(domain);
             if (Objects.isNull(httpConfig)) {
                 return;
             }

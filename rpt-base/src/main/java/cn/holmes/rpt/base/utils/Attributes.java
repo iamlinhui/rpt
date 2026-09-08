@@ -1,6 +1,8 @@
 package cn.holmes.rpt.base.utils;
 
+import cn.holmes.rpt.base.bootstrap.Application;
 import cn.holmes.rpt.base.config.ProxyType;
+import cn.holmes.rpt.base.protocol.Endpoint;
 import cn.holmes.rpt.base.mux.ChannelBuffer;
 import cn.holmes.rpt.base.serialize.api.SerializationType;
 import io.netty.bootstrap.Bootstrap;
@@ -13,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public interface Constants {
+public interface Attributes {
 
     AttributeKey<SerializationType> SERIALIZATION_TYPE = AttributeKey.newInstance("SERIALIZATION_TYPE");
 
@@ -28,7 +30,7 @@ public interface Constants {
         AttributeKey<Channel> PROXY = AttributeKey.newInstance("PROXY");
         AttributeKey<String> SERVER_ID = AttributeKey.newInstance("SERVER_ID");
         AttributeKey<ProxyType> PROXY_TYPE = AttributeKey.newInstance("PROXY_TYPE");
-        AttributeKey<Target> DYNAMIC_TARGET = AttributeKey.newInstance("DYNAMIC_TARGET");
+        AttributeKey<Endpoint> DYNAMIC_TARGET = AttributeKey.newInstance("DYNAMIC_TARGET");
         /**
          * 隧道上承载的会话channelId集合（多路复用反向索引，隧道断开时据此清理会话）
          */

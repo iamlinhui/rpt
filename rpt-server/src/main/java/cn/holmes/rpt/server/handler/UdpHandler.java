@@ -5,9 +5,9 @@ import cn.holmes.rpt.base.config.RemoteConfig;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
-import cn.holmes.rpt.base.utils.Config;
-import cn.holmes.rpt.base.utils.Constants.Server;
-import cn.holmes.rpt.base.utils.FireEvent;
+import cn.holmes.rpt.base.config.ConfigHolder;
+import cn.holmes.rpt.base.utils.Attributes.Server;
+import cn.holmes.rpt.base.protocol.ChannelEvent;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
 import cn.holmes.rpt.server.utils.IpCountryFilter;
 import io.netty.buffer.ByteBuf;
@@ -81,12 +81,12 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        boolean isEvent = evt instanceof FireEvent;
+        boolean isEvent = evt instanceof ChannelEvent;
         if (!isEvent) {
             ctx.fireUserEventTriggered(evt);
             return;
         }
-        FireEvent fireEvent = (FireEvent) evt;
+        ChannelEvent fireEvent = (ChannelEvent) evt;
         MessageType messageType = fireEvent.getMessageType();
         if (messageType == MessageType.TYPE_CONNECTED) {
             // 代理通道已建立，绑定channelId和代理通道
@@ -112,7 +112,7 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket packet) throws Exception {
         InetSocketAddress sender = packet.sender();
-        if (Config.getServerConfig().ipFilterEnabled() && IP_COUNTRY_FILTER.matches(sender)) {
+        if (ConfigHolder.getServerConfig().ipFilterEnabled() && IP_COUNTRY_FILTER.matches(sender)) {
             logger.info("UDP remote handler rejected sender: {}", sender);
             return;
         }

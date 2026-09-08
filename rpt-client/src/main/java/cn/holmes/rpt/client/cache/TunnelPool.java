@@ -4,8 +4,8 @@ import cn.holmes.rpt.base.config.ClientConfig;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
-import cn.holmes.rpt.base.utils.Config;
-import cn.holmes.rpt.base.utils.Constants.Client;
+import cn.holmes.rpt.base.config.ConfigHolder;
+import cn.holmes.rpt.base.utils.Attributes.Client;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
@@ -54,7 +54,7 @@ public class TunnelPool {
      */
     public void init(Channel control, String serverId) {
         control.attr(Client.SERVER_ID).set(serverId);
-        int tunnelCount = Math.max(1, Math.min(Config.getClientConfig().getTunnelCount(), 16));
+        int tunnelCount = Math.max(1, Math.min(ConfigHolder.getClientConfig().getTunnelCount(), 16));
         logger.info("客户端开始建立{}条共享数据隧道", tunnelCount);
         for (int i = 0; i < tunnelCount; i++) {
             connect(control, serverId, 0);
@@ -114,7 +114,7 @@ public class TunnelPool {
         if (!control.isActive()) {
             return;
         }
-        ClientConfig clientConfig = Config.getClientConfig();
+        ClientConfig clientConfig = ConfigHolder.getClientConfig();
         Bootstrap bootstrap = control.attr(Client.APPLICATION).get().bootstrap();
         bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).addListener((ChannelFutureListener) future -> {
             if (!control.isActive()) {

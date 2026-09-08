@@ -1,12 +1,12 @@
-package cn.holmes.rpt.base.utils;
+package cn.holmes.rpt.base.protocol;
 
-public class Target {
+public class Endpoint {
 
     private String host;
 
     private Integer port;
 
-    public Target(String host, Integer port) {
+    public Endpoint(String host, Integer port) {
         this.host = host;
         this.port = port;
     }

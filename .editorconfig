@@ -1,0 +1,48 @@
+root = true
+
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# ---- 缩进 ----
+[*.java]
+indent_style = space
+indent_size = 4
+
+[*.go]
+indent_style = tab
+indent_size = 4
+
+[*.xml]
+indent_style = space
+indent_size = 4
+
+[*.{html,css,js}]
+indent_style = space
+indent_size = 2
+
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# ---- 必须始终是 LF：在 Linux 容器/服务器上执行或解析 ----
+# 与 .gitattributes 的 eol=lf 保持一致
+[*.sh]
+indent_style = space
+indent_size = 4
+end_of_line = lf
+
+[{Dockerfile,Caddyfile}]
+end_of_line = lf
+
+[*.conf]
+end_of_line = lf
+
+# ---- 必须始终是 CRLF：Windows 批处理要求 ----
+[*.{bat,cmd}]
+end_of_line = crlf
+
+# ---- Markdown：行尾两个空格是「换行」语法，不能裁剪 ----
+[*.md]
+trim_trailing_whitespace = false

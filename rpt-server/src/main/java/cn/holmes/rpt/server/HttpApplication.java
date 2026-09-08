@@ -1,8 +1,8 @@
 package cn.holmes.rpt.server;
 
 import cn.holmes.rpt.base.config.ServerConfig;
-import cn.holmes.rpt.base.utils.Application;
-import cn.holmes.rpt.base.utils.Config;
+import cn.holmes.rpt.base.bootstrap.Application;
+import cn.holmes.rpt.base.config.ConfigHolder;
 import cn.holmes.rpt.server.handler.RequestHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFutureListener;
@@ -46,7 +46,7 @@ public class HttpApplication extends Application<ServerBootstrap> {
 
     @Override
     public boolean start(int seconds) throws Exception {
-        ServerConfig serverConfig = Config.getServerConfig();
+        ServerConfig serverConfig = ConfigHolder.getServerConfig();
         int httpPort = serverConfig.getHttpPort();
         if (httpPort == 0) {
             this.stop();

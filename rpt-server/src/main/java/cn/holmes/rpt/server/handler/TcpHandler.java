@@ -6,8 +6,8 @@ import cn.holmes.rpt.base.mux.ChannelBuffer;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
-import cn.holmes.rpt.base.utils.Constants.Server;
-import cn.holmes.rpt.base.utils.Target;
+import cn.holmes.rpt.base.utils.Attributes.Server;
+import cn.holmes.rpt.base.protocol.Endpoint;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -163,7 +163,7 @@ public class TcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
      */
     protected RemoteConfig getRemoteConfig(MessageType type, ChannelHandlerContext ctx) {
         if (MessageType.TYPE_CONNECTED.equals(type)) {
-            Target target = ctx.channel().attr(Server.DYNAMIC_TARGET).get();
+            Endpoint target = ctx.channel().attr(Server.DYNAMIC_TARGET).get();
             if (target != null) {
                 RemoteConfig cfg = new RemoteConfig();
                 cfg.setLocalIp(target.getHost());

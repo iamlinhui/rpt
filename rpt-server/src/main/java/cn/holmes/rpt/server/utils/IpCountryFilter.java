@@ -1,6 +1,6 @@
 package cn.holmes.rpt.server.utils;
 
-import cn.holmes.rpt.base.utils.Config;
+import cn.holmes.rpt.base.config.ConfigHolder;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.maxmind.db.MaxMindDbConstructor;
@@ -63,11 +63,11 @@ public class IpCountryFilter implements IpFilterRule {
     }
 
     /**
-     * 从 {@link Config#getServerConfig()} 读取 ipFilterCountry 并初始化白名单。
+     * 从 {@link ConfigHolder#getServerConfig()} 读取 ipFilterCountry 并初始化白名单。
      * 首次 {@link #matches} 调用时自动触发（lazy init），无需外部显式调用。
      */
     private void init() {
-        setWhitelist(Config.getServerConfig().getIpFilterCountry());
+        setWhitelist(ConfigHolder.getServerConfig().getIpFilterCountry());
         initialized = true;
     }
 

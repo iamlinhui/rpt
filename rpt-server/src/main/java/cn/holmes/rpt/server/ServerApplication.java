@@ -3,8 +3,8 @@ package cn.holmes.rpt.server;
 import cn.holmes.rpt.base.coder.MessageCodec;
 import cn.holmes.rpt.base.config.ServerConfig;
 import cn.holmes.rpt.base.handler.IdleCheckHandler;
-import cn.holmes.rpt.base.utils.Application;
-import cn.holmes.rpt.base.utils.Config;
+import cn.holmes.rpt.base.bootstrap.Application;
+import cn.holmes.rpt.base.config.ConfigHolder;
 import cn.holmes.rpt.server.handler.ServerHandler;
 import cn.holmes.rpt.server.utils.IpCountryFilter;
 import io.netty.bootstrap.ServerBootstrap;
@@ -42,7 +42,7 @@ public class ServerApplication extends Application<ServerBootstrap> {
 
     @Override
     public Application<ServerBootstrap> config(String[] args) {
-        Config.readServerConfig(args);
+        ConfigHolder.readServerConfig(args);
         return this;
     }
 
@@ -53,7 +53,7 @@ public class ServerApplication extends Application<ServerBootstrap> {
 
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
-                if (Config.getServerConfig().ipFilterEnabled()) {
+                if (ConfigHolder.getServerConfig().ipFilterEnabled()) {
                     ch.pipeline().addLast(ruleBasedIpFilter);
                 }
                 ch.pipeline().addLast(sslContext.newHandler(ch.alloc()));
@@ -72,7 +72,7 @@ public class ServerApplication extends Application<ServerBootstrap> {
 
     @Override
     public boolean start(int seconds) throws Exception {
-        ServerConfig serverConfig = Config.getServerConfig();
+        ServerConfig serverConfig = ConfigHolder.getServerConfig();
         bootstrap.bind(serverConfig.getServerIp(), serverConfig.getServerPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
                 logger.info("服务端启动成功,本机绑定IP:{},服务端口:{}", serverConfig.getServerIp(), serverConfig.getServerPort());
@@ -96,7 +96,7 @@ public class ServerApplication extends Application<ServerBootstrap> {
     }
 
     private static SslContext buildServerSslContext() throws IOException {
-        ServerConfig serverConfig = Config.getServerConfig();
+        ServerConfig serverConfig = ConfigHolder.getServerConfig();
         String serverCaPath = Optional.ofNullable(serverConfig.getServerCaPath()).orElse("ca.crt");
         String serverCertPath = Optional.ofNullable(serverConfig.getServerCertPath()).orElse("server.crt");
         String serverKeyPath = Optional.ofNullable(serverConfig.getServerKeyPath()).orElse("pkcs8_server.key");
