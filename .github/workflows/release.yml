@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g. 2.8.0)'
+        description: 'Release version (e.g. 2.8.1)'
         required: true
 
 permissions:
@@ -178,15 +178,25 @@ jobs:
         working-directory: rpt-desktop-go
         run: wails build -clean -s -platform ${{ matrix.platform }}
 
-      - name: Package as zip
+      - name: Create DMG
         working-directory: rpt-desktop-go/build/bin
-        run: zip -r ../../../rpt-desktop-macos-${{ matrix.arch }}.zip *.app
+        run: |
+          brew install create-dmg
+          create-dmg \
+            --volname "Reverse Proxy Tool" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 80 \
+            --icon "Reverse Proxy Tool.app" 175 120 \
+            --app-drop-link 425 120 \
+            rpt-desktop-macos-${{ matrix.arch }}.dmg \
+            "Reverse Proxy Tool.app"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: desktop-macos-${{ matrix.arch }}
-          path: rpt-desktop-macos-${{ matrix.arch }}.zip
+          path: rpt-desktop-go/build/bin/rpt-desktop-macos-${{ matrix.arch }}.dmg
 
   # ============== Create Release ==============
   release:
@@ -224,8 +234,8 @@ jobs:
           # Desktop
           cp artifacts/desktop-windows/* release/rpt-desktop-${VERSION}-windows.exe
           cp artifacts/desktop-linux/* release/rpt-desktop-${VERSION}-linux
-          cp artifacts/desktop-macos-amd64/* release/rpt-desktop-${VERSION}-macos-amd64.zip
-          cp artifacts/desktop-macos-arm64/* release/rpt-desktop-${VERSION}-macos-arm64.zip
+          cp artifacts/desktop-macos-amd64/* release/rpt-desktop-${VERSION}-macos-amd64.dmg
+          cp artifacts/desktop-macos-arm64/* release/rpt-desktop-${VERSION}-macos-arm64.dmg
 
           ls -lh release/
 
