@@ -1,13 +1,13 @@
 package cn.holmes.rpt.client;
 
+import cn.holmes.rpt.base.bootstrap.Application;
 import cn.holmes.rpt.base.coder.MessageCodec;
 import cn.holmes.rpt.base.config.ClientConfig;
+import cn.holmes.rpt.base.config.ConfigHolder;
 import cn.holmes.rpt.base.handler.IdleCheckHandler;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
-import cn.holmes.rpt.base.bootstrap.Application;
-import cn.holmes.rpt.base.config.ConfigHolder;
 import cn.holmes.rpt.base.utils.Attributes;
 import cn.holmes.rpt.client.handler.ClientHandler;
 import io.netty.bootstrap.Bootstrap;
@@ -49,7 +49,7 @@ public class ClientApplication extends Application<Bootstrap> {
     }
 
     @Override
-    public Application<Bootstrap> buildBootstrap() throws IOException {
+    public Application<Bootstrap> build() throws IOException {
         SslContext sslContext = buildSslContext();
         bootstrap.group(clientWorkerGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
             @Override
@@ -69,16 +69,15 @@ public class ClientApplication extends Application<Bootstrap> {
     }
 
     @Override
-    public boolean start(int seconds) throws Exception {
+    public void start(int seconds) {
         if (clientWorkerGroup.isShuttingDown() || clientWorkerGroup.isShutdown()) {
-            return false;
+            return;
         }
         if (seconds > 0) {
             clientWorkerGroup.schedule(() -> doConnect(seconds), seconds, TimeUnit.SECONDS);
-            return true;
+            return;
         }
         doConnect(0);
-        return true;
     }
 
     private void doConnect(int backoff) {

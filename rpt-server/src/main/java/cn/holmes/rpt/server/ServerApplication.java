@@ -1,10 +1,10 @@
 package cn.holmes.rpt.server;
 
+import cn.holmes.rpt.base.bootstrap.Application;
 import cn.holmes.rpt.base.coder.MessageCodec;
+import cn.holmes.rpt.base.config.ConfigHolder;
 import cn.holmes.rpt.base.config.ServerConfig;
 import cn.holmes.rpt.base.handler.IdleCheckHandler;
-import cn.holmes.rpt.base.bootstrap.Application;
-import cn.holmes.rpt.base.config.ConfigHolder;
 import cn.holmes.rpt.server.handler.ServerHandler;
 import cn.holmes.rpt.server.utils.IpCountryFilter;
 import io.netty.bootstrap.ServerBootstrap;
@@ -47,7 +47,7 @@ public class ServerApplication extends Application<ServerBootstrap> {
     }
 
     @Override
-    public Application<ServerBootstrap> buildBootstrap() throws IOException {
+    public Application<ServerBootstrap> build() throws IOException {
         SslContext sslContext = buildServerSslContext();
         bootstrap.group(serverBossGroup, serverWorkerGroup).channel(NioServerSocketChannel.class).childHandler(new ChannelInitializer<SocketChannel>() {
 
@@ -71,7 +71,7 @@ public class ServerApplication extends Application<ServerBootstrap> {
     }
 
     @Override
-    public boolean start(int seconds) throws Exception {
+    public void start(int seconds) {
         ServerConfig serverConfig = ConfigHolder.getServerConfig();
         bootstrap.bind(serverConfig.getServerIp(), serverConfig.getServerPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
@@ -81,7 +81,6 @@ public class ServerApplication extends Application<ServerBootstrap> {
                 this.stop();
             }
         });
-        return true;
     }
 
     @Override

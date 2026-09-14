@@ -1,10 +1,10 @@
 package cn.holmes.rpt.client.cache;
 
 import cn.holmes.rpt.base.config.ClientConfig;
+import cn.holmes.rpt.base.config.ConfigHolder;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
-import cn.holmes.rpt.base.config.ConfigHolder;
 import cn.holmes.rpt.base.utils.Attributes.Client;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -133,8 +133,9 @@ public class TunnelPool {
                 logger.info("客户端共享数据隧道建立成功,当前隧道数:{}", tunnels.size());
                 return;
             }
-            logger.info("客户端共享数据隧道建立失败:{},{}秒后重试", future.cause().getMessage(), Math.min(backoff + 3, RECONNECT_BACKOFF_LIMIT));
-            poolGroup.schedule(() -> connect(control, serverId, Math.min(backoff + 3, RECONNECT_BACKOFF_LIMIT)), Math.min(backoff + 3, RECONNECT_BACKOFF_LIMIT), TimeUnit.SECONDS);
+            int retryTime = Math.min(backoff + 3, RECONNECT_BACKOFF_LIMIT);
+            logger.info("客户端共享数据隧道建立失败:{},{}秒后重试", future.cause().getMessage(), retryTime);
+            poolGroup.schedule(() -> connect(control, serverId, retryTime), retryTime, TimeUnit.SECONDS);
         });
     }
 }

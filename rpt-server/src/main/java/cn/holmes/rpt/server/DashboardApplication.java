@@ -1,8 +1,8 @@
 package cn.holmes.rpt.server;
 
-import cn.holmes.rpt.base.config.ServerConfig;
 import cn.holmes.rpt.base.bootstrap.Application;
 import cn.holmes.rpt.base.config.ConfigHolder;
+import cn.holmes.rpt.base.config.ServerConfig;
 import cn.holmes.rpt.server.handler.DashboardHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFutureListener;
@@ -28,7 +28,7 @@ public class DashboardApplication extends Application<ServerBootstrap> {
     private final EventLoopGroup workerGroup = new NioEventLoopGroup(2);
 
     @Override
-    public Application<ServerBootstrap> buildBootstrap() throws IOException {
+    public Application<ServerBootstrap> build() throws IOException {
         bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel ch) {
@@ -41,12 +41,12 @@ public class DashboardApplication extends Application<ServerBootstrap> {
     }
 
     @Override
-    public boolean start(int seconds) throws Exception {
+    public void start(int seconds) {
         ServerConfig serverConfig = ConfigHolder.getServerConfig();
         int dashboardPort = serverConfig.getDashboardPort();
         if (dashboardPort == 0) {
             this.stop();
-            return false;
+            return;
         }
         bootstrap.bind(serverConfig.getServerIp(), dashboardPort).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
@@ -56,7 +56,6 @@ public class DashboardApplication extends Application<ServerBootstrap> {
                 this.stop();
             }
         });
-        return true;
     }
 
     @Override

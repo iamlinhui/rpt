@@ -1,8 +1,8 @@
 package cn.holmes.rpt.server;
 
-import cn.holmes.rpt.base.config.ServerConfig;
 import cn.holmes.rpt.base.bootstrap.Application;
 import cn.holmes.rpt.base.config.ConfigHolder;
+import cn.holmes.rpt.base.config.ServerConfig;
 import cn.holmes.rpt.server.handler.RequestHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFutureListener;
@@ -30,7 +30,7 @@ public class HttpApplication extends Application<ServerBootstrap> {
     private final EventLoopGroup serverWorkerGroup = new NioEventLoopGroup();
 
     @Override
-    public Application<ServerBootstrap> buildBootstrap() throws IOException {
+    public Application<ServerBootstrap> build() throws IOException {
         httpBootstrap.group(serverBossGroup, serverWorkerGroup).channel(NioServerSocketChannel.class).childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
 
             @Override
@@ -45,12 +45,12 @@ public class HttpApplication extends Application<ServerBootstrap> {
     }
 
     @Override
-    public boolean start(int seconds) throws Exception {
+    public void start(int seconds) {
         ServerConfig serverConfig = ConfigHolder.getServerConfig();
         int httpPort = serverConfig.getHttpPort();
         if (httpPort == 0) {
             this.stop();
-            return false;
+            return;
         }
         httpBootstrap.bind(serverConfig.getServerIp(), serverConfig.getHttpPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
@@ -60,7 +60,6 @@ public class HttpApplication extends Application<ServerBootstrap> {
                 this.stop();
             }
         });
-        return true;
     }
 
     @Override
