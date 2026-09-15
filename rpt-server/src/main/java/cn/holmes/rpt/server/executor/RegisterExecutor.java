@@ -25,7 +25,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.ipfilter.RuleBasedIpFilter;
-import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -176,7 +175,6 @@ public class RegisterExecutor implements MessageExecutor {
                 if (ConfigHolder.getServerConfig().ipFilterEnabled()) {
                     channel.pipeline().addLast(RULE_BASED_IP_FILTER);
                 }
-                channel.pipeline().addLast(new IdleStateHandler(0, 0, 600, TimeUnit.SECONDS));
                 channel.pipeline().addLast(tailHandlerFactory.get());
             }
         });
