@@ -59,7 +59,10 @@ func main() {
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		OnStartup:  app.startup,
+		OnStartup: app.startup,
+		SingleInstanceLock: &options.SingleInstanceLock{
+			UniqueId: "67178DC6-ED9E-467F-94E7-7007EB119847",
+		},
 		OnShutdown: app.shutdown,
 		OnBeforeClose: func(ctx context.Context) bool {
 			app.mu.Lock()
