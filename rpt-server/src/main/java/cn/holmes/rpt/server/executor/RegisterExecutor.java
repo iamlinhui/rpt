@@ -1,5 +1,6 @@
 package cn.holmes.rpt.server.executor;
 
+import cn.holmes.rpt.base.config.ConfigHolder;
 import cn.holmes.rpt.base.config.ProxyType;
 import cn.holmes.rpt.base.config.RemoteConfig;
 import cn.holmes.rpt.base.config.ServerToken;
@@ -7,7 +8,6 @@ import cn.holmes.rpt.base.executor.MessageExecutor;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
-import cn.holmes.rpt.base.config.ConfigHolder;
 import cn.holmes.rpt.base.utils.Attributes.Server;
 import cn.holmes.rpt.base.utils.StringUtils;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
@@ -25,6 +25,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.ipfilter.RuleBasedIpFilter;
+import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -175,6 +176,7 @@ public class RegisterExecutor implements MessageExecutor {
                 if (ConfigHolder.getServerConfig().ipFilterEnabled()) {
                     channel.pipeline().addLast(RULE_BASED_IP_FILTER);
                 }
+                channel.pipeline().addLast(new IdleStateHandler(0, 0, 600, TimeUnit.SECONDS));
                 channel.pipeline().addLast(tailHandlerFactory.get());
             }
         });

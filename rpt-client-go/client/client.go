@@ -49,6 +49,9 @@ type Client struct {
 }
 
 func New(cfg *config.ClientConfig, tlsConfig *tls.Config) *Client {
+	// 兜底规范化：cfg 不一定来自 LoadClientConfig（桌面端手工构造），
+	// 零值水位线会让通道缓冲区每条消息都发背压信号并误杀会话
+	cfg.ApplyDefaults()
 	addr := net.JoinHostPort(cfg.ServerIp, strconv.Itoa(cfg.ServerPort))
 	c := &Client{
 		cfg:        cfg,

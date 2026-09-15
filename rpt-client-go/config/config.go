@@ -27,13 +27,13 @@ type RemoteConfig struct {
 }
 
 type ClientConfig struct {
-	ServerIp       string         `yaml:"serverIp"`
-	ServerPort     int            `yaml:"serverPort"`
-	ClientCaPath   string         `yaml:"clientCaPath"`
-	ClientCertPath string         `yaml:"clientCertPath"`
-	ClientKeyPath  string         `yaml:"clientKeyPath"`
-	ClientKey      string         `yaml:"clientKey"`
-	TunnelCount    int            `yaml:"tunnelCount"`
+	ServerIp       string `yaml:"serverIp"`
+	ServerPort     int    `yaml:"serverPort"`
+	ClientCaPath   string `yaml:"clientCaPath"`
+	ClientCertPath string `yaml:"clientCertPath"`
+	ClientKeyPath  string `yaml:"clientKeyPath"`
+	ClientKey      string `yaml:"clientKey"`
+	TunnelCount    int    `yaml:"tunnelCount"`
 	// 通道级背压水位线（字节）：积压达 HighWater 发 TYPE_PAUSE，回落到 LowWater 发 TYPE_RESUME；
 	// Capacity 为兜底硬上限，触达即关闭该通道（不丢数据）
 	HighWater int64          `yaml:"highWater"`
@@ -43,26 +43,25 @@ type ClientConfig struct {
 	configDir string
 }
 
-// 水位线默认值，与 Java 端保持一致
+// 水位线默认值
 const (
-	defaultHighWater = 256 * 1024
-	defaultLowWater  = 64 * 1024
-	defaultCapacity  = 4 * 1024 * 1024
+	DefaultHighWater = 256 * 1024
+	DefaultLowWater  = 64 * 1024
+	DefaultCapacity  = 4 * 1024 * 1024
 )
 
-// applyDefaults 未配置或配置不合法时回落到默认水位线
-func (c *ClientConfig) applyDefaults() {
+func (c *ClientConfig) ApplyDefaults() {
 	if c.HighWater <= 0 {
-		c.HighWater = defaultHighWater
+		c.HighWater = DefaultHighWater
 	}
 	if c.LowWater <= 0 {
-		c.LowWater = defaultLowWater
+		c.LowWater = DefaultLowWater
 	}
 	if c.LowWater >= c.HighWater {
 		c.LowWater = c.HighWater / 4
 	}
 	if c.Capacity < c.HighWater {
-		c.Capacity = defaultCapacity
+		c.Capacity = DefaultCapacity
 		if c.Capacity < c.HighWater {
 			c.Capacity = c.HighWater
 		}
@@ -111,7 +110,7 @@ func LoadClientConfig(path string) (*ClientConfig, error) {
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
-	cfg.applyDefaults()
+	cfg.ApplyDefaults()
 	if absPath, err := filepath.Abs(path); err == nil {
 		cfg.configDir = filepath.Dir(absPath)
 	} else {

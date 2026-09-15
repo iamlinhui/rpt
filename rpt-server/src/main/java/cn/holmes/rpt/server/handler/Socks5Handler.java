@@ -1,14 +1,13 @@
 package cn.holmes.rpt.server.handler;
 
 import cn.holmes.rpt.base.config.RemoteConfig;
-import cn.holmes.rpt.base.utils.Attributes.Server;
 import cn.holmes.rpt.base.protocol.Endpoint;
+import cn.holmes.rpt.base.utils.Attributes.Server;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.socksx.v5.*;
-import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.handler.timeout.ReadTimeoutException;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import org.slf4j.Logger;
@@ -21,7 +20,6 @@ public class Socks5Handler extends SimpleChannelInboundHandler<Socks5Message> {
     private static final Logger logger = LoggerFactory.getLogger(Socks5Handler.class);
 
     private static final String NAME_TIMEOUT = "socksTimeout";
-    private static final String NAME_IDLE = "socksIdle";
     private static final String NAME_INIT_DECODER = "socksInitDecoder";
     private static final String NAME_AUTH_DECODER = "socksAuthDecoder";
     private static final String NAME_CMD_DECODER = "socksCmdDecoder";
@@ -108,8 +106,7 @@ public class Socks5Handler extends SimpleChannelInboundHandler<Socks5Message> {
             ctx.pipeline().addLast(new TcpHandler(serverChannel, remoteConfig));
             ctx.pipeline().remove(NAME_CMD_DECODER);
             ctx.pipeline().remove(NAME_ENCODER);
-            // 握手超时 → 代理阶段空闲超时
-            ctx.pipeline().replace(NAME_TIMEOUT, NAME_IDLE, new IdleStateHandler(0, 0, 600, TimeUnit.SECONDS));
+            ctx.pipeline().remove(NAME_TIMEOUT);
             ctx.pipeline().remove(this);
         });
     }
