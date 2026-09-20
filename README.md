@@ -839,4 +839,4 @@ openssl pkcs8 -topk8 -in client.key -out pkcs8_client.key -nocrypt
 
 ## 📄 License
 
-[MIT License](LICENSE)
+[GPL-3.0 License](LICENSE)

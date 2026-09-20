@@ -839,4 +839,4 @@ Place the downloaded `Country.mmdb` into the server's `conf` folder.
 
 ## 📄 License
 
-[MIT License](LICENSE)
+[GPL-3.0 License](LICENSE)
