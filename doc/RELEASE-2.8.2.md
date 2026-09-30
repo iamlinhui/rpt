@@ -1,6 +1,6 @@
 # RPT v2.8.2
 
-本次发布聚焦**通道级背压语义修正**、**断流关闭语义修复**，以及 **UDP 虚拟会话空闲回收优化**。
+本次发布聚焦**通道级背压语义修正**、**断流关闭语义修复**、**UDP 虚拟会话空闲回收优化**，以及 **UDP 数据报丢包修复**。
 
 ## ✨ 新特性
 
@@ -17,11 +17,16 @@
   隧道断开 / 积压超上限 / 排空停滞等「数据已不完整」的场景，由发 FIN 改为发 RST，让无长度标识的协议（HTTP 响应体、RDP 等）把截断当成失败而非正常结束。
 - **ChannelBuffer 目标连接已关闭时写入泄漏**（Java）
   目标连接已关闭或会话已结束时，隧道线程再写入的数据会一直占住内存并向对端发无意义 PAUSE。现在直接 release 丢弃。
+- **UDP 数据报丢包**（Java + Go）
+  定位 UDP 长期丢包的两处根因并修复：① UDP socket 内核收发缓冲过小——隧道以 TCP 突发重放数据报时本地小缓冲溢出，现设 8MB（Java `SO_RCVBUF`/`SO_SNDBUF`、Go `SetRead/WriteBuffer`）；② DatagramChannel 读缓冲用 adaptive 分配器——满载下收缩到小于来包时**静默截断大包**，现固定 64KB（`FixedRecvByteBufAllocator(65535)`）。修复后 UDP 单流/4 并发丢包降至约 0%。
+- **Go 隧道 TCP 未关 Nagle**（Go）
+  隧道 TCP 连接补 `SetNoDelay(true)`，修复高并发下小包延时放大导致的 TCP 并发吞吐回落。
 
 ## 🔧 改进
 
 - UDP 代理建立前的数据缓冲上限 `MAX_BUFFER_SIZE` 由 64 提到 128。
 - 服务端 `UDP_LAST_ACTIVE` 活跃表挂在 UDP 通道属性上，下行由 `DataExecutor` 刷新。
+- 服务端 UDP 绑定开启 `SO_REUSEADDR`，端口复用，快速重启不再绑定失败（需保证单实例）。
 
 ## ⚙️ 配置变更
 
