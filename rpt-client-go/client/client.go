@@ -292,6 +292,9 @@ func (c *Client) connectUDP(serverConn *protocol.Conn, t *protocol.Conn, meta *p
 		})
 		return
 	}
+	// 加大 UDP socket 缓冲：隧道以 TCP 突发重放数据报，本地接收方小缓冲区会溢出丢包
+	udpConn.SetReadBuffer(8 * 1024 * 1024)
+	udpConn.SetWriteBuffer(8 * 1024 * 1024)
 	go c.relayLocalToTunnel(c.registerSession(udpConn, t, meta), meta.ChannelId)
 }
 

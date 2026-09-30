@@ -205,12 +205,19 @@ public class RegisterExecutor implements MessageExecutor {
             return;
         }
         Bootstrap udpBootstrap = new Bootstrap();
-        udpBootstrap.group(REMOTE_WORKER_GROUP).channel(NioDatagramChannel.class).option(ChannelOption.SO_REUSEADDR, false).handler(new ChannelInitializer<DatagramChannel>() {
-            @Override
-            protected void initChannel(DatagramChannel channel) throws Exception {
-                channel.pipeline().addLast(new UdpHandler(serverChannel, remoteConfig));
-            }
-        });
+        udpBootstrap.group(REMOTE_WORKER_GROUP).channel(NioDatagramChannel.class)
+                // 允许端口复用，避免快速重启时绑定失败（注意保证单实例）
+                .option(ChannelOption.SO_REUSEADDR, true)
+                // 数据报读缓冲固定 64KB：adaptive 在满载下翻倍/收缩会导致大包间歇性截断
+                .option(ChannelOption.RCVBUF_ALLOCATOR, new FixedRecvByteBufAllocator(65535))
+                .option(ChannelOption.SO_RCVBUF, 8 * 1024 * 1024)
+                .option(ChannelOption.SO_SNDBUF, 8 * 1024 * 1024)
+                .handler(new ChannelInitializer<DatagramChannel>() {
+                    @Override
+                    protected void initChannel(DatagramChannel channel) throws Exception {
+                        channel.pipeline().addLast(new UdpHandler(serverChannel, remoteConfig));
+                    }
+                });
 
         logger.info("服务端开始建立UDP端口绑定[{}]", remoteConfig.getRemotePort());
         udpBootstrap.bind(ConfigHolder.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).addListener((ChannelFutureListener) channelFuture -> {

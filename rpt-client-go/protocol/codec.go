@@ -37,10 +37,12 @@ func NewConn(raw net.Conn) (*Conn, error) {
 	if tc, ok := raw.(*net.TCPConn); ok {
 		tc.SetKeepAlive(true)
 		tc.SetKeepAlivePeriod(30 * time.Second)
+		tc.SetNoDelay(true)
 	} else if tlsConn, ok := raw.(*tls.Conn); ok {
 		if tc, ok := tlsConn.NetConn().(*net.TCPConn); ok {
 			tc.SetKeepAlive(true)
 			tc.SetKeepAlivePeriod(30 * time.Second)
+			tc.SetNoDelay(true)
 		}
 	}
 	c := &Conn{

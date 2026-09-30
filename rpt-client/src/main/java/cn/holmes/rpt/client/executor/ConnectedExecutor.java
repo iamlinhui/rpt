@@ -78,12 +78,17 @@ public class ConnectedExecutor implements MessageExecutor {
 
     private void connectUdp(Channel control, Channel tunnel, Meta meta) {
         Bootstrap udpBootstrap = new Bootstrap();
-        udpBootstrap.group(LOOP_GROUP).channel(NioDatagramChannel.class).handler(new ChannelInitializer<DatagramChannel>() {
-            @Override
-            protected void initChannel(DatagramChannel channel) throws Exception {
-                channel.pipeline().addLast(new UdpHandler(control, tunnel, meta));
-            }
-        });
+        udpBootstrap.group(LOOP_GROUP).channel(NioDatagramChannel.class)
+                // 数据报读缓冲固定 64KB，避免 adaptive 收缩导致大包截断
+                .option(ChannelOption.RCVBUF_ALLOCATOR, new FixedRecvByteBufAllocator(65535))
+                .option(ChannelOption.SO_RCVBUF, 8 * 1024 * 1024)
+                .option(ChannelOption.SO_SNDBUF, 8 * 1024 * 1024)
+                .handler(new ChannelInitializer<DatagramChannel>() {
+                    @Override
+                    protected void initChannel(DatagramChannel channel) throws Exception {
+                        channel.pipeline().addLast(new UdpHandler(control, tunnel, meta));
+                    }
+                });
         // UDP不需要connect，只需要bind到一个随机本地端口
         udpBootstrap.bind(0).addListener((ChannelFutureListener) future -> {
             if (!future.isSuccess()) {
