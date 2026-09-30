@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="440" viewBox="0 0 820 440">
+<rect x="0" y="0" width="820" height="440" fill="#ffffff"/>
+<text x="78" y="30" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="19" font-weight="bold" fill="#1a1a1a">RPT TCP 吞吐:tunnelCount 4 vs 8 (Mbps)</text>
+<text x="78" y="48" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12" fill="#888888">3 轮中位数; baseline 直连 27910~30740 Mbps(超出量程)</text>
+<line x1="78" y1="378.0" x2="794" y2="378.0" stroke="#e5e5e5" stroke-width="1"/>
+<text x="70" y="382.0" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12" fill="#666" text-anchor="end">0</text>
+<line x1="78" y1="296.5" x2="794" y2="296.5" stroke="#e5e5e5" stroke-width="1"/>
+<text x="70" y="300.5" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12" fill="#666" text-anchor="end">2500</text>
+<line x1="78" y1="215.0" x2="794" y2="215.0" stroke="#e5e5e5" stroke-width="1"/>
+<text x="70" y="219.0" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12" fill="#666" text-anchor="end">5000</text>
+<line x1="78" y1="133.5" x2="794" y2="133.5" stroke="#e5e5e5" stroke-width="1"/>
+<text x="70" y="137.5" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12" fill="#666" text-anchor="end">7500</text>
+<line x1="78" y1="52.0" x2="794" y2="52.0" stroke="#e5e5e5" stroke-width="1"/>
+<text x="70" y="56.0" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12" fill="#666" text-anchor="end">10000</text>
+<text x="28" y="215.0" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="13" fill="#444" transform="rotate(-90 28 215.0)" text-anchor="middle">吞吐 Mbps</text>
+<line x1="78" y1="52" x2="78" y2="378" stroke="#999" stroke-width="1"/>
+<text x="167.5" y="400" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="13" fill="#333" text-anchor="middle">单流</text>
+<rect x="104.3" y="207.5" width="29.6" height="170.5" fill="#3498db" rx="2"/>
+<text x="119.2" y="202.5" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="9.5" fill="#333" text-anchor="middle">5231</text>
+<rect x="136.6" y="205.8" width="29.6" height="172.2" fill="#85c1e9" rx="2"/>
+<text x="151.4" y="200.8" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="9.5" fill="#333" text-anchor="middle">5283</text>
+<rect x="168.8" y="215.3" width="29.6" height="162.7" fill="#27ae60" rx="2"/>
+<text x="183.6" y="210.3" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="9.5" fill="#333" text-anchor="middle">4991</text>
+<rect x="201.0" y="223.7" width="29.6" height="154.3" fill="#82e0aa" rx="2"/>
+<text x="215.8" y="218.7" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="9.5" fill="#333" text-anchor="middle">4733</text>
+<text x="346.5" y="400" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="13" fill="#333" text-anchor="middle">4 并发</text>
+<rect x="283.3" y="142.2" width="29.6" height="235.8" fill="#3498db" rx="2"/>
+<text x="298.2" y="137.2" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="9.5" fill="#333" text-anchor="middle">7233</text>
+<rect x="315.6" y="141.6" width="29.6" height="236.4" fill="#85c1e9" rx="2"/>
+<text x="330.4" y="136.6" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="9.5" fill="#333" text-anchor="middle">7251</text>
+<rect x="347.8" y="82.5" width="29.6" height="295.5" fill="#27ae60" rx="2"/>
+<text x="362.6" y="77.5" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="9.5" fill="#333" text-anchor="middle">9063</text>
+<rect x="380.0" y="87.3" width="29.6" height="290.7" fill="#82e0aa" rx="2"/>
+<text x="394.8" y="82.3" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="9.5" fill="#333" text-anchor="middle">8916</text>
+<text x="525.5" y="400" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="13" fill="#333" text-anchor="middle">8 并发</text>
+<rect x="462.3" y="149.1" width="29.6" height="228.9" fill="#3498db" rx="2"/>
+<text x="477.2" y="144.1" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="9.5" fill="#333" text-anchor="middle">7023</text>
+<rect x="494.6" y="157.6" width="29.6" height="220.4" fill="#85c1e9" rx="2"/>
+<text x="509.4" y="152.6" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="9.5" fill="#333" text-anchor="middle">6760</text>
+<rect x="526.8" y="90.6" width="29.6" height="287.4" fill="#27ae60" rx="2"/>
+<text x="541.6" y="85.6" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="9.5" fill="#333" text-anchor="middle">8816</text>
+<rect x="559.0" y="66.1" width="29.6" height="311.9" fill="#82e0aa" rx="2"/>
+<text x="573.8" y="61.1" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="9.5" fill="#333" text-anchor="middle">9569</text>
+<text x="704.5" y="400" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="13" fill="#333" text-anchor="middle">12 并发</text>
+<rect x="641.3" y="144.4" width="29.6" height="233.6" fill="#3498db" rx="2"/>
+<text x="656.2" y="139.4" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="9.5" fill="#333" text-anchor="middle">7165</text>
+<rect x="673.6" y="169.6" width="29.6" height="208.4" fill="#85c1e9" rx="2"/>
+<text x="688.4" y="164.6" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="9.5" fill="#333" text-anchor="middle">6393</text>
+<rect x="705.8" y="85.6" width="29.6" height="292.4" fill="#27ae60" rx="2"/>
+<text x="720.6" y="80.6" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="9.5" fill="#333" text-anchor="middle">8968</text>
+<rect x="738.0" y="103.5" width="29.6" height="274.5" fill="#82e0aa" rx="2"/>
+<text x="752.8" y="98.5" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="9.5" fill="#333" text-anchor="middle">8419</text>
+<rect x="78" y="416" width="12" height="12" fill="#3498db" rx="2"/>
+<text x="95" y="426" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12" fill="#333">Go t4</text>
+<rect x="174" y="416" width="12" height="12" fill="#85c1e9" rx="2"/>
+<text x="191" y="426" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12" fill="#333">Go t8</text>
+<rect x="270" y="416" width="12" height="12" fill="#27ae60" rx="2"/>
+<text x="287" y="426" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12" fill="#333">Java t4</text>
+<rect x="392" y="416" width="12" height="12" fill="#82e0aa" rx="2"/>
+<text x="409" y="426" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12" fill="#333">Java t8</text>
+</svg>

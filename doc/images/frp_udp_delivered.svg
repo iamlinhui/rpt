@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="440" viewBox="0 0 820 440">
+<rect x="0" y="0" width="820" height="440" fill="#ffffff"/>
+<text x="78" y="30" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="19" font-weight="bold" fill="#1a1a1a">UDP 实际送达吞吐:frp vs RPT (Mbps)</text>
+<text x="78" y="48" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12" fill="#888888">目标速率 2000/4000/6000 Mbps(虚线);frp P8 未测</text>
+<line x1="78" y1="378.0" x2="794" y2="378.0" stroke="#e5e5e5" stroke-width="1"/>
+<text x="70" y="382.0" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12" fill="#666" text-anchor="end">0</text>
+<line x1="78" y1="296.5" x2="794" y2="296.5" stroke="#e5e5e5" stroke-width="1"/>
+<text x="70" y="300.5" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12" fill="#666" text-anchor="end">1500</text>
+<line x1="78" y1="215.0" x2="794" y2="215.0" stroke="#e5e5e5" stroke-width="1"/>
+<text x="70" y="219.0" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12" fill="#666" text-anchor="end">3000</text>
+<line x1="78" y1="133.5" x2="794" y2="133.5" stroke="#e5e5e5" stroke-width="1"/>
+<text x="70" y="137.5" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12" fill="#666" text-anchor="end">4500</text>
+<line x1="78" y1="52.0" x2="794" y2="52.0" stroke="#e5e5e5" stroke-width="1"/>
+<text x="70" y="56.0" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12" fill="#666" text-anchor="end">6000</text>
+<text x="28" y="215.0" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="13" fill="#444" transform="rotate(-90 28 215.0)" text-anchor="middle">送达 Mbps</text>
+<line x1="78" y1="52" x2="78" y2="378" stroke="#999" stroke-width="1"/>
+<line x1="111.4" y1="269.3" x2="283.3" y2="269.3" stroke="#bdc3c7" stroke-width="1.5" stroke-dasharray="4 3"/>
+<line x1="350.1" y1="160.7" x2="521.9" y2="160.7" stroke="#bdc3c7" stroke-width="1.5" stroke-dasharray="4 3"/>
+<line x1="588.7" y1="52.0" x2="760.6" y2="52.0" stroke="#bdc3c7" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="197.33333333333331" y="400" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="13" fill="#333" text-anchor="middle">4 并发</text>
+<rect x="113.7" y="270.5" width="52.7" height="107.5" fill="#e74c3c" rx="2"/>
+<text x="140.1" y="265.5" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="11" fill="#333" text-anchor="middle">1979</text>
+<rect x="171.0" y="270.8" width="52.7" height="107.2" fill="#3498db" rx="2"/>
+<text x="197.3" y="265.8" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="11" fill="#333" text-anchor="middle">1973</text>
+<rect x="228.3" y="269.7" width="52.7" height="108.3" fill="#27ae60" rx="2"/>
+<text x="254.6" y="264.7" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="11" fill="#333" text-anchor="middle">1994</text>
+<text x="435.99999999999994" y="400" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="13" fill="#333" text-anchor="middle">8 并发</text>
+<text x="435.99999999999994" y="372" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="11" fill="#999" text-anchor="middle">未测</text>
+<rect x="409.7" y="220.9" width="52.7" height="157.1" fill="#3498db" rx="2"/>
+<text x="436.0" y="215.9" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="11" fill="#333" text-anchor="middle">2891</text>
+<rect x="466.9" y="177.1" width="52.7" height="200.9" fill="#27ae60" rx="2"/>
+<text x="493.3" y="172.1" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="11" fill="#333" text-anchor="middle">3698</text>
+<text x="674.6666666666666" y="400" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="13" fill="#333" text-anchor="middle">12 并发</text>
+<rect x="591.0" y="162.8" width="52.7" height="215.2" fill="#e74c3c" rx="2"/>
+<text x="617.4" y="157.8" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="11" fill="#333" text-anchor="middle">3961</text>
+<text x="617.4" y="143.8" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="9" fill="#c0392b" text-anchor="middle">8/12 流</text>
+<rect x="648.3" y="228.3" width="52.7" height="149.7" fill="#3498db" rx="2"/>
+<text x="674.7" y="223.3" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="11" fill="#333" text-anchor="middle">2756</text>
+<rect x="705.6" y="86.6" width="52.7" height="291.4" fill="#27ae60" rx="2"/>
+<text x="731.9" y="81.6" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="11" fill="#333" text-anchor="middle">5363</text>
+<rect x="78" y="416" width="12" height="12" fill="#e74c3c" rx="2"/>
+<text x="95" y="426" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12" fill="#333">frp</text>
+<rect x="148" y="416" width="12" height="12" fill="#3498db" rx="2"/>
+<text x="165" y="426" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12" fill="#333">RPT Go</text>
+<rect x="257" y="416" width="12" height="12" fill="#27ae60" rx="2"/>
+<text x="274" y="426" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12" fill="#333">RPT Java</text>
+</svg>
