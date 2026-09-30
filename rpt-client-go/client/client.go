@@ -29,9 +29,16 @@ type session struct {
 	paused int32
 	// resumeCh 唤醒因暂停而阻塞的中继循环（容量1，用非阻塞投递）
 	resumeCh chan struct{}
-	// done 会话已拆除，唤醒阻塞在暂停等待中的中继循环
-	done chan struct{}
+	// done 会话已拆除或进入排空关闭，唤醒阻塞在暂停等待中的中继循环
+	done     chan struct{}
+	doneOnce sync.Once
 }
+
+// drainTimeout 排空关闭期间本地连接连续这么久写不出一块数据，视为对端停读，以 RST 放弃
+var drainTimeout = 30 * time.Second
+
+// writeChunk 单次写本地的上限：排空超时按块计算进展，大消息拆开写才能区分"读得慢"和"停读"
+const writeChunk = 64 * 1024
 
 type Client struct {
 	cfg        *config.ClientConfig
@@ -39,8 +46,10 @@ type Client struct {
 	tunnels    *tunnel.Pool
 	serverAddr string
 
-	mu         sync.Mutex
-	sessions   map[string]*session // channelId -> session
+	mu       sync.Mutex
+	sessions map[string]*session // channelId -> session
+	// draining 服务端已结束、正在排空积压的会话；与 sessions 互斥，从哪个集合移除会话就由谁负责拆除
+	draining   map[*session]struct{}
 	serverId   string
 	stopped    bool
 	stopCh     chan struct{} // closed by Stop() to interrupt backoff sleep
@@ -58,6 +67,7 @@ func New(cfg *config.ClientConfig, tlsConfig *tls.Config) *Client {
 		tlsConfig:  tlsConfig,
 		serverAddr: addr,
 		sessions:   make(map[string]*session),
+		draining:   make(map[*session]struct{}),
 		stopCh:     make(chan struct{}),
 	}
 	c.tunnels = tunnel.NewPool(func() (*protocol.Conn, error) {
@@ -118,16 +128,21 @@ func (c *Client) Stop() {
 	c.closeSessions()
 }
 
+// closeSessions 控制通道断开或客户端停止：包括排空中的会话在内全部以 RST 放弃
 func (c *Client) closeSessions() {
 	c.mu.Lock()
-	doomed := make([]*session, 0, len(c.sessions))
+	doomed := make([]*session, 0, len(c.sessions)+len(c.draining))
 	for id, s := range c.sessions {
 		doomed = append(doomed, s)
 		delete(c.sessions, id)
 	}
+	for s := range c.draining {
+		doomed = append(doomed, s)
+		delete(c.draining, s)
+	}
 	c.mu.Unlock()
 	for _, s := range doomed {
-		s.teardown()
+		s.teardown(true)
 	}
 }
 
@@ -289,7 +304,7 @@ func (c *Client) registerSession(local net.Conn, t *protocol.Conn, meta *protoco
 		resumeCh: make(chan struct{}, 1),
 		done:     make(chan struct{}),
 	}
-	s.buf = mux.New(c.cfg.HighWater, c.cfg.LowWater, c.cfg.Capacity,
+	s.buf = mux.New(c.cfg.HighWater, c.cfg.LowWater, c.cfg.Capacity, c.cfg.BufferLimit,
 		func() { c.signal(s, protocol.TypePause) },
 		func() { c.signal(s, protocol.TypeResume) })
 	c.mu.Lock()
@@ -320,19 +335,55 @@ func (c *Client) sessionWriter(s *session, channelId string) {
 	for {
 		data := s.buf.Pop()
 		if data == nil {
+			if s.buf.Drained() {
+				// 积压已全部写入内核，正常关闭（FIN）
+				c.finishDrain(s, false)
+			}
 			return
 		}
-		if _, err := s.local.Write(data); err != nil {
-			c.endSession(channelId, true)
+		if err := s.write(data); err != nil {
+			if c.endSession(channelId, true, false) {
+				return
+			}
+			// 会话已进入排空关闭流程：没写完的数据只能放弃
+			var netErr net.Error
+			if errors.As(err, &netErr) && netErr.Timeout() {
+				log.Printf("[mux] channel %s drain stalled for %v, resetting", channelId, drainTimeout)
+			}
+			c.finishDrain(s, true)
 			return
 		}
 	}
+}
+
+// write 分块写本地连接；排空关闭期间每块写之前刷新写截止时间，一块都写不出即视为停滞
+func (s *session) write(data []byte) error {
+	for len(data) > 0 {
+		n := len(data)
+		if n > writeChunk {
+			n = writeChunk
+		}
+		if s.buf.Closing() {
+			s.local.SetWriteDeadline(time.Now().Add(drainTimeout))
+		}
+		if _, err := s.local.Write(data[:n]); err != nil {
+			return err
+		}
+		data = data[n:]
+	}
+	return nil
 }
 
 // relayLocalToTunnel 本地->隧道中继，本地关闭时经隧道通知服务端结束会话
 func (c *Client) relayLocalToTunnel(s *session, channelId string) {
 	buf := make([]byte, 32*1024)
 	for {
+		// 会话已拆除或进入排空关闭：停止读取本地
+		select {
+		case <-s.done:
+			return
+		default:
+		}
 		// 被服务端暂停：阻塞等待恢复，不做轮询
 		for atomic.LoadInt32(&s.paused) == 1 {
 			select {
@@ -359,7 +410,7 @@ func (c *Client) relayLocalToTunnel(s *session, channelId string) {
 				continue
 			}
 			// 本地关闭：通知服务端释放会话，隧道保持复用
-			c.endSession(channelId, true)
+			c.endSession(channelId, true, false)
 			return
 		}
 	}
@@ -377,22 +428,27 @@ func (c *Client) handleTunnelMessage(conn *protocol.Conn, msg *protocol.Message)
 			return
 		}
 		// 入队即返回，写本地由 sessionWriter 负责；msg.Data 是每条消息独立分配的切片，可安全异步持有
-		if !s.buf.TryPush(msg.Data) {
-			// 代理已向发送方 ACK 过这些字节，丢弃等于静默损坏字节流，只能关闭该通道
-			log.Printf("[mux] channel %s backlog exceeded %d bytes, closing session", msg.Meta.ChannelId, c.cfg.Capacity)
-			c.endSession(msg.Meta.ChannelId, true)
+		ok, warn := s.buf.TryPush(msg.Data)
+		if warn {
+			log.Printf("[mux] channel %s backlog exceeded capacity %d bytes, peer is slow to honor PAUSE", msg.Meta.ChannelId, c.cfg.Capacity)
+		}
+		if !ok {
+			// 对端没有遵守背压。代理已向发送方 ACK 过这些字节，丢弃等于静默损坏字节流，只能以 RST 放弃该通道
+			log.Printf("[mux] channel %s backlog exceeded limit %d bytes, resetting session", msg.Meta.ChannelId, s.buf.Limit())
+			c.endSession(msg.Meta.ChannelId, true, true)
 		}
 	case protocol.TypePause:
 		c.pauseSession(msg.Meta.ChannelId)
 	case protocol.TypeResume:
 		c.resumeSession(msg.Meta.ChannelId)
 	case protocol.TypeDisconnected:
-		// 服务端通知会话结束，隧道保持复用
-		c.endSession(msg.Meta.ChannelId, false)
+		// 服务端通知会话结束，隧道保持复用；积压写完再关，否则慢读者会被截断尾部
+		c.drainSession(msg.Meta.ChannelId)
 	}
 }
 
-// handleTunnelClosed 隧道断开：关闭其上承载的所有外部连接（补连由隧道池负责）
+// handleTunnelClosed 隧道断开：以 RST 关闭其上承载的所有外部连接（补连由隧道池负责）。
+// 排空中的会话数据已全部在本地，不受影响
 func (c *Client) handleTunnelClosed(conn *protocol.Conn) {
 	c.mu.Lock()
 	var doomed []string
@@ -403,7 +459,7 @@ func (c *Client) handleTunnelClosed(conn *protocol.Conn) {
 	}
 	c.mu.Unlock()
 	for _, id := range doomed {
-		c.endSession(id, false)
+		c.endSession(id, false, true)
 	}
 }
 
@@ -436,15 +492,34 @@ func (c *Client) resumeSession(channelId string) {
 	}
 }
 
-// teardown 释放会话本地资源：关闭连接、清空积压、唤醒两个中继 goroutine 退出
-func (s *session) teardown() {
-	close(s.done)
-	s.buf.Close()
-	s.local.Close()
+// stop 唤醒中继循环退出，幂等
+func (s *session) stop() {
+	s.doneOnce.Do(func() { close(s.done) })
 }
 
-// endSession 幂等拆除会话；notify为true时经隧道发TypeDisconnected通知服务端
-func (c *Client) endSession(channelId string, notify bool) {
+// teardown 释放会话本地资源：关闭连接、清空积压、唤醒两个中继 goroutine 退出。
+// reset 为 true 时以 RST 关闭，用于数据不完整的场景
+func (s *session) teardown(reset bool) {
+	s.stop()
+	s.buf.Close()
+	if reset {
+		abort(s.local)
+	} else {
+		s.local.Close()
+	}
+}
+
+// abort 以 RST 关闭连接：数据不完整时不能发 FIN，否则无长度标识的协议会把截断的流当成正常结束
+func abort(conn net.Conn) {
+	if tc, ok := conn.(*net.TCPConn); ok {
+		tc.SetLinger(0)
+	}
+	conn.Close()
+}
+
+// endSession 幂等拆除活跃会话；notify为true时经隧道发TypeDisconnected通知服务端。
+// 返回 false 表示会话不在活跃集合中（已拆除或正在排空）
+func (c *Client) endSession(channelId string, notify, reset bool) bool {
 	c.mu.Lock()
 	s, ok := c.sessions[channelId]
 	if ok {
@@ -452,14 +527,47 @@ func (c *Client) endSession(channelId string, notify bool) {
 	}
 	c.mu.Unlock()
 	if !ok {
-		return
+		return false
 	}
-	s.teardown()
+	s.teardown(reset)
 	if notify && !s.tunnel.IsClosed() {
 		s.tunnel.Send(&protocol.Message{
 			Type: protocol.TypeDisconnected,
 			Meta: s.meta,
 		})
+	}
+	return true
+}
+
+// drainSession 服务端正常结束会话：停读本地，由 sessionWriter 把积压写完后再关闭
+func (c *Client) drainSession(channelId string) {
+	c.mu.Lock()
+	s, ok := c.sessions[channelId]
+	if ok {
+		delete(c.sessions, channelId)
+		c.draining[s] = struct{}{}
+	}
+	c.mu.Unlock()
+	if !ok {
+		return
+	}
+	s.stop()
+	// 过期的读截止时间打断在途 Read，中继循环随即因 done 退出
+	s.local.SetReadDeadline(time.Now())
+	s.buf.CloseAfterDrain()
+	// writer 可能正阻塞在关闭前发起的 Write 上，这次写同样要受停滞超时约束
+	s.local.SetWriteDeadline(time.Now().Add(drainTimeout))
+}
+
+// finishDrain 结束排空关闭流程：排空完成时正常关闭（FIN），写失败或停滞时以 RST 放弃。
+// 会话已被 closeSessions 拆除时不做任何事
+func (c *Client) finishDrain(s *session, reset bool) {
+	c.mu.Lock()
+	_, ok := c.draining[s]
+	delete(c.draining, s)
+	c.mu.Unlock()
+	if ok {
+		s.teardown(reset)
 	}
 }
 

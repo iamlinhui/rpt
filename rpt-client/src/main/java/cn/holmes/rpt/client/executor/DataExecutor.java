@@ -59,7 +59,7 @@ public class DataExecutor implements MessageExecutor {
             return buffer;
         }
         ClientConfig config = ConfigHolder.getClientConfig();
-        ChannelBuffer created = new ChannelBuffer(localChannel, config.getHighWater(), config.getLowWater(), config.getCapacity(), this::signal);
+        ChannelBuffer created = new ChannelBuffer(localChannel, config.getHighWater(), config.getLowWater(), config.getCapacity(), config.getBufferLimit(), this::signal);
         ChannelBuffer previous = localChannel.attr(Client.BUFFER).setIfAbsent(created);
         return Objects.nonNull(previous) ? previous : created;
     }

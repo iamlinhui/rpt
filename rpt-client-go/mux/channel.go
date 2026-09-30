@@ -10,6 +10,9 @@ package mux
 
 import "sync"
 
+// DefaultLimitFactor limit 未配置时取 capacity 的倍数
+const DefaultLimitFactor = 8
+
 // ChannelBuf 单个会话的下行积压队列。所有方法可被任意 goroutine 并发调用。
 type ChannelBuf struct {
 	mu       sync.Mutex
@@ -19,8 +22,12 @@ type ChannelBuf struct {
 	high     int64
 	low      int64
 	capacity int64
+	limit    int64
 	paused   bool
-	closed   bool
+	warned   bool
+	// closing 对端已结束会话：不再接收新数据，积压排空后 Pop 返回 nil
+	closing bool
+	closed  bool
 
 	// sigMu 串行化背压信号的发送；sigSeq/sigSent 保证只有最新状态会发出
 	sigMu   sync.Mutex
@@ -32,11 +39,20 @@ type ChannelBuf struct {
 }
 
 // New 创建缓冲区。onPause/onResume 在锁外调用，可安全地在其中发送隧道消息。
-func New(high, low, capacity int64, onPause, onResume func()) *ChannelBuf {
+//
+// capacity 是告警线：PAUSE 生效前隧道里的在途数据仍会到达，积压越过 capacity 属正常，只告警不丢数据。
+// limit 是绝对上限，<=0 时取 capacity 的 8 倍，且不低于 capacity。
+func New(high, low, capacity, limit int64, onPause, onResume func()) *ChannelBuf {
+	if limit <= 0 {
+		limit = capacity * DefaultLimitFactor
+	} else if limit < capacity {
+		limit = capacity
+	}
 	b := &ChannelBuf{
 		high:     high,
 		low:      low,
 		capacity: capacity,
+		limit:    limit,
 		onPause:  onPause,
 		onResume: onResume,
 	}
@@ -46,22 +62,27 @@ func New(high, low, capacity int64, onPause, onResume func()) *ChannelBuf {
 
 // TryPush 非阻塞入队，供隧道读循环调用。
 //
-// 返回 false 表示积压超过硬上限：代理已在 TCP 层向发送方 ACK 过这些字节，
-// 丢弃会造成字节流静默损坏，因此由调用方关闭该会话，绝不丢数据。
-func (b *ChannelBuf) TryPush(data []byte) bool {
+// ok 为 false 表示积压超过绝对上限，对端没有遵守背压：代理已在 TCP 层向发送方 ACK 过这些字节，
+// 丢弃会造成字节流静默损坏，因此由调用方以 RST 放弃该会话。
+// warn 为 true 表示本次入队首次越过 capacity 告警线，由调用方记录日志。
+func (b *ChannelBuf) TryPush(data []byte) (ok, warn bool) {
 	b.mu.Lock()
-	if b.closed {
+	if b.closed || b.closing {
 		b.mu.Unlock()
-		return true
+		return true, false
 	}
-	// 硬上限只约束已经积压的数据：单条消息不可拆分，队列空时无论多大都必须收下，
-	// 否则一个超过 capacity 的 HTTP 大包（服务端聚合后单条可达 8MB）会关掉一条本来健康的连接。
-	if len(b.pending) > 0 && b.bytes+int64(len(data)) > b.capacity {
+	// 上限只约束已经积压的数据：单条消息不可拆分，队列空时无论多大都必须收下，
+	// 否则一个超过上限的 HTTP 大包（服务端聚合后单条可达 8MB）会关掉一条本来健康的连接。
+	if len(b.pending) > 0 && b.bytes+int64(len(data)) > b.limit {
 		b.mu.Unlock()
-		return false
+		return false, false
 	}
 	b.pending = append(b.pending, data)
 	b.bytes += int64(len(data))
+	if !b.warned && b.bytes > b.capacity {
+		b.warned = true
+		warn = true
+	}
 	pause := !b.paused && b.bytes >= b.high
 	var seq uint64
 	if pause {
@@ -74,13 +95,14 @@ func (b *ChannelBuf) TryPush(data []byte) bool {
 	if pause {
 		b.signal(seq, true)
 	}
-	return true
+	return true, warn
 }
 
-// Pop 阻塞取出一段数据，供会话 writer goroutine 调用。缓冲区关闭后返回 nil。
+// Pop 阻塞取出一段数据，供会话 writer goroutine 调用。
+// 缓冲区关闭、或处于 closing 且积压已排空时返回 nil。
 func (b *ChannelBuf) Pop() []byte {
 	b.mu.Lock()
-	for len(b.pending) == 0 && !b.closed {
+	for len(b.pending) == 0 && !b.closed && !b.closing {
 		b.cond.Wait()
 	}
 	if len(b.pending) == 0 {
@@ -91,7 +113,8 @@ func (b *ChannelBuf) Pop() []byte {
 	b.pending[0] = nil
 	b.pending = b.pending[1:]
 	b.bytes -= int64(len(data))
-	resume := b.paused && b.bytes <= b.low
+	// 会话已结束，对端不再读取，RESUME 没有意义
+	resume := b.paused && !b.closing && b.bytes <= b.low
 	var seq uint64
 	if resume {
 		b.paused = false
@@ -123,6 +146,34 @@ func (b *ChannelBuf) signal(seq uint64, paused bool) {
 	} else {
 		b.onResume()
 	}
+}
+
+// Limit 规范化后的绝对上限
+func (b *ChannelBuf) Limit() int64 {
+	return b.limit
+}
+
+// CloseAfterDrain 对端已正常结束会话：拒绝新数据，保留积压由 writer 继续写完，
+// 排空后 Pop 返回 nil。幂等。
+func (b *ChannelBuf) CloseAfterDrain() {
+	b.mu.Lock()
+	b.closing = true
+	b.mu.Unlock()
+	b.cond.Broadcast()
+}
+
+// Closing 是否已进入排空关闭流程
+func (b *ChannelBuf) Closing() bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.closing
+}
+
+// Drained 排空关闭流程已完成：积压全部取出且未被 Close 放弃
+func (b *ChannelBuf) Drained() bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.closing && !b.closed && len(b.pending) == 0
 }
 
 // Close 释放积压并唤醒 writer goroutine 退出，幂等。

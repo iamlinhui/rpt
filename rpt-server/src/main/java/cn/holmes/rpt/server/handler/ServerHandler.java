@@ -3,10 +3,11 @@ package cn.holmes.rpt.server.handler;
 import cn.holmes.rpt.base.config.ProxyType;
 import cn.holmes.rpt.base.executor.MessageExecutor;
 import cn.holmes.rpt.base.executor.MessageExecutorFactory;
+import cn.holmes.rpt.base.utils.ChannelUtils;
+import cn.holmes.rpt.base.protocol.ChannelEvent;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.utils.Attributes.Server;
-import cn.holmes.rpt.base.protocol.ChannelEvent;
 import cn.holmes.rpt.server.cache.ServerChannelCache;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
 import io.netty.channel.Channel;
@@ -36,21 +37,19 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
         Set<String> streamSet = ctx.channel().attr(Server.STREAM_SET).get();
-        if (Objects.nonNull(streamSet)) {
-            Channel serverChannel = ServerChannelCache.getServerChannelMap().get(ctx.channel().attr(Server.SERVER_ID).get());
-            Map<String, Channel> channelMap = Objects.nonNull(serverChannel) ? serverChannel.attr(Server.CHANNELS).get() : null;
-            if (Objects.nonNull(channelMap)) {
-                boolean writable = ctx.channel().isWritable();
-                for (String channelId : streamSet) {
-                    Channel localChannel = channelMap.get(channelId);
-                    if (Objects.isNull(localChannel)) {
-                        continue;
-                    }
-                    if (writable && Boolean.TRUE.equals(localChannel.attr(Server.PAUSED).get())) {
-                        continue;
-                    }
-                    localChannel.config().setAutoRead(writable);
+        Channel serverChannel = ServerChannelCache.getServerChannelMap().get(ctx.channel().attr(Server.SERVER_ID).get());
+        Map<String, Channel> channelMap = Objects.nonNull(serverChannel) ? serverChannel.attr(Server.CHANNELS).get() : null;
+        if (Objects.nonNull(streamSet) && Objects.nonNull(channelMap)) {
+            boolean writable = ctx.channel().isWritable();
+            for (String channelId : streamSet) {
+                Channel localChannel = channelMap.get(channelId);
+                if (Objects.isNull(localChannel)) {
+                    continue;
                 }
+                if (writable && Boolean.TRUE.equals(localChannel.attr(Server.PAUSED).get())) {
+                    continue;
+                }
+                localChannel.config().setAutoRead(writable);
             }
         }
         super.channelWritabilityChanged(ctx);
@@ -117,7 +116,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                         // UDP本地通道按端口共享，通知UdpHandler清理该会话状态
                         localChannel.pipeline().fireUserEventTriggered(new ChannelEvent(channelId, tunnel, MessageType.TYPE_DISCONNECTED));
                     } else {
-                        localChannel.close();
+                        // 未收到TYPE_DISCONNECTED，流必然不完整，以RST告知外部连接传输失败
+                        ChannelUtils.reset(localChannel);
                     }
                 }
             }
@@ -134,7 +134,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             if (Objects.equals(proxyType, ProxyType.UDP)) {
                 continue;
             }
-            localChannel.close();
+            ChannelUtils.reset(localChannel);
         }
     }
 

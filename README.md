@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.8.1-blue.svg" alt="version"/>
+  <img src="https://img.shields.io/badge/version-2.8.2-blue.svg" alt="version"/>
   <img src="https://img.shields.io/badge/license-GPL-green.svg" alt="license"/>
   <img src="https://img.shields.io/badge/Java-8+-orange.svg" alt="java"/>
   <img src="https://img.shields.io/badge/Go-1.20+-00ADD8.svg" alt="go"/>
@@ -265,7 +265,11 @@ dashboardPassword: admin
 # ──── 通道级背压（可选，以下为默认值）────
 highWater: 262144       # 高水位（字节），默认 256KB
 lowWater: 65536         # 低水位（字节），默认 64KB
-capacity: 4194304       # 硬上限（字节），默认 4MB
+capacity: 4194304       # 告警线（字节），默认 4MB，超过只告警不丢数据
+bufferLimit: 0          # 绝对上限（字节），默认 0 = capacity × 8
+
+# UDP虚拟会话空闲超时（秒，可选，默认300）
+udpSessionTimeout: 300
 
 # 客户端授权Token列表
 token:
@@ -293,7 +297,9 @@ token:
 | `dashboardPassword` | String | - | Dashboard登录密码 |
 | `highWater` | long | `262144` | 通道级背压高水位（字节），积压达此值发 PAUSE |
 | `lowWater` | long | `65536` | 通道级背压低水位（字节），排空到此值发 RESUME |
-| `capacity` | long | `4194304` | 单通道积压硬上限（字节），触及即关闭该通道 |
+| `capacity` | long | `4194304` | 单通道积压告警线（字节）：PAUSE 生效前的在途突发可能越过该值，只告警不丢数据 |
+| `bufferLimit` | long | `0` | 单通道积压绝对上限（字节），`0` 表示取 `capacity × 8`；超过说明对端未遵守背压，以 RST 放弃该通道 |
+| `udpSessionTimeout` | long | `300` | UDP 虚拟会话空闲超时（秒），上下行都无数据报超过该值才回收会话。回收后客户端会换本地源端口，RDP-UDP 等面向连接的 UDP 协议会断流，不宜低于 70 |
 | `token[].clientKey` | String | - | 客户端授权密钥 (UUID) |
 | `token[].minPort` | int | `1024` | 允许绑定的最小端口号 |
 | `token[].maxPort` | int | `65535` | 允许绑定的最大端口号 |
@@ -323,7 +329,8 @@ clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
 tunnelCount: 4           # 共享数据隧道数量，默认 4
 highWater: 262144         # 高水位（字节），默认 256KB
 lowWater: 65536           # 低水位（字节），默认 64KB
-capacity: 4194304         # 硬上限（字节），默认 4MB
+capacity: 4194304         # 告警线（字节），默认 4MB，超过只告警不丢数据
+bufferLimit: 0            # 绝对上限（字节），默认 0 = capacity × 8
 
 # 端口映射配置列表
 config:
@@ -376,7 +383,8 @@ config:
 | `tunnelCount` | int | 共享数据隧道数量（默认 `4`） |
 | `highWater` | long | 通道级背压高水位（字节，默认 `262144`），积压达此值发 PAUSE |
 | `lowWater` | long | 通道级背压低水位（字节，默认 `65536`），排空到此值发 RESUME |
-| `capacity` | long | 单通道积压硬上限（字节，默认 `4194304`），触及即关闭该通道 |
+| `capacity` | long | 单通道积压告警线（字节，默认 `4194304`）：PAUSE 生效前的在途突发可能越过该值，只告警不丢数据 |
+| `bufferLimit` | long | 单通道积压绝对上限（字节，默认 `0` = `capacity × 8`），超过说明对端未遵守背压，以 RST 放弃该通道 |
 | `config[].proxyType` | String | 代理类型：`TCP` / `UDP` / `HTTP` / `SOCKS5` |
 | `config[].localIp` | String | 内网目标服务IP (SOCKS5 模式由客户端动态指定，无需配置) |
 | `config[].localPort` | int | 内网目标服务端口 (SOCKS5 模式由客户端动态指定，无需配置) |
@@ -532,13 +540,13 @@ docker run -d \
 
 ```bash
 # rpt-server
-docker run -d --network host -v /opt/rpt/conf:/home/rpt/conf --restart=always --name rpt-server promptness/rpt-server:2.8.1
+docker run -d --network host -v /opt/rpt/conf:/home/rpt/conf --restart=always --name rpt-server promptness/rpt-server:2.8.2
 
 # rpt-client (Java)
-docker run -d --network host -v /opt/rpt/conf:/home/rpt/conf --restart=always --name rpt-client promptness/rpt-client:2.8.1
+docker run -d --network host -v /opt/rpt/conf:/home/rpt/conf --restart=always --name rpt-client promptness/rpt-client:2.8.2
 
 # rpt-client-go
-docker run -d --network host -v /opt/rpt/conf:/home/rpt/conf --restart=always --name rpt-client-go promptness/rpt-client-go:2.8.1
+docker run -d --network host -v /opt/rpt/conf:/home/rpt/conf --restart=always --name rpt-client-go promptness/rpt-client-go:2.8.2
 ```
 
 Docker Hub 镜像地址：
@@ -587,7 +595,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/rpt-client
-ExecStart=/usr/bin/java -server -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Dnetworkaddress.cache.ttl=600 -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -Duser.timezone=Asia/Shanghai -Dclient.encoding.override=UTF-8 -Dfile.encoding=UTF-8 -Xbootclasspath/a:./conf -jar rpt-client-2.8.1.jar
+ExecStart=/usr/bin/java -server -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Dnetworkaddress.cache.ttl=600 -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -Duser.timezone=Asia/Shanghai -Dclient.encoding.override=UTF-8 -Dfile.encoding=UTF-8 -Xbootclasspath/a:./conf -jar rpt-client-2.8.2.jar
 Restart=always
 RestartSec=5
 

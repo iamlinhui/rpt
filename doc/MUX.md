@@ -139,7 +139,8 @@ graph TD
 graph LR
     subgraph "缓冲区字节"
         direction TB
-        CAP["capacity (4MB) — 硬上限，触及即关闭通道"]
+        LIMIT["bufferLimit (默认 capacity×8 = 32MB) — 绝对上限，超过即 RST 放弃通道"]
+        CAP["capacity (4MB) — 告警线，只告警不丢数据"]
         HW["highWater (256KB) — 穿越 → 发 PAUSE"]
         LW["lowWater (64KB) — 穿越 → 发 RESUME"]
         ZERO["0"]
@@ -148,7 +149,8 @@ graph LR
 
 - **高水位穿越**：`bytes` 从 < highWater 升到 ≥ highWater 时，发 PAUSE，`paused=true`
 - **低水位穿越**：`bytes` 从 > lowWater 降到 ≤ lowWater 且 `paused=true` 时，发 RESUME，`paused=false`
-- **硬上限**：积压超过 capacity 说明对端没遵守背压，关闭该通道（不丢数据，因为 TCP 已 ACK）
+- **告警线**：积压超过 capacity 只记一次告警。PAUSE 发出后，隧道管道里的在途数据（发送端出站缓冲 + 两端内核 socket 缓冲 + 已解码未处理的帧）仍会到达，越过 capacity 属正常现象
+- **绝对上限**：积压超过 bufferLimit 说明对端没有遵守背压（如不支持 PAUSE 的旧版本），释放积压并以 RST 关闭该通道。这些字节已在 TCP 层 ACK 过、无法补发，RST 让接收方明确感知传输失败，而不是收到 FIN 误以为正常结束
 
 ### 3.3 双向背压
 
@@ -246,10 +248,13 @@ graph TD
 
 ### 4.3 容量检查条件
 
-积压超过 `capacity` 时关闭通道，但**只在队列已有积压时检查**：
+积压超过 `capacity` 只告警；超过 `bufferLimit` 才放弃通道，且**只在队列已有积压时检查**：
 
 - 队列空时单条消息无论多大都收下——消息不可拆分，关掉一条本来健康的连接是错误的
-- 已有积压再超容量才关闭——说明对端确实没遵守背压
+- 已有积压再超绝对上限才放弃——说明对端确实没遵守背压
+- 放弃时用 RST（`SO_LINGER=0` 后 `close()`），不用 FIN
+
+> 历史问题：早期实现积压一超过 capacity(4MB) 就丢数据并以 FIN 关闭。PAUSE 生效前的在途突发很容易越过 4MB，慢读者因此被误杀，接收方还会把截断的流当成正常结束。
 
 ### 4.4 PAUSED 与 paused 分离
 
@@ -315,6 +320,54 @@ Go 的 `TryPush`（隧道读循环）和 `Pop`（sessionWriter goroutine）分�
 
 UDP 数据报直写不排队，PauseExecutor/ResumeExecutor 排除 UDP 通道。UDP 是无连接协议，排队和背压没有意义。
 
+### 4.9 关闭语义：排空后 FIN vs 立即 RST
+
+`ChannelBuffer` 里可能还压着慢读者没收走的数据。关闭时如果不先排空，`channelInactive` 调 `release()` 会把积压直接释放，尾部数据静默丢失，读得越慢丢得越多。
+
+```mermaid
+graph TD
+    DISC["收到 TYPE_DISCONNECTED<br/>（对端正常结束）"] --> CAD["closeAfterDrain()"]
+    CAD --> STOP["setAutoRead(false)"]
+    STOP --> DRAIN["排空 pending"]
+    DRAIN --> EMPTY{"pending 空?"}
+    EMPTY -->|是| FIN["writeAndFlush(EMPTY).addListener(CLOSE)<br/>→ 最后一个字节之后 FIN"]
+    EMPTY -->|否| WAIT["等 channelWritabilityChanged 继续排空"]
+    WAIT --> DRAIN
+    WAIT -.->|"连续 30s 剩余字节无减少"| RST1["释放积压 + RST"]
+
+    TUN["隧道/控制连接断开"] --> RST2["ChannelUtils.reset() → RST"]
+    OVER["积压 > bufferLimit"] --> RST3["释放积压 + RST"]
+```
+
+| 关闭路径 | 数据是否完整 | 处理 |
+|----------|--------------|------|
+| 两端 `DisconnectedExecutor`（对端正常结束） | 完整 | `closeAfterDrain()`：停读 → 排空 → FIN |
+| `ServerHandler.closeTunnelStreams` / `clear`、`ClientHandler.close`（隧道断开） | 必然不完整 | `ChannelUtils.reset()`：RST |
+| 积压超过 `bufferLimit` | 已丢数据 | 释放积压 + RST |
+| 排空停滞超时 | 未写完 | 释放积压 + RST |
+
+要点：
+
+- **顺序**：`closeAfterDrain()` 与 `write()` 一样 hop 到 target eventLoop，因此排在此前所有写入之后执行。每条流在两端都固定走一条隧道，DATA 与 DISCONNECTED 同隧道有序到达
+- **必须挂在 flush 的 future 上关闭**：直接 `close()` 会丢弃 Netty 出站缓冲里尚未刷出的数据
+- **排空期间停读**：会话已从路由表移除，继续读到的数据无处可去；服务端 HTTP 入口在 `PROXY` 为空时读到任何字节还会直接关连接
+- **超时按"无进展"计算**：剩余字节（队列 + Netty 出站缓冲）连续 30s 不减少才放弃，读得慢但持续在读的连接不受影响。不能用绝对超时——32MB 积压在 100KB/s 下需要 5 分钟以上
+- **关闭中不发 RESUME**：对端已移除该通道
+- **为什么隧道断开用 RST**：流中途中断，排空也补不全。FIN 会让无长度标识的协议（`Connection: close` 的 HTTP、裸 TCP 文件传输）把截断的文件当成功
+
+**Go 客户端**语义相同，实现上按 goroutine 模型调整：
+
+| 关闭路径 | 处理 |
+|----------|------|
+| `TYPE_DISCONNECTED` → `drainSession` | 会话从 `sessions` 移入 `draining`；`SetReadDeadline(now)` 打断在途 `Read` 并让中继退出；`ChannelBuf.CloseAfterDrain()` 拒绝新数据；`sessionWriter` 写完积压后 `Pop` 返回 nil，`Close()` 发 FIN |
+| `handleTunnelClosed`（隧道断开） | 活跃会话 `SetLinger(0)` + `Close()` → RST；排空中的会话数据已全部在本地，继续排空 |
+| `closeSessions`（控制通道断开 / `Stop()`） | 活跃与排空中的会话全部 RST |
+| `TryPush` 越过 `bufferLimit` | 释放积压 + RST，并通知服务端 |
+| 排空停滞 | 释放积压 + RST |
+
+- **停滞判定**：`sessionWriter` 按 64KB 分块写本地，排空期间每块写之前设 `SetWriteDeadline(now + 30s)`，一块都写不出才算停滞，等价于 Java 的"无进展"超时；关闭前已发起的在途 `Write` 由 `drainSession` 补设截止时间
+- **拆除归属**：会话同一时刻只在 `sessions`、`draining` 之一中，从哪个集合移除就由谁负责拆除，写失败、排空完成、`Stop()` 并发发生时不会重复关闭也不会漏关
+
 ---
 
 ## 5. 配置参考
@@ -324,7 +377,8 @@ UDP 数据报直写不排队，PauseExecutor/ResumeExecutor 排除 UDP 通道。
 tunnelCount: 4         # 隧道数量（仅客户端），默认 4
 highWater: 262144       # 高水位（字节），默认 256KB
 lowWater: 65536         # 低水位（字节），默认 64KB
-capacity: 4194304       # 硬上限（字节），默认 4MB
+capacity: 4194304       # 告警线（字节），默认 4MB
+bufferLimit: 0          # 绝对上限（字节），默认 0 = capacity × 8
 ```
 
 | 参数 | 默认值 | 说明 |
@@ -332,7 +386,8 @@ capacity: 4194304       # 硬上限（字节），默认 4MB
 | `tunnelCount` | 4 | 共享数据隧道数量（仅客户端） |
 | `highWater` | 256KB | 单通道积压达到此值时发 PAUSE |
 | `lowWater` | 64KB | 单通道积压排空到此值时发 RESUME |
-| `capacity` | 4MB | 硬上限，触及即关闭该通道 |
+| `capacity` | 4MB | 告警线，只告警不丢数据 |
+| `bufferLimit` | 0（= capacity × 8） | 绝对上限，超过以 RST 放弃该通道；设置值不会低于 capacity |
 
 ---
 

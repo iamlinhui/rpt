@@ -2,6 +2,7 @@ package cn.holmes.rpt.server.executor;
 
 import cn.holmes.rpt.base.config.ProxyType;
 import cn.holmes.rpt.base.executor.MessageExecutor;
+import cn.holmes.rpt.base.mux.ChannelBuffer;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.utils.Attributes.Server;
@@ -56,6 +57,12 @@ public class DisconnectedExecutor implements MessageExecutor {
         localChannelMap.remove(channelId);
         // 先清空隧道绑定，避免本地连接关闭时造成环路
         localChannel.attr(Server.PROXY).set(null);
+        // 通道缓冲区里可能还压着慢读者没收走的数据，必须排空后再关，否则尾部被静默丢弃
+        ChannelBuffer buffer = localChannel.attr(Server.BUFFER).get();
+        if (Objects.nonNull(buffer)) {
+            buffer.closeAfterDrain();
+            return;
+        }
         localChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
     }
 }

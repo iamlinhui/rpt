@@ -1,6 +1,7 @@
 package cn.holmes.rpt.client.executor;
 
 import cn.holmes.rpt.base.executor.MessageExecutor;
+import cn.holmes.rpt.base.mux.ChannelBuffer;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
@@ -39,6 +40,12 @@ public class DisconnectedExecutor implements MessageExecutor {
         InetSocketAddress udpTarget = localChannel.attr(Client.UDP_TARGET).getAndSet(null);
         if (udpTarget != null) {
             localChannel.close();
+            return;
+        }
+        // 通道缓冲区里可能还压着本地服务没收走的数据，必须排空后再关，否则尾部被静默丢弃
+        ChannelBuffer buffer = localChannel.attr(Client.BUFFER).get();
+        if (Objects.nonNull(buffer)) {
+            buffer.closeAfterDrain();
             return;
         }
         localChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);

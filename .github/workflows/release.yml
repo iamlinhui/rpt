@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g. 2.8.1)'
+        description: 'Release version (e.g. 2.8.2)'
         required: true
 
 permissions:
@@ -245,5 +245,5 @@ jobs:
           tag_name: v${{ github.event.inputs.version }}
           name: v${{ github.event.inputs.version }}
           files: release/*
-          generate_release_notes: true
+          body_path: doc/RELEASE-${{ github.event.inputs.version }}.md
           draft: false

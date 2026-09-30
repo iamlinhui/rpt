@@ -35,12 +35,14 @@ type ClientConfig struct {
 	ClientKey      string `yaml:"clientKey"`
 	TunnelCount    int    `yaml:"tunnelCount"`
 	// 通道级背压水位线（字节）：积压达 HighWater 发 TYPE_PAUSE，回落到 LowWater 发 TYPE_RESUME；
-	// Capacity 为兜底硬上限，触达即关闭该通道（不丢数据）
-	HighWater int64          `yaml:"highWater"`
-	LowWater  int64          `yaml:"lowWater"`
-	Capacity  int64          `yaml:"capacity"`
-	Config    []RemoteConfig `yaml:"config"`
-	configDir string
+	// Capacity 为告警线：PAUSE 生效前的在途突发可能越过该值，只告警不丢数据；
+	// BufferLimit 为绝对上限，超过说明对端未遵守背压，以 RST 放弃该通道，0 表示 Capacity 的 8 倍
+	HighWater   int64          `yaml:"highWater"`
+	LowWater    int64          `yaml:"lowWater"`
+	Capacity    int64          `yaml:"capacity"`
+	BufferLimit int64          `yaml:"bufferLimit"`
+	Config      []RemoteConfig `yaml:"config"`
+	configDir   string
 }
 
 // 水位线默认值

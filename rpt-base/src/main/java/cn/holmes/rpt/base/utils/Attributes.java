@@ -44,6 +44,10 @@ public interface Attributes {
          */
         AttributeKey<Map<String, InetSocketAddress>> UDP_SENDERS = AttributeKey.newInstance("UDP_SENDERS");
         /**
+         * UDP本地通道上的会话channelId → 最近一次收发数据报的时间戳（毫秒），上下行都刷新，用于空闲回收
+         */
+        AttributeKey<Map<String, Long>> UDP_LAST_ACTIVE = AttributeKey.newInstance("UDP_LAST_ACTIVE");
+        /**
          * 外部连接上的通道级带水位线缓冲区（隧道→外部连接方向，达高水位发TYPE_PAUSE）
          */
         AttributeKey<ChannelBuffer> BUFFER = AttributeKey.newInstance("SERVER_BUFFER");

@@ -63,6 +63,11 @@ public class DataExecutor implements MessageExecutor {
                 data.release();
                 return;
             }
+            // 下行同样算活跃，只刷新仍存在的会话（replace 不会复活已回收的会话）
+            Map<String, Long> lastActive = localChannel.attr(Server.UDP_LAST_ACTIVE).get();
+            if (Objects.nonNull(lastActive)) {
+                lastActive.replace(meta.getChannelId(), System.currentTimeMillis());
+            }
             localChannel.writeAndFlush(new DatagramPacket(data, udpSender));
             return;
         }
@@ -79,7 +84,7 @@ public class DataExecutor implements MessageExecutor {
             return buffer;
         }
         ServerConfig config = ConfigHolder.getServerConfig();
-        ChannelBuffer created = new ChannelBuffer(localChannel, config.getHighWater(), config.getLowWater(), config.getCapacity(), this::signal);
+        ChannelBuffer created = new ChannelBuffer(localChannel, config.getHighWater(), config.getLowWater(), config.getCapacity(), config.getBufferLimit(), this::signal);
         ChannelBuffer previous = localChannel.attr(Server.BUFFER).setIfAbsent(created);
         return Objects.nonNull(previous) ? previous : created;
     }

@@ -41,9 +41,7 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
     private static final IpFilterRule IP_COUNTRY_FILTER = IpCountryFilter.getInstance();
 
-    private static final long SESSION_TIMEOUT = 60;
-
-    private static final int MAX_BUFFER_SIZE = 64;
+    private static final int MAX_BUFFER_SIZE = 128;
 
     private final Channel serverChannel;
 
@@ -63,7 +61,7 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
      */
     private final Map<String, Queue<ByteBuf>> channelBufferMap = new ConcurrentHashMap<>();
 
-    private final Map<String, Long> lastActiveMap = new ConcurrentHashMap<>();
+    private final long sessionTimeoutMillis = TimeUnit.SECONDS.toMillis(ConfigHolder.getServerConfig().getUdpSessionTimeout());
 
     private ScheduledFuture<?> timeoutChecker;
 
@@ -76,7 +74,9 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         udpChannel = ctx.channel();
         ctx.channel().attr(Server.PROXY_TYPE).set(ProxyType.UDP);
-        timeoutChecker = ctx.channel().eventLoop().scheduleAtFixedRate(this::cleanIdleSessions, SESSION_TIMEOUT, SESSION_TIMEOUT / 2, TimeUnit.SECONDS);
+        ctx.channel().attr(Server.UDP_LAST_ACTIVE).set(new ConcurrentHashMap<>());
+        long interval = Math.max(1000L, sessionTimeoutMillis / 2);
+        timeoutChecker = ctx.channel().eventLoop().scheduleAtFixedRate(this::cleanIdleSessions, interval, interval, TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -86,15 +86,15 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
             ctx.fireUserEventTriggered(evt);
             return;
         }
-        ChannelEvent fireEvent = (ChannelEvent) evt;
-        MessageType messageType = fireEvent.getMessageType();
+        ChannelEvent channelEvent = (ChannelEvent) evt;
+        MessageType messageType = channelEvent.getMessageType();
         if (messageType == MessageType.TYPE_CONNECTED) {
             // 代理通道已建立，绑定channelId和代理通道
-            bindProxy(fireEvent.getChannelId(), fireEvent.getProxyChannel());
+            bindProxy(channelEvent.getChannelId(), channelEvent.getProxyChannel());
         }
         if (messageType == MessageType.TYPE_DISCONNECTED) {
             // 代理通道断开，移除会话
-            removeSession(fireEvent.getChannelId());
+            removeSession(channelEvent.getChannelId());
         }
     }
 
@@ -117,7 +117,7 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
             return;
         }
         String channelId = toChannelId(sender);
-        lastActiveMap.put(channelId, System.currentTimeMillis());
+        ctx.channel().attr(Server.UDP_LAST_ACTIVE).get().put(channelId, System.currentTimeMillis());
         ByteBuf data = packet.content().retainedDuplicate();
         TrafficStatsCache.recordIn(serverChannel.id().asLongText(), data.readableBytes());
         if (!senderAddressMap.containsKey(channelId)) {
@@ -187,7 +187,7 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
                 buf.release();
             }
         }
-        lastActiveMap.remove(channelId);
+        Optional.ofNullable(udpChannel).map(channel -> channel.attr(Server.UDP_LAST_ACTIVE).get()).ifPresent(lastActive -> lastActive.remove(channelId));
         Channel tunnel = proxyChannelMap.remove(channelId);
         // 通过隧道通知客户端断开该会话，隧道本身保持复用
         if (tunnel != null && tunnel.isActive()) {
@@ -209,11 +209,11 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
     private void cleanIdleSessions() {
         long now = System.currentTimeMillis();
-        for (Map.Entry<String, Long> entry : lastActiveMap.entrySet()) {
+        for (Map.Entry<String, Long> entry : udpChannel.attr(Server.UDP_LAST_ACTIVE).get().entrySet()) {
             String channelId = entry.getKey();
             long lastActive = entry.getValue();
-            if (now - lastActive > SESSION_TIMEOUT * 1000) {
-                logger.info("UDP session expired: {}", channelId);
+            if (now - lastActive > sessionTimeoutMillis) {
+                logger.info("UDP session expired: {}, idle {}s", channelId, TimeUnit.MILLISECONDS.toSeconds(now - lastActive));
                 removeSession(channelId);
             }
         }

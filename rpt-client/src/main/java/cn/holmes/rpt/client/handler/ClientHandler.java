@@ -2,15 +2,14 @@ package cn.holmes.rpt.client.handler;
 
 import cn.holmes.rpt.base.executor.MessageExecutor;
 import cn.holmes.rpt.base.executor.MessageExecutorFactory;
+import cn.holmes.rpt.base.utils.ChannelUtils;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.bootstrap.Application;
 import cn.holmes.rpt.base.config.ConfigHolder;
 import cn.holmes.rpt.base.utils.Attributes.Client;
 import cn.holmes.rpt.client.cache.TunnelPool;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import org.slf4j.Logger;
@@ -95,7 +94,8 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
             if (udpTarget != null) {
                 localChannel.close();
             } else {
-                localChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
+                // 隧道中断时流必然不完整，以RST告知本地服务传输失败，FIN会让截断的流被当成正常结束
+                ChannelUtils.reset(localChannel);
             }
         }
     }

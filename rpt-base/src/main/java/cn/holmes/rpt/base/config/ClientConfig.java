@@ -30,9 +30,14 @@ public class ClientConfig {
     private long lowWater = 64 * 1024L;
 
     /**
-     * 单通道积压硬上限（字节）：背压正常时不会触及，触及即关闭该通道
+     * 单通道积压告警线（字节）：TYPE_PAUSE生效前的在途突发可能越过该值，只告警不丢数据
      */
     private long capacity = 4 * 1024 * 1024L;
+
+    /**
+     * 单通道积压绝对上限（字节）：对端不遵守背压时的内存保护，超过即以RST放弃该通道；0表示取capacity的8倍
+     */
+    private long bufferLimit;
 
     public String getServerIp() {
         return serverIp;
@@ -133,5 +138,13 @@ public class ClientConfig {
 
     public void setCapacity(long capacity) {
         this.capacity = capacity;
+    }
+
+    public long getBufferLimit() {
+        return bufferLimit;
+    }
+
+    public void setBufferLimit(long bufferLimit) {
+        this.bufferLimit = bufferLimit;
     }
 }

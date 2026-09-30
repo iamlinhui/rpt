@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.8.1-blue.svg" alt="version"/>
+  <img src="https://img.shields.io/badge/version-2.8.2-blue.svg" alt="version"/>
   <img src="https://img.shields.io/badge/license-GPL-green.svg" alt="license"/>
   <img src="https://img.shields.io/badge/Java-8+-orange.svg" alt="java"/>
   <img src="https://img.shields.io/badge/Go-1.20+-00ADD8.svg" alt="go"/>
@@ -265,7 +265,11 @@ dashboardPassword: admin
 # ──── Per-channel backpressure (optional, defaults shown) ────
 highWater: 262144       # High water mark (bytes), default 256KB
 lowWater: 65536         # Low water mark (bytes), default 64KB
-capacity: 4194304       # Hard limit (bytes), default 4MB
+capacity: 4194304       # Warning threshold (bytes), default 4MB; logs only, never drops data
+bufferLimit: 0          # Absolute limit (bytes), default 0 = capacity × 8
+
+# UDP virtual session idle timeout (seconds, optional, default 300)
+udpSessionTimeout: 300
 
 # Client authorization token list
 token:
@@ -293,7 +297,9 @@ token:
 | `dashboardPassword` | String | - | Dashboard login password |
 | `highWater` | long | `262144` | Per-channel backpressure high water mark (bytes); sends PAUSE when reached |
 | `lowWater` | long | `65536` | Per-channel backpressure low water mark (bytes); sends RESUME when drained below |
-| `capacity` | long | `4194304` | Hard backlog limit per channel (bytes); closes channel when exceeded |
+| `capacity` | long | `4194304` | Per-channel backlog warning threshold (bytes): in-flight bursts before PAUSE takes effect may exceed it; logs a warning, never drops data |
+| `bufferLimit` | long | `0` | Per-channel absolute backlog limit (bytes); `0` means `capacity × 8`. Exceeding it means the peer ignores backpressure; the channel is aborted with RST |
+| `udpSessionTimeout` | long | `300` | UDP virtual session idle timeout (seconds); a session is reclaimed only after no datagram in either direction for this long. After reclaiming, the client switches to a new local source port, which breaks connection-oriented UDP protocols such as RDP-UDP; keep it above 70 |
 | `token[].clientKey` | String | - | Client authorization key (UUID) |
 | `token[].minPort` | int | `1024` | Minimum allowed port |
 | `token[].maxPort` | int | `65535` | Maximum allowed port |
@@ -323,7 +329,8 @@ clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
 tunnelCount: 4           # Number of shared data tunnels, default 4
 highWater: 262144         # High water mark (bytes), default 256KB
 lowWater: 65536           # Low water mark (bytes), default 64KB
-capacity: 4194304         # Hard limit (bytes), default 4MB
+capacity: 4194304         # Warning threshold (bytes), default 4MB; logs only, never drops data
+bufferLimit: 0            # Absolute limit (bytes), default 0 = capacity × 8
 
 # Port mapping config list
 config:
@@ -376,7 +383,8 @@ config:
 | `tunnelCount` | int | Number of shared data tunnels (default `4`) |
 | `highWater` | long | Per-channel backpressure high water mark (bytes, default `262144`); sends PAUSE when reached |
 | `lowWater` | long | Per-channel backpressure low water mark (bytes, default `65536`); sends RESUME when drained below |
-| `capacity` | long | Hard backlog limit per channel (bytes, default `4194304`); closes channel when exceeded |
+| `capacity` | long | Per-channel backlog warning threshold (bytes, default `4194304`): in-flight bursts before PAUSE takes effect may exceed it; logs a warning, never drops data |
+| `bufferLimit` | long | Per-channel absolute backlog limit (bytes, default `0` = `capacity × 8`). Exceeding it means the peer ignores backpressure; the channel is aborted with RST |
 | `config[].proxyType` | String | Proxy type: `TCP` / `UDP` / `HTTP` / `SOCKS5` |
 | `config[].localIp` | String | Intranet target service IP (SOCKS5 is dynamically specified by client, not needed) |
 | `config[].localPort` | int | Intranet target service port (SOCKS5 is dynamically specified by client, not needed) |
@@ -532,13 +540,13 @@ docker run -d \
 
 ```bash
 # rpt-server
-docker run -d --network host -v /opt/rpt/conf:/home/rpt/conf --restart=always --name rpt-server promptness/rpt-server:2.8.1
+docker run -d --network host -v /opt/rpt/conf:/home/rpt/conf --restart=always --name rpt-server promptness/rpt-server:2.8.2
 
 # rpt-client (Java)
-docker run -d --network host -v /opt/rpt/conf:/home/rpt/conf --restart=always --name rpt-client promptness/rpt-client:2.8.1
+docker run -d --network host -v /opt/rpt/conf:/home/rpt/conf --restart=always --name rpt-client promptness/rpt-client:2.8.2
 
 # rpt-client-go
-docker run -d --network host -v /opt/rpt/conf:/home/rpt/conf --restart=always --name rpt-client-go promptness/rpt-client-go:2.8.1
+docker run -d --network host -v /opt/rpt/conf:/home/rpt/conf --restart=always --name rpt-client-go promptness/rpt-client-go:2.8.2
 ```
 
 Docker Hub image addresses:
@@ -587,7 +595,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/rpt-client
-ExecStart=/usr/bin/java -server -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Dnetworkaddress.cache.ttl=600 -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -Duser.timezone=Asia/Shanghai -Dclient.encoding.override=UTF-8 -Dfile.encoding=UTF-8 -Xbootclasspath/a:./conf -jar rpt-client-2.8.1.jar
+ExecStart=/usr/bin/java -server -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Dnetworkaddress.cache.ttl=600 -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -Duser.timezone=Asia/Shanghai -Dclient.encoding.override=UTF-8 -Dfile.encoding=UTF-8 -Xbootclasspath/a:./conf -jar rpt-client-2.8.2.jar
 Restart=always
 RestartSec=5
 
