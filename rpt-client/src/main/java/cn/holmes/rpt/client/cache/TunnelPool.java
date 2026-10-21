@@ -55,7 +55,7 @@ public class TunnelPool {
     public void init(Channel control, String serverId) {
         control.attr(Client.SERVER_ID).set(serverId);
         int tunnelCount = Math.max(1, Math.min(ConfigHolder.getClientConfig().getTunnelCount(), 16));
-        logger.info("客户端开始建立{}条共享数据隧道", tunnelCount);
+        logger.info("[tunnel] establishing {} shared data tunnels", tunnelCount);
         for (int i = 0; i < tunnelCount; i++) {
             connect(control, serverId, 0);
         }
@@ -130,11 +130,11 @@ public class TunnelPool {
                 message.setMeta(new Meta().setClientKey(clientConfig.getClientKey()).setServerId(serverId));
                 tunnel.writeAndFlush(message);
                 tunnels.add(tunnel);
-                logger.info("客户端共享数据隧道建立成功,当前隧道数:{}", tunnels.size());
+                logger.info("[tunnel] shared data tunnel established, current count: {}", tunnels.size());
                 return;
             }
             int retryTime = Math.min(backoff + 3, RECONNECT_BACKOFF_LIMIT);
-            logger.info("客户端共享数据隧道建立失败:{},{}秒后重试", future.cause().getMessage(), retryTime);
+            logger.info("[tunnel] failed to establish shared data tunnel: {}, retrying in {}s", future.cause().getMessage(), retryTime);
             poolGroup.schedule(() -> connect(control, serverId, retryTime), retryTime, TimeUnit.SECONDS);
         });
     }

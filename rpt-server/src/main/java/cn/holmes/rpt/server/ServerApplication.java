@@ -75,9 +75,9 @@ public class ServerApplication extends Application<ServerBootstrap> {
         ServerConfig serverConfig = ConfigHolder.getServerConfig();
         bootstrap.bind(serverConfig.getServerIp(), serverConfig.getServerPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
-                logger.info("服务端启动成功,本机绑定IP:{},服务端口:{}", serverConfig.getServerIp(), serverConfig.getServerPort());
+                logger.info("[server] started, bound to {}:{}", serverConfig.getServerIp(), serverConfig.getServerPort());
             } else {
-                logger.info("服务端启动失败,本机绑定IP:{},服务端口:{},原因:{}", serverConfig.getServerIp(), serverConfig.getServerPort(), future.cause().getMessage());
+                logger.info("[server] failed to start on {}:{}: {}", serverConfig.getServerIp(), serverConfig.getServerPort(), future.cause().getMessage());
                 this.stop();
             }
         });

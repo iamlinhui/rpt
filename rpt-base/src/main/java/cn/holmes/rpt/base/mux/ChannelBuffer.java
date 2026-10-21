@@ -177,7 +177,7 @@ public final class ChannelBuffer {
         if (!pending.isEmpty() && bytes + size > limit) {
             // PAUSE 发出后仍会有一整条隧道管道（出站缓冲 + 两端内核缓冲）的在途数据到达，超过 capacity 属正常；
             // 超过绝对上限说明对端没有遵守背压。这些字节已在 TCP 层向发送方 ACK 过，无法补发，以 RST 告知接收方传输失败。
-            logger.warn("通道积压超过绝对上限{}字节，放弃该通道,target:{}", limit, target);
+            logger.warn("Channel backlog exceeded hard limit of {} bytes, aborting channel, target: {}", limit, target);
             data.release();
             abort();
             return;
@@ -186,7 +186,7 @@ public final class ChannelBuffer {
         bytes += size;
         if (!warned && bytes > capacity) {
             warned = true;
-            logger.warn("通道积压{}字节超过capacity{}字节，对端背压响应偏慢,target:{}", bytes, capacity, target);
+            logger.warn("Channel backlog {} bytes exceeded capacity {} bytes, peer is slow to honor backpressure, target: {}", bytes, capacity, target);
         }
         if (!paused && bytes >= highWater) {
             paused = true;
@@ -258,7 +258,7 @@ public final class ChannelBuffer {
         if (++stalledChecks < DRAIN_CHECKS) {
             return;
         }
-        logger.warn("通道关闭排空停滞超过{}ms，放弃剩余{}字节,target:{}", drainTimeoutMillis, now, target);
+        logger.warn("Channel drain stalled for more than {}ms, discarding remaining {} bytes, target: {}", drainTimeoutMillis, now, target);
         abort();
     }
 

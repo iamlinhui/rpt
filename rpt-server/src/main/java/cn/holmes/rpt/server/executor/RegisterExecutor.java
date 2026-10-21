@@ -59,10 +59,10 @@ public class RegisterExecutor implements MessageExecutor {
         context.channel().attr(Server.CLIENT_KEY).set(String.valueOf(meta.getClientKey()));
 
         if (!ConfigHolder.getServerConfig().authorize(meta.getClientKey())) {
-            logger.info("授权失败,客户端使用的秘钥:{}", meta.getClientKey());
+            logger.info("[register] authorization failed, clientKey: {}", meta.getClientKey());
             Message res = new Message();
             res.setType(MessageType.TYPE_AUTH);
-            res.setMeta(meta.setConnection(false).setRemoteResult(Collections.singletonList("秘钥授权失败")));
+            res.setMeta(meta.setConnection(false).setRemoteResult(Collections.singletonList("Invalid client key")));
             context.writeAndFlush(res).addListener(ChannelFutureListener.CLOSE);
             return;
         }
@@ -75,7 +75,7 @@ public class RegisterExecutor implements MessageExecutor {
             channelFuture.addListener(ChannelFutureListener.CLOSE);
             return;
         }
-        logger.info("授权注册成功,客户端使用的秘钥:{}", meta.getClientKey());
+        logger.info("[register] authorization succeeded, clientKey: {}", meta.getClientKey());
         ServerChannelCache.getServerChannelMap().put(context.channel().id().asLongText(), context.channel());
         context.channel().attr(Server.SERVER_ID).set(context.channel().id().asLongText());
         context.channel().attr(Server.CHANNELS).setIfAbsent(new ConcurrentHashMap<>(1024));
@@ -114,34 +114,34 @@ public class RegisterExecutor implements MessageExecutor {
         }
         boolean await = countDownLatch.await(3, TimeUnit.SECONDS);
         if (!await) {
-            logger.info("服务端处理注册请求超时,客户端秘钥:{}", meta.getClientKey());
-            meta.setConnection(false).addRemoteResult("服务端处理注册请求超时");
+            logger.info("[register] timed out waiting for registration, clientKey: {}", meta.getClientKey());
+            meta.setConnection(false).addRemoteResult("Server timed out processing the registration request");
         }
     }
 
     private void registerHttp(Channel serverChannel, Meta meta, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {
         if (ConfigHolder.getServerConfig().getHttpPort() == 0) {
-            meta.setConnection(false).addRemoteResult("服务端未开启HTTP穿透功能");
+            meta.setConnection(false).addRemoteResult("HTTP tunneling is not enabled on the server");
             countDownLatch.countDown();
             return;
         }
         if (!StringUtils.hasText(remoteConfig.getDomain())) {
-            meta.setConnection(false).addRemoteResult(String.format("服务端绑定域名[%s]不合法", remoteConfig.getDomain()));
+            meta.setConnection(false).addRemoteResult(String.format("Invalid domain to bind on server [%s]", remoteConfig.getDomain()));
             countDownLatch.countDown();
             return;
         }
-        logger.info("服务端开始绑定域名[{}]", remoteConfig.getDomain());
+        logger.info("[register] binding domain [{}]", remoteConfig.getDomain());
         // 域名不区分大小写
         ServerChannelCache.getServerDomainChannelMap().compute(remoteConfig.getDomain().toLowerCase(), (domain, channel) -> {
             if (channel != null) {
-                meta.setConnection(false).addRemoteResult(String.format("服务端绑定域名[%s]重复", domain));
+                meta.setConnection(false).addRemoteResult(String.format("Domain [%s] is already bound on server", domain));
                 return channel;
             }
             serverChannel.attr(Server.DOMAIN).get().add(domain);
             if (StringUtils.hasText(remoteConfig.getToken())) {
                 ServerChannelCache.getServerDomainToken().put(domain, remoteConfig.getToken());
             }
-            meta.addRemoteResult(String.format("服务端绑定域名[%s]成功", domain));
+            meta.addRemoteResult(String.format("Domain [%s] bound on server", domain));
             return serverChannel;
         });
         countDownLatch.countDown();
@@ -157,13 +157,13 @@ public class RegisterExecutor implements MessageExecutor {
 
     private void bindTcpPort(Channel serverChannel, Meta meta, RemoteConfig remoteConfig, CountDownLatch countDownLatch, ProxyType proxyType, Supplier<ChannelHandler> tailHandlerFactory) {
         if (remoteConfig.getRemotePort() == 0 || remoteConfig.getRemotePort() == ConfigHolder.getServerConfig().getServerPort() || remoteConfig.getRemotePort() == ConfigHolder.getServerConfig().getHttpPort() || remoteConfig.getRemotePort() == ConfigHolder.getServerConfig().getDashboardPort()) {
-            meta.setConnection(false).addRemoteResult(String.format("需要绑定的%s端口[%s]不合法", proxyType, remoteConfig.getRemotePort()));
+            meta.setConnection(false).addRemoteResult(String.format("Invalid %s port to bind [%s]", proxyType, remoteConfig.getRemotePort()));
             countDownLatch.countDown();
             return;
         }
         ServerToken serverToken = ConfigHolder.getServerConfig().getServerToken(meta.getClientKey());
         if (!serverToken.authorize(remoteConfig.getRemotePort())) {
-            meta.setConnection(false).addRemoteResult(String.format("需要绑定的%s端口[%s]范围不合法", proxyType, remoteConfig.getRemotePort()));
+            meta.setConnection(false).addRemoteResult(String.format("Out-of-range %s port to bind [%s]", proxyType, remoteConfig.getRemotePort()));
             countDownLatch.countDown();
             return;
         }
@@ -179,14 +179,14 @@ public class RegisterExecutor implements MessageExecutor {
             }
         });
 
-        logger.info("服务端开始建立{}端口绑定[{}]", proxyType, remoteConfig.getRemotePort());
+        logger.info("[register] binding {} port [{}]", proxyType, remoteConfig.getRemotePort());
         remoteBootstrap.bind(ConfigHolder.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).addListener((ChannelFutureListener) channelFuture -> {
             if (channelFuture.isSuccess()) {
                 serverChannel.attr(Server.TCP_PORT_CHANNEL_FUTURE).get().put(remoteConfig.getRemotePort(), channelFuture);
-                meta.addRemoteResult(String.format("服务端绑定%s端口[%s]成功", proxyType, remoteConfig.getRemotePort()));
+                meta.addRemoteResult(String.format("%s port [%s] bound on server", proxyType, remoteConfig.getRemotePort()));
             } else {
-                logger.info("服务端失败建立{}端口绑定[{}], {}", proxyType, remoteConfig.getRemotePort(), channelFuture.cause().getMessage());
-                meta.setConnection(false).addRemoteResult(String.format("服务端绑定%s端口[%s]失败,原因:%s", proxyType, remoteConfig.getRemotePort(), channelFuture.cause().getMessage()));
+                logger.info("[register] failed to bind {} port [{}]: {}", proxyType, remoteConfig.getRemotePort(), channelFuture.cause().getMessage());
+                meta.setConnection(false).addRemoteResult(String.format("Failed to bind %s port [%s] on server: %s", proxyType, remoteConfig.getRemotePort(), channelFuture.cause().getMessage()));
             }
             countDownLatch.countDown();
         });
@@ -194,13 +194,13 @@ public class RegisterExecutor implements MessageExecutor {
 
     private void registerUdp(Channel serverChannel, Meta meta, RemoteConfig remoteConfig, CountDownLatch countDownLatch) {
         if (remoteConfig.getRemotePort() == 0 || remoteConfig.getRemotePort() == ConfigHolder.getServerConfig().getServerPort() || remoteConfig.getRemotePort() == ConfigHolder.getServerConfig().getHttpPort() || remoteConfig.getRemotePort() == ConfigHolder.getServerConfig().getDashboardPort()) {
-            meta.setConnection(false).addRemoteResult(String.format("需要绑定的UDP端口[%s]不合法", remoteConfig.getRemotePort()));
+            meta.setConnection(false).addRemoteResult(String.format("Invalid UDP port to bind [%s]", remoteConfig.getRemotePort()));
             countDownLatch.countDown();
             return;
         }
         ServerToken serverToken = ConfigHolder.getServerConfig().getServerToken(meta.getClientKey());
         if (!serverToken.authorize(remoteConfig.getRemotePort())) {
-            meta.setConnection(false).addRemoteResult(String.format("需要绑定的UDP端口[%s]范围不合法", remoteConfig.getRemotePort()));
+            meta.setConnection(false).addRemoteResult(String.format("Out-of-range UDP port to bind [%s]", remoteConfig.getRemotePort()));
             countDownLatch.countDown();
             return;
         }
@@ -219,14 +219,14 @@ public class RegisterExecutor implements MessageExecutor {
                     }
                 });
 
-        logger.info("服务端开始建立UDP端口绑定[{}]", remoteConfig.getRemotePort());
+        logger.info("[register] binding UDP port [{}]", remoteConfig.getRemotePort());
         udpBootstrap.bind(ConfigHolder.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).addListener((ChannelFutureListener) channelFuture -> {
             if (channelFuture.isSuccess()) {
                 serverChannel.attr(Server.UDP_PORT_CHANNEL_FUTURE).get().put(remoteConfig.getRemotePort(), channelFuture);
-                meta.addRemoteResult(String.format("服务端绑定UDP端口[%s]成功", remoteConfig.getRemotePort()));
+                meta.addRemoteResult(String.format("UDP port [%s] bound on server", remoteConfig.getRemotePort()));
             } else {
-                logger.info("服务端失败建立UDP端口绑定[{}], {}", remoteConfig.getRemotePort(), channelFuture.cause().getMessage());
-                meta.setConnection(false).addRemoteResult(String.format("服务端绑定UDP端口[%s]失败,原因:%s", remoteConfig.getRemotePort(), channelFuture.cause().getMessage()));
+                logger.info("[register] failed to bind UDP port [{}]: {}", remoteConfig.getRemotePort(), channelFuture.cause().getMessage());
+                meta.setConnection(false).addRemoteResult(String.format("Failed to bind UDP port [%s] on server: %s", remoteConfig.getRemotePort(), channelFuture.cause().getMessage()));
             }
             countDownLatch.countDown();
         });

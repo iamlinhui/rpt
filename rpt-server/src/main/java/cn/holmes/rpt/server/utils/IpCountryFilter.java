@@ -50,10 +50,10 @@ public class IpCountryFilter implements IpFilterRule {
             if (in != null) {
                 r = new Reader(in);
             } else {
-                logger.warn("未找到 Country.mmdb，国家白名单过滤将放行所有连接");
+                logger.warn("Country.mmdb not found, country whitelist filtering will allow all connections");
             }
         } catch (IOException e) {
-            logger.error("加载Country.mmdb失败: {}", e.getMessage());
+            logger.error("Failed to load Country.mmdb: {}", e.getMessage());
         }
         this.reader = r;
     }
@@ -86,7 +86,7 @@ public class IpCountryFilter implements IpFilterRule {
         }
         this.whitelist = Collections.unmodifiableSet(set);
         cache.invalidateAll();
-        logger.info("国家白名单已更新: {}", set.isEmpty() ? "(空，不限制)" : set);
+        logger.info("Country whitelist updated: {}", set.isEmpty() ? "(empty, unrestricted)" : set);
     }
 
     @Override
@@ -115,12 +115,12 @@ public class IpCountryFilter implements IpFilterRule {
             }
             boolean reject = !whitelist.contains(iso);
             if (reject) {
-                logger.info("国家白名单拒绝连接: ip={}, country={}, 白名单={}",
+                logger.info("Connection rejected by country whitelist: ip={}, country={}, whitelist={}",
                         remoteAddress.getAddress().getHostAddress(), iso, whitelist);
             }
             return reject;
         } catch (IOException e) {
-            logger.error("IP地理位置查询失败: {}", e.getMessage());
+            logger.error("IP geolocation lookup failed: {}", e.getMessage());
             return false;
         }
     }

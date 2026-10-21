@@ -29,11 +29,11 @@ public class AuthExecutor implements MessageExecutor {
         }
         boolean connection = message.getMeta().isConnection();
         if (connection) {
-            logger.info("连接成功,当前秘钥:{}", message.getMeta().getClientKey());
+            logger.info("[auth] connected successfully, clientKey: {}", message.getMeta().getClientKey());
             context.channel().attr(Client.CHANNELS).setIfAbsent(new ConcurrentHashMap<>(1024));
             TunnelPool.getInstance().init(context.channel(), message.getMeta().getServerId());
             return;
         }
-        logger.info("连接失败,当前秘钥:{}", message.getMeta().getClientKey());
+        logger.info("[auth] connection rejected, clientKey: {}", message.getMeta().getClientKey());
     }
 }

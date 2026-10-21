@@ -69,10 +69,10 @@ public class ConfigHolder {
             try (InputStream resource = Files.newInputStream(new File(configPath).toPath())) {
                 return new Yaml().loadAs(resource, clazz);
             } catch (Exception e) {
-                logger.error("解析配置文件{}异常", configPath);
+                logger.error("Failed to parse config file: {}", configPath, e);
             }
         } catch (Exception e) {
-            logger.error("解析启动参数异常");
+            logger.error("Failed to parse startup arguments", e);
         }
         return null;
     }

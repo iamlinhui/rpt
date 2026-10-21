@@ -61,7 +61,7 @@ public class Socks5Handler extends SimpleChannelInboundHandler<Socks5Message> {
     private void handleInit(ChannelHandlerContext ctx, Socks5InitialRequest req) {
         if (requireAuth) {
             if (!req.authMethods().contains(Socks5AuthMethod.PASSWORD)) {
-                logger.info("socks5 客户端未提供 PASSWORD 方式, remote={}", ctx.channel().remoteAddress());
+                logger.info("[socks5] client did not offer PASSWORD auth, remote={}", ctx.channel().remoteAddress());
                 failAndClose(ctx, new DefaultSocks5InitialResponse(Socks5AuthMethod.UNACCEPTED));
                 return;
             }
@@ -77,7 +77,7 @@ public class Socks5Handler extends SimpleChannelInboundHandler<Socks5Message> {
         boolean ok = checkCredential(req.username(), req.password());
         ctx.writeAndFlush(new DefaultSocks5PasswordAuthResponse(ok ? Socks5PasswordAuthStatus.SUCCESS : Socks5PasswordAuthStatus.FAILURE));
         if (!ok) {
-            logger.info("socks5 账密认证失败, user={}, remote={}", req.username(), ctx.channel().remoteAddress());
+            logger.info("[socks5] username/password authentication failed, user={}, remote={}", req.username(), ctx.channel().remoteAddress());
             ctx.close();
             return;
         }
@@ -86,19 +86,19 @@ public class Socks5Handler extends SimpleChannelInboundHandler<Socks5Message> {
 
     private void handleCmd(ChannelHandlerContext ctx, Socks5CommandRequest req) {
         if (req.type() != Socks5CommandType.CONNECT) {
-            logger.info("socks5 不支持的命令 {}, remote={}", req.type(), ctx.channel().remoteAddress());
+            logger.info("[socks5] unsupported command {}, remote={}", req.type(), ctx.channel().remoteAddress());
             failAndClose(ctx, new DefaultSocks5CommandResponse(Socks5CommandStatus.COMMAND_UNSUPPORTED, Socks5AddressType.IPv4));
             return;
         }
         String host = req.dstAddr();
         int port = req.dstPort();
         if (host == null || host.isEmpty() || port <= 0 || port > 65535) {
-            logger.info("socks5 非法目标 host={} port={}, remote={}", host, port, ctx.channel().remoteAddress());
+            logger.info("[socks5] invalid target host={} port={}, remote={}", host, port, ctx.channel().remoteAddress());
             failAndClose(ctx, new DefaultSocks5CommandResponse(Socks5CommandStatus.FAILURE, Socks5AddressType.IPv4));
             return;
         }
         ctx.channel().attr(Server.DYNAMIC_TARGET).set(new Endpoint(host, port));
-        logger.debug("socks5 握手成功, target={}:{}", host, port);
+        logger.debug("[socks5] handshake complete, target={}:{}", host, port);
         ctx.channel().config().setAutoRead(false);
         ctx.writeAndFlush(new DefaultSocks5CommandResponse(Socks5CommandStatus.SUCCESS, Socks5AddressType.IPv4)).addListener((ChannelFutureListener) future -> {
             if (!future.isSuccess()) {
@@ -133,9 +133,9 @@ public class Socks5Handler extends SimpleChannelInboundHandler<Socks5Message> {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         if (cause instanceof ReadTimeoutException) {
-            logger.info("socks5 握手超时关闭, remote={}", ctx.channel().remoteAddress());
+            logger.info("[socks5] handshake timed out, closing, remote={}", ctx.channel().remoteAddress());
         } else {
-            logger.info("socks5 握手异常, remote={}, {}", ctx.channel().remoteAddress(), cause.getMessage());
+            logger.info("[socks5] handshake error, remote={}, {}", ctx.channel().remoteAddress(), cause.getMessage());
         }
         ctx.close();
     }

@@ -54,9 +54,9 @@ public class HttpApplication extends Application<ServerBootstrap> {
         }
         httpBootstrap.bind(serverConfig.getServerIp(), serverConfig.getHttpPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
-                logger.info("服务端启动成功,本机绑定IP:{},Http端口:{}", serverConfig.getServerIp(), serverConfig.getHttpPort());
+                logger.info("[http] started, bound to {}:{}", serverConfig.getServerIp(), serverConfig.getHttpPort());
             } else {
-                logger.info("服务端启动失败,本机绑定IP:{},Http端口:{},原因:{}", serverConfig.getServerIp(), serverConfig.getHttpPort(), future.cause().getMessage());
+                logger.info("[http] failed to start on {}:{}: {}", serverConfig.getServerIp(), serverConfig.getHttpPort(), future.cause().getMessage());
                 this.stop();
             }
         });

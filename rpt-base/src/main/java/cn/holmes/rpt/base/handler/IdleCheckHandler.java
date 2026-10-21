@@ -21,12 +21,12 @@ public class IdleCheckHandler extends IdleStateHandler {
     @Override
     protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) throws Exception {
         if (IdleStateEvent.FIRST_WRITER_IDLE_STATE_EVENT == evt) {
-            logger.debug("{}秒未传输数据,发送心跳包", TimeUnit.MILLISECONDS.toSeconds(super.getWriterIdleTimeInMillis()));
+            logger.debug("No data sent for {}s, sending keepalive", TimeUnit.MILLISECONDS.toSeconds(super.getWriterIdleTimeInMillis()));
             Message proxyMessage = new Message();
             proxyMessage.setType(MessageType.TYPE_KEEPALIVE);
             ctx.channel().writeAndFlush(proxyMessage);
         } else if (IdleStateEvent.FIRST_READER_IDLE_STATE_EVENT == evt) {
-            logger.info("{}秒未收到数据,断开连接", TimeUnit.MILLISECONDS.toSeconds(super.getReaderIdleTimeInMillis()));
+            logger.info("No data received for {}s, closing connection", TimeUnit.MILLISECONDS.toSeconds(super.getReaderIdleTimeInMillis()));
             ctx.channel().close();
         }
         super.channelIdle(ctx, evt);

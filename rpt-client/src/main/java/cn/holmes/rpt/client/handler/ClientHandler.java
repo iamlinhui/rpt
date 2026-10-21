@@ -67,14 +67,14 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         Application<Bootstrap> application = ctx.channel().attr(Client.APPLICATION).getAndSet(null);
         if (Objects.nonNull(application)) {
             // 控制通道中断：关闭所有隧道与本地连接，整体重连
-            logger.info("客户端-服务端连接中断,{}:{}", ConfigHolder.getClientConfig().getServerIp(), ConfigHolder.getClientConfig().getServerPort());
+            logger.info("[client] connection to server lost, {}:{}", ConfigHolder.getClientConfig().getServerIp(), ConfigHolder.getClientConfig().getServerPort());
             TunnelPool.getInstance().closeAll();
             Optional.ofNullable(ctx.channel().attr(Client.CHANNELS).get()).ifPresent(this::clear);
             application.start(3);
             return;
         }
         // 共享数据隧道中断：关闭其上承载的会话本地连接，由隧道池自动补连
-        logger.info("客户端-共享数据隧道中断,当前隧道数:{}", TunnelPool.getInstance().size());
+        logger.info("[client] shared data tunnel closed, current tunnel count: {}", TunnelPool.getInstance().size());
         Channel controlChannel = ctx.channel().attr(Client.CONTROL).get();
         Map<String, Channel> channelMap = Objects.nonNull(controlChannel) ? controlChannel.attr(Client.CHANNELS).get() : null;
         Set<String> streamSet = ctx.channel().attr(Client.STREAM_SET).getAndSet(null);
@@ -107,7 +107,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        logger.info("客户端-服务端连接异常,{}", cause.getMessage());
+        logger.info("[client] connection to server error: {}", cause.getMessage());
         ctx.close();
     }
 }

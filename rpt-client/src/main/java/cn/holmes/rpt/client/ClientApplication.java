@@ -85,7 +85,7 @@ public class ClientApplication extends Application<Bootstrap> {
             return;
         }
         ClientConfig clientConfig = ConfigHolder.getClientConfig();
-        logger.info("客户端开始连接服务端IP:{},服务端端口:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
+        logger.info("[client] connecting to server {}:{}", clientConfig.getServerIp(), clientConfig.getServerPort());
         bootstrap.connect(clientConfig.getServerIp(), clientConfig.getServerPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
                 future.channel().attr(Attributes.Client.APPLICATION).set(this);
@@ -95,11 +95,11 @@ public class ClientApplication extends Application<Bootstrap> {
                 message.setMeta(new Meta(ConfigHolder.getClientConfig().getClientKey(), ConfigHolder.getClientConfig().getConfig()));
                 future.channel().writeAndFlush(message);
             } else {
-                logger.info("客户端失败连接服务端IP:{},服务端端口:{},原因:{}", clientConfig.getServerIp(), clientConfig.getServerPort(), future.cause().getMessage());
+                logger.info("[client] failed to connect to server {}:{}: {}", clientConfig.getServerIp(), clientConfig.getServerPort(), future.cause().getMessage());
                 try {
                     start(Math.min(backoff + 3, 300));
                 } catch (Exception e) {
-                    logger.error("调度重连失败", e);
+                    logger.error("[client] failed to schedule reconnect", e);
                 }
             }
         });

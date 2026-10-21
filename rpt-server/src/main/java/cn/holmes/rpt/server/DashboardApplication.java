@@ -50,9 +50,9 @@ public class DashboardApplication extends Application<ServerBootstrap> {
         }
         bootstrap.bind(serverConfig.getServerIp(), dashboardPort).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
-                logger.info("Dashboard启动成功,绑定IP:{},端口:{}", serverConfig.getServerIp(), dashboardPort);
+                logger.info("[dashboard] started, bound to {}:{}", serverConfig.getServerIp(), dashboardPort);
             } else {
-                logger.info("Dashboard启动失败,绑定IP:{},端口:{},原因:{}", serverConfig.getServerIp(), dashboardPort, future.cause().getMessage());
+                logger.info("[dashboard] failed to start on {}:{}: {}", serverConfig.getServerIp(), dashboardPort, future.cause().getMessage());
                 this.stop();
             }
         });

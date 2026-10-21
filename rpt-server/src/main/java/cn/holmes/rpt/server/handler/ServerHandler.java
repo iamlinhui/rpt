@@ -66,7 +66,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        logger.info("服务端-客户端连接异常,{}", cause.getMessage());
+        logger.info("[server] client connection error: {}", cause.getMessage());
         ctx.close();
     }
 
@@ -81,7 +81,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             closeTunnelStreams(ctx.channel());
             return;
         }
-        logger.info("服务端-客户端连接中断,{}", clientKey);
+        logger.info("[server] client connection closed, {}", clientKey);
         String serverId = ctx.channel().id().asLongText();
         ServerChannelCache.getServerChannelMap().remove(serverId);
         TrafficStatsCache.remove(serverId);
@@ -104,7 +104,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         if (Objects.isNull(streamSet)) {
             return;
         }
-        logger.info("服务端-数据隧道中断,serverId:{},承载会话数:{}", serverId, streamSet.size());
+        logger.info("[server] data tunnel closed, serverId: {}, sessions carried: {}", serverId, streamSet.size());
         for (String channelId : streamSet) {
             if (!streamSet.remove(channelId)) {
                 continue;

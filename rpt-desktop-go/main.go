@@ -129,7 +129,7 @@ func loadDesktopConfig() *DesktopConfig {
 func saveDesktopConfig(cfg *DesktopConfig) {
 	data, _ := yaml.Marshal(cfg)
 	if err := os.WriteFile(configFile, data, 0644); err != nil {
-		log.Printf("保存配置失败: %v", err)
+		log.Printf("failed to save config: %v", err)
 	}
 }
 
@@ -318,15 +318,15 @@ func (a *App) OpenURL(url string) {
 	switch runtime.GOOS {
 	case "windows":
 		if err := exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start(); err != nil {
-			log.Printf("打开链接失败: %v", err)
+			log.Printf("failed to open link: %v", err)
 		}
 	case "darwin":
 		if err := exec.Command("open", url).Start(); err != nil {
-			log.Printf("打开链接失败: %v", err)
+			log.Printf("failed to open link: %v", err)
 		}
 	default:
 		if err := exec.Command("xdg-open", url).Start(); err != nil {
-			log.Printf("打开链接失败: %v", err)
+			log.Printf("failed to open link: %v", err)
 		}
 	}
 }
@@ -374,13 +374,13 @@ func (a *App) Start() string {
 	a.done = make(chan struct{})
 	go func() {
 		defer close(a.done)
-		log.Printf("启动连接, server: %s:%d, clientKey: %s", a.cfg.ServerIp, a.cfg.ServerPort, a.cfg.ClientKey)
+		log.Printf("starting connection, server: %s:%d, clientKey: %s", a.cfg.ServerIp, a.cfg.ServerPort, a.cfg.ClientKey)
 		c.Run()
 		a.mu.Lock()
 		a.running = false
 		a.client = nil
 		a.mu.Unlock()
-		log.Println("连接已断开")
+		log.Println("connection closed")
 	}()
 	return ""
 }
@@ -398,7 +398,7 @@ func (a *App) Stop() {
 		select {
 		case <-done:
 		case <-time.After(5 * time.Second):
-			log.Println("停止超时，强制关闭")
+			log.Println("stop timed out, forcing shutdown")
 		}
 	}
 }
@@ -435,7 +435,7 @@ func resizePNG(data []byte, w, h int) []byte {
 
 // ==================== Log Adapter ====================
 
-const maxLogBufSize = 64 * 1024 // 64KB，超过则丢弃旧日志
+const maxLogBufSize = 64 * 1024 // 64KB, drop oldest logs beyond this
 
 type logAdapter struct{ app *App }
 
@@ -444,7 +444,7 @@ func (l *logAdapter) Write(p []byte) (int, error) {
 	l.app.logMu.Lock()
 	if l.app.logBuf.Len() > maxLogBufSize {
 		l.app.logBuf.Reset()
-		l.app.logBuf.WriteString("... 日志过多已截断 ...\n")
+		l.app.logBuf.WriteString("... too many logs, truncated ...\n")
 	}
 	l.app.logBuf.WriteString(line)
 	l.app.logMu.Unlock()
