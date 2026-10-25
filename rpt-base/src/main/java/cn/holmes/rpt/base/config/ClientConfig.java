@@ -1,7 +1,6 @@
 package cn.holmes.rpt.base.config;
 
 import java.util.List;
-import java.util.Objects;
 
 public class ClientConfig {
 
@@ -85,7 +84,7 @@ public class ClientConfig {
         }
         for (RemoteConfig remoteConfig : config) {
             ProxyType proxyType = remoteConfig.getProxyType();
-            if (Objects.equals(ProxyType.HTTP, proxyType) && Objects.equals(domain, remoteConfig.getDomain())) {
+            if (proxyType == ProxyType.HTTP && domain != null && domain.equalsIgnoreCase(remoteConfig.getDomain())) {
                 return remoteConfig;
             }
         }

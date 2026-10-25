@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -96,7 +97,7 @@ func (c *ClientConfig) resolvePath(value, fallback string) string {
 func (c *ClientConfig) GetHttpConfig(domain string) *RemoteConfig {
 	for i := range c.Config {
 		rc := &c.Config[i]
-		if rc.ProxyType == ProxyHTTP && rc.Domain == domain {
+		if rc.ProxyType == ProxyHTTP && strings.EqualFold(rc.Domain, domain) {
 			return rc
 		}
 	}

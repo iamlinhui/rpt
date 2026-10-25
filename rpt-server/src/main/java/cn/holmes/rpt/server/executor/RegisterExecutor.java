@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -132,7 +133,7 @@ public class RegisterExecutor implements MessageExecutor {
         }
         logger.info("[register] binding domain [{}]", remoteConfig.getDomain());
         // 域名不区分大小写
-        ServerChannelCache.getServerDomainChannelMap().compute(remoteConfig.getDomain().toLowerCase(), (domain, channel) -> {
+        ServerChannelCache.getServerDomainChannelMap().compute(remoteConfig.getDomain().toLowerCase(Locale.ROOT), (domain, channel) -> {
             if (channel != null) {
                 meta.setConnection(false).addRemoteResult(String.format("Domain [%s] is already bound on server", domain));
                 return channel;
@@ -206,18 +207,18 @@ public class RegisterExecutor implements MessageExecutor {
         }
         Bootstrap udpBootstrap = new Bootstrap();
         udpBootstrap.group(REMOTE_WORKER_GROUP).channel(NioDatagramChannel.class)
-                // 允许端口复用，避免快速重启时绑定失败（注意保证单实例）
-                .option(ChannelOption.SO_REUSEADDR, true)
-                // 数据报读缓冲固定 64KB：adaptive 在满载下翻倍/收缩会导致大包间歇性截断
-                .option(ChannelOption.RCVBUF_ALLOCATOR, new FixedRecvByteBufAllocator(65535))
-                .option(ChannelOption.SO_RCVBUF, 8 * 1024 * 1024)
-                .option(ChannelOption.SO_SNDBUF, 8 * 1024 * 1024)
-                .handler(new ChannelInitializer<DatagramChannel>() {
-                    @Override
-                    protected void initChannel(DatagramChannel channel) throws Exception {
-                        channel.pipeline().addLast(new UdpHandler(serverChannel, remoteConfig));
-                    }
-                });
+            // 允许端口复用，避免快速重启时绑定失败（注意保证单实例）
+            .option(ChannelOption.SO_REUSEADDR, true)
+            // 数据报读缓冲固定 64KB：adaptive 在满载下翻倍/收缩会导致大包间歇性截断
+            .option(ChannelOption.RCVBUF_ALLOCATOR, new FixedRecvByteBufAllocator(65535))
+            .option(ChannelOption.SO_RCVBUF, 8 * 1024 * 1024)
+            .option(ChannelOption.SO_SNDBUF, 8 * 1024 * 1024)
+            .handler(new ChannelInitializer<DatagramChannel>() {
+                @Override
+                protected void initChannel(DatagramChannel channel) throws Exception {
+                    channel.pipeline().addLast(new UdpHandler(serverChannel, remoteConfig));
+                }
+            });
 
         logger.info("[register] binding UDP port [{}]", remoteConfig.getRemotePort());
         udpBootstrap.bind(ConfigHolder.getServerConfig().getServerIp(), remoteConfig.getRemotePort()).addListener((ChannelFutureListener) channelFuture -> {

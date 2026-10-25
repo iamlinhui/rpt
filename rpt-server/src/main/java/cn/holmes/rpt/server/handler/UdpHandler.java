@@ -1,13 +1,13 @@
 package cn.holmes.rpt.server.handler;
 
+import cn.holmes.rpt.base.config.ConfigHolder;
 import cn.holmes.rpt.base.config.ProxyType;
 import cn.holmes.rpt.base.config.RemoteConfig;
+import cn.holmes.rpt.base.protocol.ChannelEvent;
 import cn.holmes.rpt.base.protocol.Message;
 import cn.holmes.rpt.base.protocol.MessageType;
 import cn.holmes.rpt.base.protocol.Meta;
-import cn.holmes.rpt.base.config.ConfigHolder;
 import cn.holmes.rpt.base.utils.Attributes.Server;
-import cn.holmes.rpt.base.protocol.ChannelEvent;
 import cn.holmes.rpt.server.cache.TrafficStatsCache;
 import cn.holmes.rpt.server.utils.IpCountryFilter;
 import io.netty.buffer.ByteBuf;
@@ -234,6 +234,8 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
     }
 
     private String toChannelId(InetSocketAddress address) {
-        return String.format("%s:%s", address.getAddress().getHostAddress(), address.getPort());
+        // 同一客户端的多个 UDP 监听端口共享控制通道的 CHANNELS 表；
+        // 会话 ID 必须同时包含监听端口，否则同一发送者访问两个端口会互相覆盖。
+        return remoteConfig.getRemotePort() + "|" + address.getAddress().getHostAddress() + ":" + address.getPort();
     }
 }
