@@ -26,6 +26,7 @@ import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledFuture;
@@ -58,12 +59,14 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
     private final Map<String, InetSocketAddress> senderAddressMap = new ConcurrentHashMap<>();
 
+    private final Map<InetSocketAddress, String> senderSessionMap = new ConcurrentHashMap<>();
+
     private final Map<String, Channel> proxyChannelMap = new ConcurrentHashMap<>();
 
     private final Map<String, Long> sessionCreatedMap = new ConcurrentHashMap<>();
 
     /**
-     * channelId → 代理建立前缓冲的数据（retain的ByteBuf）
+     * channelId → 代理建立前缓冲的数据（仅复制有效载荷，避免保留整个接收缓冲区）
      */
     private final Map<String, PendingPackets> channelBufferMap = new ConcurrentHashMap<>();
 
@@ -127,15 +130,18 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
             logger.info("UDP remote handler rejected sender: {}", sender);
             return;
         }
-        String channelId = toChannelId(sender);
-        ByteBuf data = packet.content().retainedDuplicate();
-        if (!senderAddressMap.containsKey(channelId) && !createSession(channelId, sender)) {
-            data.release();
-            return;
+        String channelId = senderSessionMap.get(sender);
+        boolean newSession = channelId == null;
+        if (newSession) {
+            channelId = createSession(sender);
+            if (channelId == null) {
+                return;
+            }
         }
+        ByteBuf data = packet.content();
         ctx.channel().attr(Server.UDP_LAST_ACTIVE).get().put(channelId, System.currentTimeMillis());
         TrafficStatsCache.recordIn(serverChannel.id().asLongText(), data.readableBytes());
-        if (!senderAddressMap.containsKey(channelId)) {
+        if (newSession) {
             // 缓冲数据，等待代理通道建立
             addToBuffer(channelId, data);
             // 通知客户端建立连接
@@ -146,7 +152,7 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
         // 已有会话，检查代理通道是否已建立
         Channel proxyChannel = proxyChannelMap.get(channelId);
         if (proxyChannel != null && proxyChannel.isActive()) {
-            sendMessage(proxyChannel, MessageType.TYPE_DATA, data, channelId);
+            sendMessage(proxyChannel, MessageType.TYPE_DATA, data.retainedDuplicate(), channelId);
         } else {
             // 代理通道尚未建立，缓冲数据
             addToBuffer(channelId, data);
@@ -159,6 +165,11 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
     private void bindProxy(String channelId, Channel tunnel) {
         InetSocketAddress address = senderAddressMap.get(channelId);
         if (address == null) {
+            // ACK可能在隧道线程查到会话后、投递到本线程前才过期；撤销反向索引并释放客户端旧流。
+            removeProxyBinding(channelId, tunnel);
+            if (tunnel.isActive()) {
+                sendMessage(tunnel, MessageType.TYPE_DISCONNECTED, Unpooled.EMPTY_BUFFER, channelId);
+            }
             return;
         }
         // 发送者地址按会话记录在共享的UDP本地通道上
@@ -182,7 +193,9 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
     private void removeSession(String channelId) {
         Optional.ofNullable(serverChannel.attr(Server.CHANNELS).get()).ifPresent(channelMap -> channelMap.remove(channelId));
         sessionCreatedMap.remove(channelId);
-        if (senderAddressMap.remove(channelId) != null) {
+        InetSocketAddress sender = senderAddressMap.remove(channelId);
+        if (sender != null) {
+            senderSessionMap.remove(sender, channelId);
             sessionQuota.releaseSession();
         }
         Map<String, InetSocketAddress> senders = udpChannel != null ? udpChannel.attr(Server.UDP_SENDERS).get() : null;
@@ -194,16 +207,21 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
         Optional.ofNullable(udpChannel).map(channel -> channel.attr(Server.UDP_LAST_ACTIVE).get()).ifPresent(lastActive -> lastActive.remove(channelId));
         Channel tunnel = proxyChannelMap.remove(channelId);
         // 通过隧道通知客户端断开该会话，隧道本身保持复用
-        if (tunnel != null && tunnel.isActive()) {
-            String serverId = serverChannel.id().asLongText();
-            Optional.ofNullable(tunnel.attr(Server.STREAM_SET).get()).ifPresent(streamSet -> {
-                // remove返回true才递减
-                if (streamSet.remove(channelId)) {
-                    TrafficStatsCache.decrementProxyChannels(serverId);
-                }
-            });
-            sendMessage(tunnel, MessageType.TYPE_DISCONNECTED, Unpooled.EMPTY_BUFFER, channelId);
+        if (tunnel != null) {
+            removeProxyBinding(channelId, tunnel);
+            if (tunnel.isActive()) {
+                sendMessage(tunnel, MessageType.TYPE_DISCONNECTED, Unpooled.EMPTY_BUFFER, channelId);
+            }
         }
+    }
+
+    private void removeProxyBinding(String channelId, Channel tunnel) {
+        Optional.ofNullable(tunnel.attr(Server.STREAM_SET).get()).ifPresent(streamSet -> {
+            // remove返回true才递减，避免与隧道关闭时的清理重复计数。
+            if (streamSet.remove(channelId)) {
+                TrafficStatsCache.decrementProxyChannels(serverChannel.id().asLongText());
+            }
+        });
     }
 
     @Override
@@ -226,18 +244,18 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
         }
     }
 
-    private boolean createSession(String channelId, InetSocketAddress sender) {
+    private String createSession(InetSocketAddress sender) {
         Map<String, Channel> localChannelMap = serverChannel.attr(Server.CHANNELS).get();
         if (localChannelMap == null || senderAddressMap.size() >= serverConfig.getUdpMaxSessionsPerPort() || !sessionQuota.acquireSession(serverConfig.getUdpMaxSessionsTotal())) {
-            return false;
+            return null;
         }
-        if (senderAddressMap.putIfAbsent(channelId, sender) != null) {
-            sessionQuota.releaseSession();
-            return true;
-        }
+        // 会话状态只在本UDP通道的eventLoop上创建、回收；重建时生成新的ID。
+        String channelId = toChannelId(sender);
+        senderAddressMap.put(channelId, sender);
+        senderSessionMap.put(sender, channelId);
         sessionCreatedMap.put(channelId, System.currentTimeMillis());
         localChannelMap.put(channelId, udpChannel);
-        return true;
+        return channelId;
     }
 
     private void addToBuffer(String channelId, ByteBuf data) {
@@ -245,10 +263,20 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
         synchronized (channelBufferMap) {
             PendingPackets buffer = channelBufferMap.computeIfAbsent(channelId, k -> new PendingPackets());
             if (buffer.packets.size() >= serverConfig.getUdpMaxBufferedPackets() || buffer.bytes + size > serverConfig.getUdpMaxBufferBytesPerSession() || bufferedBytes + size > serverConfig.getUdpMaxBufferBytesPerPort() || !sessionQuota.acquireBuffer(size, serverConfig.getUdpMaxBufferBytesTotal())) {
-                data.release();
                 return;
             }
-            buffer.packets.add(data);
+            ByteBuf copy = null;
+            try {
+                // 固定64KB的接收缓冲区不能直接retain：小包也会占住整块内存。
+                copy = Unpooled.copiedBuffer(data);
+                buffer.packets.add(copy);
+            } catch (RuntimeException | Error e) {
+                if (copy != null) {
+                    copy.release();
+                }
+                sessionQuota.releaseBuffer(size);
+                throw e;
+            }
             buffer.bytes += size;
             bufferedBytes += size;
         }
@@ -285,9 +313,8 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
     }
 
     private String toChannelId(InetSocketAddress address) {
-        // 同一客户端的多个 UDP 监听端口共享控制通道的 CHANNELS 表；
-        // 会话 ID 必须同时包含监听端口，否则同一发送者访问两个端口会互相覆盖。
-        return remoteConfig.getRemotePort() + "|" + address.getAddress().getHostAddress() + ":" + address.getPort();
+        // 同一客户端的多个 UDP 监听端口共享控制通道的 CHANNELS 表；监听端口区分不同入口，唯一后缀隔离超时重建前的迟到ACK、数据及断开消息。
+        return remoteConfig.getRemotePort() + "|" + address.getAddress().getHostAddress() + ":" + address.getPort() + "|" + UUID.randomUUID();
     }
 
     private static class PendingPackets {

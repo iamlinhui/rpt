@@ -46,6 +46,10 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                 if (Objects.isNull(localChannel)) {
                     continue;
                 }
+                // UDP监听通道由整个端口共享；拥塞时按会话丢包，不能暂停其他隧道上的会话。
+                if (Objects.equals(localChannel.attr(Server.PROXY_TYPE).get(), ProxyType.UDP)) {
+                    continue;
+                }
                 if (writable && Boolean.TRUE.equals(localChannel.attr(Server.PAUSED).get())) {
                     continue;
                 }
