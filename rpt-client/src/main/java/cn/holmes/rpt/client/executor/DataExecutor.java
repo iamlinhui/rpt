@@ -43,7 +43,11 @@ public class DataExecutor implements MessageExecutor {
         InetSocketAddress udpTarget = localChannel.attr(Client.UDP_TARGET).get();
         if (udpTarget != null) {
             // UDP: 数据报排队没有意义，直接转发，零拷贝
-            localChannel.writeAndFlush(new DatagramPacket(data, udpTarget));
+            if (localChannel.isWritable()) {
+                localChannel.writeAndFlush(new DatagramPacket(data, udpTarget));
+            } else {
+                data.release();
+            }
             return;
         }
         // TCP/HTTP: 经通道级缓冲区写出，慢的本地服务只堆自己的队列，不再拖停整条隧道

@@ -46,6 +46,32 @@ public class ServerConfig {
      */
     private long udpSessionTimeout = 300;
 
+    /**
+     * UDP单会话待建立代理时最多缓冲的数据报数量
+     */
+    private int udpMaxBufferedPackets = 128;
+
+    /**
+     * UDP单会话、单端口及全局待建立代理缓冲字节上限
+     */
+    private long udpMaxBufferBytesPerSession = 256 * 1024L;
+
+    private long udpMaxBufferBytesPerPort = 8 * 1024 * 1024L;
+
+    private long udpMaxBufferBytesTotal = 64 * 1024 * 1024L;
+
+    /**
+     * UDP单端口及全局虚拟会话上限
+     */
+    private int udpMaxSessionsPerPort = 1024;
+
+    private int udpMaxSessionsTotal = 4096;
+
+    /**
+     * UDP待建立代理会话超时（秒）
+     */
+    private long udpConnectTimeout = 10;
+
     public boolean authorize(String clientKey) {
         if (token == null || token.isEmpty()) {
             return false;
@@ -200,5 +226,61 @@ public class ServerConfig {
 
     public void setUdpSessionTimeout(long udpSessionTimeout) {
         this.udpSessionTimeout = udpSessionTimeout;
+    }
+
+    public int getUdpMaxBufferedPackets() {
+        return udpMaxBufferedPackets > 0 ? udpMaxBufferedPackets : 128;
+    }
+
+    public void setUdpMaxBufferedPackets(int udpMaxBufferedPackets) {
+        this.udpMaxBufferedPackets = udpMaxBufferedPackets;
+    }
+
+    public long getUdpMaxBufferBytesPerSession() {
+        return udpMaxBufferBytesPerSession > 0 ? udpMaxBufferBytesPerSession : 256 * 1024L;
+    }
+
+    public void setUdpMaxBufferBytesPerSession(long udpMaxBufferBytesPerSession) {
+        this.udpMaxBufferBytesPerSession = udpMaxBufferBytesPerSession;
+    }
+
+    public long getUdpMaxBufferBytesPerPort() {
+        return udpMaxBufferBytesPerPort > 0 ? udpMaxBufferBytesPerPort : 8 * 1024 * 1024L;
+    }
+
+    public void setUdpMaxBufferBytesPerPort(long udpMaxBufferBytesPerPort) {
+        this.udpMaxBufferBytesPerPort = udpMaxBufferBytesPerPort;
+    }
+
+    public long getUdpMaxBufferBytesTotal() {
+        return udpMaxBufferBytesTotal > 0 ? udpMaxBufferBytesTotal : 64 * 1024 * 1024L;
+    }
+
+    public void setUdpMaxBufferBytesTotal(long udpMaxBufferBytesTotal) {
+        this.udpMaxBufferBytesTotal = udpMaxBufferBytesTotal;
+    }
+
+    public int getUdpMaxSessionsPerPort() {
+        return udpMaxSessionsPerPort > 0 ? udpMaxSessionsPerPort : 1024;
+    }
+
+    public void setUdpMaxSessionsPerPort(int udpMaxSessionsPerPort) {
+        this.udpMaxSessionsPerPort = udpMaxSessionsPerPort;
+    }
+
+    public int getUdpMaxSessionsTotal() {
+        return udpMaxSessionsTotal > 0 ? udpMaxSessionsTotal : 4096;
+    }
+
+    public void setUdpMaxSessionsTotal(int udpMaxSessionsTotal) {
+        this.udpMaxSessionsTotal = udpMaxSessionsTotal;
+    }
+
+    public long getUdpConnectTimeout() {
+        return udpConnectTimeout > 0 ? udpConnectTimeout : 10;
+    }
+
+    public void setUdpConnectTimeout(long udpConnectTimeout) {
+        this.udpConnectTimeout = udpConnectTimeout;
     }
 }

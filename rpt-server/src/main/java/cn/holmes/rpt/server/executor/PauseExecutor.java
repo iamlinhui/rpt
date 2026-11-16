@@ -27,7 +27,7 @@ import java.util.Objects;
  */
 public class PauseExecutor implements MessageExecutor {
 
-    private static final Logger logger = LoggerFactory.getLogger(PauseExecutor.class);
+    private final Logger logger = LoggerFactory.getLogger(PauseExecutor.class);
 
     @Override
     public MessageType getMessageType() {
@@ -36,7 +36,7 @@ public class PauseExecutor implements MessageExecutor {
 
     @Override
     public void execute(ChannelHandlerContext context, Message message) throws Exception {
-        Channel localChannel = locate(message);
+        Channel localChannel = locate(context, message);
         if (Objects.isNull(localChannel)) {
             return;
         }
@@ -52,10 +52,16 @@ public class PauseExecutor implements MessageExecutor {
      * UDP 本地通道是按端口共享的 DatagramChannel，暂停它会连带停掉该端口上所有会话，
      * 因此 UDP 方向不参与通道级背压（数据报直写不排队，也不会积压）。
      */
-    static Channel locate(Message message) {
+    static Channel locate(ChannelHandlerContext context, Message message) {
+        if (Objects.isNull(message.getMeta())) {
+            return null;
+        }
         String serverId = message.getMeta().getServerId();
         String channelId = message.getMeta().getChannelId();
         if (Objects.isNull(serverId) || Objects.isNull(channelId)) {
+            return null;
+        }
+        if (!Objects.equals(context.channel().attr(Server.SERVER_ID).get(), serverId)) {
             return null;
         }
         Channel serverChannel = ServerChannelCache.getServerChannelMap().get(serverId);

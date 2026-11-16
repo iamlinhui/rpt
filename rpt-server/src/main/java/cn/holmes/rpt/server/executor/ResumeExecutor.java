@@ -21,7 +21,7 @@ import static cn.holmes.rpt.server.executor.PauseExecutor.locate;
  */
 public class ResumeExecutor implements MessageExecutor {
 
-    private static final Logger logger = LoggerFactory.getLogger(ResumeExecutor.class);
+    private final Logger logger = LoggerFactory.getLogger(ResumeExecutor.class);
 
     @Override
     public MessageType getMessageType() {
@@ -30,7 +30,7 @@ public class ResumeExecutor implements MessageExecutor {
 
     @Override
     public void execute(ChannelHandlerContext context, Message message) throws Exception {
-        Channel localChannel = locate(message);
+        Channel localChannel = locate(context, message);
         if (Objects.isNull(localChannel)) {
             return;
         }

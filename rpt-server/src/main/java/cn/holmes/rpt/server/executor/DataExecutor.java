@@ -59,7 +59,7 @@ public class DataExecutor implements MessageExecutor {
             // UDP本地通道按端口共享，无法挂per-session缓冲区，直接写出不排队
             Map<String, InetSocketAddress> senders = localChannel.attr(Server.UDP_SENDERS).get();
             InetSocketAddress udpSender = Objects.nonNull(senders) ? senders.get(meta.getChannelId()) : null;
-            if (udpSender == null) {
+            if (udpSender == null || !localChannel.isWritable()) {
                 data.release();
                 return;
             }

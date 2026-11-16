@@ -25,7 +25,7 @@ import java.util.Optional;
  */
 public class PauseExecutor implements MessageExecutor {
 
-    private static final Logger logger = LoggerFactory.getLogger(PauseExecutor.class);
+    private final Logger logger = LoggerFactory.getLogger(PauseExecutor.class);
 
     @Override
     public MessageType getMessageType() {

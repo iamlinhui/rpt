@@ -16,6 +16,16 @@ lowWater: 65536
 capacity: 4194304
 # UDP虚拟会话空闲超时（秒，默认300）：上下行都无数据报超过该值才回收。回收后客户端会换本地源端口，RDP-UDP等面向连接的协议会断流，不宜低于70
 udpSessionTimeout: 300
+# UDP待建立代理会话超时（秒，默认10）
+udpConnectTimeout: 10
+# UDP会话配额：单端口1024，全局4096
+udpMaxSessionsPerPort: 1024
+udpMaxSessionsTotal: 4096
+# UDP待建立代理缓冲配额：单会话128包/256KB，单端口8MB，全局64MB
+udpMaxBufferedPackets: 128
+udpMaxBufferBytesPerSession: 262144
+udpMaxBufferBytesPerPort: 8388608
+udpMaxBufferBytesTotal: 67108864
 token:
   - clientKey: b0cc39c7-1b78-4ff6-9486-020399f569e9
     minPort: 4000

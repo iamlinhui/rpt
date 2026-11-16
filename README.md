@@ -270,6 +270,13 @@ bufferLimit: 0          # 绝对上限（字节），默认 0 = capacity × 8
 
 # UDP虚拟会话空闲超时（秒，可选，默认300）
 udpSessionTimeout: 300
+udpConnectTimeout: 10
+udpMaxSessionsPerPort: 1024
+udpMaxSessionsTotal: 4096
+udpMaxBufferedPackets: 128
+udpMaxBufferBytesPerSession: 262144
+udpMaxBufferBytesPerPort: 8388608
+udpMaxBufferBytesTotal: 67108864
 
 # 客户端授权Token列表
 token:
@@ -300,6 +307,13 @@ token:
 | `capacity` | long | `4194304` | 单通道积压告警线（字节）：PAUSE 生效前的在途突发可能越过该值，只告警不丢数据 |
 | `bufferLimit` | long | `0` | 单通道积压绝对上限（字节），`0` 表示取 `capacity × 8`；超过说明对端未遵守背压，以 RST 放弃该通道 |
 | `udpSessionTimeout` | long | `300` | UDP 虚拟会话空闲超时（秒），上下行都无数据报超过该值才回收会话。回收后客户端会换本地源端口，RDP-UDP 等面向连接的 UDP 协议会断流，不宜低于 70 |
+| `udpConnectTimeout` | long | `10` | UDP 待建立代理会话超时（秒） |
+| `udpMaxSessionsPerPort` | int | `1024` | 单个 UDP 端口允许的虚拟会话上限 |
+| `udpMaxSessionsTotal` | int | `4096` | 服务端全部 UDP 端口共享的虚拟会话上限 |
+| `udpMaxBufferedPackets` | int | `128` | 单个 UDP 会话待建立代理时最多缓冲的数据报数量 |
+| `udpMaxBufferBytesPerSession` | long | `262144` | 单个 UDP 会话待建立代理缓冲上限（字节） |
+| `udpMaxBufferBytesPerPort` | long | `8388608` | 单个 UDP 端口待建立代理总缓冲上限（字节） |
+| `udpMaxBufferBytesTotal` | long | `67108864` | 服务端全部 UDP 端口共享的待建立代理缓冲上限（字节） |
 | `token[].clientKey` | String | - | 客户端授权密钥 (UUID) |
 | `token[].minPort` | int | `1024` | 允许绑定的最小端口号 |
 | `token[].maxPort` | int | `65535` | 允许绑定的最大端口号 |

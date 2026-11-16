@@ -21,7 +21,7 @@ import static cn.holmes.rpt.client.executor.PauseExecutor.locate;
  */
 public class ResumeExecutor implements MessageExecutor {
 
-    private static final Logger logger = LoggerFactory.getLogger(ResumeExecutor.class);
+    private final Logger logger = LoggerFactory.getLogger(ResumeExecutor.class);
 
     @Override
     public MessageType getMessageType() {

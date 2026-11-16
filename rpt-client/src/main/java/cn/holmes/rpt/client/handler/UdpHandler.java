@@ -48,7 +48,7 @@ public class UdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket packet) throws Exception {
-        if (!tunnel.isActive()) {
+        if (!tunnel.isActive() || !tunnel.isWritable()) {
             return;
         }
         tunnel.writeAndFlush(new Message(MessageType.TYPE_DATA, meta, packet.content().retainedDuplicate()));

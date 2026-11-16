@@ -270,6 +270,13 @@ bufferLimit: 0          # Absolute limit (bytes), default 0 = capacity × 8
 
 # UDP virtual session idle timeout (seconds, optional, default 300)
 udpSessionTimeout: 300
+udpConnectTimeout: 10
+udpMaxSessionsPerPort: 1024
+udpMaxSessionsTotal: 4096
+udpMaxBufferedPackets: 128
+udpMaxBufferBytesPerSession: 262144
+udpMaxBufferBytesPerPort: 8388608
+udpMaxBufferBytesTotal: 67108864
 
 # Client authorization token list
 token:
@@ -300,6 +307,13 @@ token:
 | `capacity` | long | `4194304` | Per-channel backlog warning threshold (bytes): in-flight bursts before PAUSE takes effect may exceed it; logs a warning, never drops data |
 | `bufferLimit` | long | `0` | Per-channel absolute backlog limit (bytes); `0` means `capacity × 8`. Exceeding it means the peer ignores backpressure; the channel is aborted with RST |
 | `udpSessionTimeout` | long | `300` | UDP virtual session idle timeout (seconds); a session is reclaimed only after no datagram in either direction for this long. After reclaiming, the client switches to a new local source port, which breaks connection-oriented UDP protocols such as RDP-UDP; keep it above 70 |
+| `udpConnectTimeout` | long | `10` | Timeout for UDP sessions waiting for proxy establishment (seconds) |
+| `udpMaxSessionsPerPort` | int | `1024` | Maximum virtual sessions per UDP port |
+| `udpMaxSessionsTotal` | int | `4096` | Maximum virtual sessions shared by all UDP ports |
+| `udpMaxBufferedPackets` | int | `128` | Maximum datagrams buffered per session while waiting for proxy establishment |
+| `udpMaxBufferBytesPerSession` | long | `262144` | Per-session pending UDP buffer limit in bytes |
+| `udpMaxBufferBytesPerPort` | long | `8388608` | Total pending UDP buffer limit per port in bytes |
+| `udpMaxBufferBytesTotal` | long | `67108864` | Total pending UDP buffer limit shared by all ports in bytes |
 | `token[].clientKey` | String | - | Client authorization key (UUID) |
 | `token[].minPort` | int | `1024` | Minimum allowed port |
 | `token[].maxPort` | int | `65535` | Maximum allowed port |

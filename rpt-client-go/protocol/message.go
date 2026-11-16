@@ -133,10 +133,13 @@ func DecodeMessage(r io.Reader) (*Message, error) {
 	msg := &Message{}
 	msg.Type = int(binary.BigEndian.Uint32(frameBuf[0:4]))
 	msg.Serialization = int(binary.BigEndian.Uint32(frameBuf[4:8]))
-	metaLen := int(binary.BigEndian.Uint32(frameBuf[8:12]))
+	metaLen := binary.BigEndian.Uint32(frameBuf[8:12])
+	if metaLen > uint32(len(frameBuf)-12) {
+		return nil, fmt.Errorf("invalid meta length: %d, frame length: %d", metaLen, frameLen)
+	}
 
 	if metaLen > 0 {
-		metaBytes := frameBuf[12 : 12+metaLen]
+		metaBytes := frameBuf[12 : 12+int(metaLen)]
 		meta := &Meta{}
 		if err := json.Unmarshal(metaBytes, meta); err != nil {
 			return nil, fmt.Errorf("unmarshal meta: %w", err)
@@ -144,7 +147,7 @@ func DecodeMessage(r io.Reader) (*Message, error) {
 		msg.Meta = meta
 	}
 
-	dataStart := 12 + metaLen
+	dataStart := 12 + int(metaLen)
 	if dataStart < len(frameBuf) {
 		msg.Data = frameBuf[dataStart:]
 	}

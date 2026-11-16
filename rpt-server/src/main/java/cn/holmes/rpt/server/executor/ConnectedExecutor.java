@@ -28,7 +28,13 @@ public class ConnectedExecutor implements MessageExecutor {
     @Override
     public void execute(ChannelHandlerContext context, Message message) throws Exception {
         Meta meta = message.getMeta();
+        if (Objects.isNull(meta)) {
+            return;
+        }
         String serverId = meta.getServerId();
+        if (!Objects.equals(context.channel().attr(Server.SERVER_ID).get(), serverId)) {
+            return;
+        }
         Channel serverChannel = ServerChannelCache.getServerChannelMap().get(serverId);
         if (Objects.isNull(serverChannel)) {
             return;

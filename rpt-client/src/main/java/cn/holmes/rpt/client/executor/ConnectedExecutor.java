@@ -23,7 +23,7 @@ import java.util.Objects;
 
 public class ConnectedExecutor implements MessageExecutor {
 
-    private static final EventLoopGroup LOOP_GROUP = new NioEventLoopGroup();
+    private final EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
 
     @Override
     public MessageType getMessageType() {
@@ -63,7 +63,7 @@ public class ConnectedExecutor implements MessageExecutor {
     private void connectTcp(Channel control, Channel tunnel, Meta meta) {
         RemoteConfig remoteConfig = meta.getRemoteConfig();
         Bootstrap localBootstrap = new Bootstrap();
-        localBootstrap.group(LOOP_GROUP).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
+        localBootstrap.group(eventLoopGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel channel) throws Exception {
                 channel.pipeline().addLast(new TcpHandler(control, tunnel, meta));
@@ -78,7 +78,7 @@ public class ConnectedExecutor implements MessageExecutor {
 
     private void connectUdp(Channel control, Channel tunnel, Meta meta) {
         Bootstrap udpBootstrap = new Bootstrap();
-        udpBootstrap.group(LOOP_GROUP).channel(NioDatagramChannel.class)
+        udpBootstrap.group(eventLoopGroup).channel(NioDatagramChannel.class)
                 // 数据报读缓冲固定 64KB，避免 adaptive 收缩导致大包截断
                 .option(ChannelOption.RCVBUF_ALLOCATOR, new FixedRecvByteBufAllocator(65535))
                 .option(ChannelOption.SO_RCVBUF, 8 * 1024 * 1024)
